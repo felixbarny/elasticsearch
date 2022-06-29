@@ -10,6 +10,7 @@ package org.elasticsearch.ingest;
 
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.SimpleDiffable;
+import org.elasticsearch.cluster.metadata.ComposableIndexTemplate;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -20,6 +21,7 @@ import org.elasticsearch.xcontent.ObjectParser;
 import org.elasticsearch.xcontent.ParseField;
 import org.elasticsearch.xcontent.ToXContentObject;
 import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentParser;
 import org.elasticsearch.xcontent.XContentType;
 
 import java.io.IOException;
@@ -93,7 +95,7 @@ public final class PipelineConfiguration implements SimpleDiffable<PipelineConfi
     }
 
     // pkg-private for tests
-    BytesReference getConfig() {
+    public BytesReference getConfig() {
         return config;
     }
 

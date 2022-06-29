@@ -1,0 +1,14 @@
+{
+  "template": {
+    "settings": {
+      "index": {
+        "default_pipeline": "logs-router-pipeline"
+      }
+    }
+  },
+  "_meta": {
+    "description": "default settings for the logs index template installed by x-pack",
+    "managed": true
+  },
+  "version": ${xpack.stack.template.version}
+}

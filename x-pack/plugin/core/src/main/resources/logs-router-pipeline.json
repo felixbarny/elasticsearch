@@ -1,0 +1,17 @@
+{
+  "processors": [
+    {
+      "dot_expander": {
+        "field": "*",
+        "override": true
+      }
+    },
+    {
+      "pipeline": {
+        "name": "logs-json-pipeline",
+        "if": "ctx.message?.startsWith('{') && ctx.message?.endsWith('}')"
+      }
+    }
+  ],
+  "version": ${xpack.stack.template.version}
+}

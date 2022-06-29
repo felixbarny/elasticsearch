@@ -13,6 +13,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.template.put.PutComponentTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.action.ingest.PutPipelineRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.internal.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -23,9 +24,12 @@ import org.elasticsearch.cluster.metadata.ComposableIndexTemplate;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.gateway.GatewayService;
+import org.elasticsearch.ingest.IngestMetadata;
+import org.elasticsearch.ingest.PipelineConfiguration;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.xcontent.NamedXContentRegistry;
 import org.elasticsearch.xcontent.XContentParserConfiguration;
@@ -36,6 +40,7 @@ import org.elasticsearch.xpack.core.ilm.LifecyclePolicy;
 import org.elasticsearch.xpack.core.ilm.action.PutLifecycleAction;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -62,6 +67,7 @@ public abstract class IndexTemplateRegistry implements ClusterStateListener {
     protected final ThreadPool threadPool;
     protected final NamedXContentRegistry xContentRegistry;
     protected final ClusterService clusterService;
+    protected final ConcurrentMap<String, AtomicBoolean> pipelineCreationsInProgress = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String, AtomicBoolean> templateCreationsInProgress = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String, AtomicBoolean> policyCreationsInProgress = new ConcurrentHashMap<>();
 
@@ -115,6 +121,10 @@ public abstract class IndexTemplateRegistry implements ClusterStateListener {
         return Map.of();
     }
 
+    protected Map<String, PipelineConfiguration> getPipelineConfigs() {
+        return Map.of();
+    }
+
     /**
      * Retrieves a list of {@link LifecyclePolicy} that represents the ILM
      * policies that should be installed and managed. Only called if ILM is enabled.
@@ -137,6 +147,10 @@ public abstract class IndexTemplateRegistry implements ClusterStateListener {
      */
     protected void onPutTemplateFailure(String templateName, Exception e) {
         logger.error(() -> format("error adding index template [%s] for [%s]", templateName, getOrigin()), e);
+    }
+
+    protected void onPutPipelineFailure(String templateName, Exception e) {
+        logger.error(() -> format("error adding ingest pipeline [%s] for [%s]", templateName, getOrigin()), e);
     }
 
     /**
@@ -175,6 +189,7 @@ public abstract class IndexTemplateRegistry implements ClusterStateListener {
         boolean localNodeVersionAfterMaster = localNode.getVersion().after(masterNode.getVersion());
 
         if (event.localNodeMaster() || localNodeVersionAfterMaster) {
+            addIngestPipelinesIfMissing(state);
             addTemplatesIfMissing(state);
             addIndexLifecyclePoliciesIfMissing(state);
         }
@@ -187,6 +202,88 @@ public abstract class IndexTemplateRegistry implements ClusterStateListener {
      */
     protected boolean requiresMasterNode() {
         return false;
+    }
+
+    private void addIngestPipelinesIfMissing(ClusterState state) {
+        final Map<String, PipelineConfiguration> pipelines = getPipelineConfigs();
+        for (Map.Entry<String, PipelineConfiguration> newPipelines : pipelines.entrySet()) {
+            final String pipelineName = newPipelines.getKey();
+            final AtomicBoolean creationCheck = pipelineCreationsInProgress.computeIfAbsent(pipelineName, key -> new AtomicBoolean(false));
+            if (creationCheck.compareAndSet(false, true)) {
+                Map<String, PipelineConfiguration> pipelinesInClusterState;
+                IngestMetadata ingestMetadata = state.metadata().<IngestMetadata>custom(IngestMetadata.TYPE);
+                if (ingestMetadata != null) {
+                    pipelinesInClusterState = ingestMetadata.getPipelines();
+                } else {
+                    pipelinesInClusterState = Map.of();
+                }
+                PipelineConfiguration pipelineConfiguration = pipelinesInClusterState.get(pipelineName);
+                if (Objects.isNull(pipelineConfiguration)) {
+                    logger.debug("adding ingest pipeline [{}] for [{}], because it doesn't exist", pipelineName, getOrigin());
+                    putPipeline(pipelineName, newPipelines.getValue(), creationCheck);
+                } else if (Objects.isNull(pipelineConfiguration.getVersion()) || newPipelines.getValue().getVersion() > pipelineConfiguration.getVersion()) {
+                    // IndexTemplateConfig now enforces templates contain a `version` property, so if the template doesn't have one we can
+                    // safely assume it's an old version of the template.
+                    logger.info(
+                        "upgrading ingest pipeline [{}] for [{}] from version [{}] to version [{}]",
+                        pipelineName,
+                        getOrigin(),
+                        pipelineConfiguration.getVersion(),
+                        newPipelines.getValue().getVersion()
+                    );
+                    putPipeline(pipelineName, newPipelines.getValue(), creationCheck);
+                } else {
+                    creationCheck.set(false);
+                    logger.trace(
+                        "not adding ingest pipeline [{}] for [{}], because it already exists at version [{}]",
+                        pipelineName,
+                        getOrigin(),
+                        pipelineConfiguration.getVersion()
+                    );
+                }
+            } else {
+                logger.trace(
+                    "skipping the creation of ingest pipeline [{}] for [{}], because its creation is in progress",
+                    pipelineName,
+                    getOrigin()
+                );
+            }
+        }
+    }
+
+    private void putPipeline(String pipelineName, PipelineConfiguration config, AtomicBoolean creationCheck) {
+        final Executor executor = threadPool.generic();
+        executor.execute(() -> {
+            final String templateName = config.getId();
+
+            PutPipelineRequest request = new PutPipelineRequest(pipelineName, config.getConfig(), XContentType.JSON);
+            request.masterNodeTimeout(TimeValue.timeValueMinutes(1));
+            executeAsyncWithOrigin(
+                client.threadPool().getThreadContext(),
+                getOrigin(),
+                request,
+                new ActionListener<AcknowledgedResponse>() {
+                    @Override
+                    public void onResponse(AcknowledgedResponse response) {
+                        creationCheck.set(false);
+                        if (response.isAcknowledged() == false) {
+                            logger.error(
+                                "error adding pipeline [{}] for [{}], request was not acknowledged",
+                                templateName,
+                                getOrigin()
+                            );
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        creationCheck.set(false);
+                        onPutPipelineFailure(templateName, e);
+                    }
+                },
+                client.admin().cluster()::putPipeline
+            );
+        });
     }
 
     private void addTemplatesIfMissing(ClusterState state) {
@@ -501,6 +598,12 @@ public abstract class IndexTemplateRegistry implements ClusterStateListener {
             } catch (IOException e) {
                 throw new AssertionError(e);
             }
+        }));
+    }
+
+    protected static Map<String, PipelineConfiguration> parsePipelines(IndexTemplateConfig... config) {
+        return Arrays.stream(config).collect(Collectors.toUnmodifiableMap(IndexTemplateConfig::getTemplateName, pipelineConfig -> {
+            return new PipelineConfiguration(pipelineConfig.getTemplateName(), BytesReference.fromByteBuffer(ByteBuffer.wrap(pipelineConfig.loadBytes())), XContentType.JSON);
         }));
     }
 
