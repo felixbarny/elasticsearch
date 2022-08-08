@@ -75,6 +75,7 @@ import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ScalingExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.tracing.Tracer;
 import org.elasticsearch.watcher.ResourceWatcherService;
 import org.elasticsearch.xcontent.NamedXContentRegistry;
 import org.elasticsearch.xcontent.ParseField;
@@ -91,6 +92,7 @@ import org.elasticsearch.xpack.core.ml.MlMetadata;
 import org.elasticsearch.xpack.core.ml.MlStatsIndex;
 import org.elasticsearch.xpack.core.ml.MlTasks;
 import org.elasticsearch.xpack.core.ml.action.CancelJobModelSnapshotUpgradeAction;
+import org.elasticsearch.xpack.core.ml.action.ClearDeploymentCacheAction;
 import org.elasticsearch.xpack.core.ml.action.CloseJobAction;
 import org.elasticsearch.xpack.core.ml.action.CreateTrainedModelAssignmentAction;
 import org.elasticsearch.xpack.core.ml.action.DeleteCalendarAction;
@@ -188,6 +190,7 @@ import org.elasticsearch.xpack.core.ml.job.snapshot.upgrade.SnapshotUpgradeTaskS
 import org.elasticsearch.xpack.core.ml.utils.ExceptionsHelper;
 import org.elasticsearch.xpack.core.template.TemplateUtils;
 import org.elasticsearch.xpack.ml.action.TransportCancelJobModelSnapshotUpgradeAction;
+import org.elasticsearch.xpack.ml.action.TransportClearDeploymentCacheAction;
 import org.elasticsearch.xpack.ml.action.TransportCloseJobAction;
 import org.elasticsearch.xpack.ml.action.TransportCreateTrainedModelAssignmentAction;
 import org.elasticsearch.xpack.ml.action.TransportDeleteCalendarAction;
@@ -278,6 +281,8 @@ import org.elasticsearch.xpack.ml.aggs.changepoint.ChangePointAggregationBuilder
 import org.elasticsearch.xpack.ml.aggs.changepoint.ChangePointNamedContentProvider;
 import org.elasticsearch.xpack.ml.aggs.correlation.BucketCorrelationAggregationBuilder;
 import org.elasticsearch.xpack.ml.aggs.correlation.CorrelationNamedContentProvider;
+import org.elasticsearch.xpack.ml.aggs.frequentitemsets.FrequentItemSetsAggregationBuilder;
+import org.elasticsearch.xpack.ml.aggs.frequentitemsets.FrequentItemSetsAggregatorFactory;
 import org.elasticsearch.xpack.ml.aggs.heuristic.PValueScore;
 import org.elasticsearch.xpack.ml.aggs.inference.InferencePipelineAggregationBuilder;
 import org.elasticsearch.xpack.ml.aggs.kstest.BucketCountKSTestAggregationBuilder;
@@ -343,6 +348,7 @@ import org.elasticsearch.xpack.ml.job.task.OpenJobPersistentTasksExecutor;
 import org.elasticsearch.xpack.ml.notifications.AnomalyDetectionAuditor;
 import org.elasticsearch.xpack.ml.notifications.DataFrameAnalyticsAuditor;
 import org.elasticsearch.xpack.ml.notifications.InferenceAuditor;
+import org.elasticsearch.xpack.ml.notifications.SystemAuditor;
 import org.elasticsearch.xpack.ml.process.DummyController;
 import org.elasticsearch.xpack.ml.process.MlController;
 import org.elasticsearch.xpack.ml.process.MlControllerHolder;
@@ -387,6 +393,7 @@ import org.elasticsearch.xpack.ml.rest.filter.RestDeleteFilterAction;
 import org.elasticsearch.xpack.ml.rest.filter.RestGetFiltersAction;
 import org.elasticsearch.xpack.ml.rest.filter.RestPutFilterAction;
 import org.elasticsearch.xpack.ml.rest.filter.RestUpdateFilterAction;
+import org.elasticsearch.xpack.ml.rest.inference.RestClearDeploymentCacheAction;
 import org.elasticsearch.xpack.ml.rest.inference.RestDeleteTrainedModelAction;
 import org.elasticsearch.xpack.ml.rest.inference.RestDeleteTrainedModelAliasAction;
 import org.elasticsearch.xpack.ml.rest.inference.RestGetTrainedModelsAction;
@@ -445,7 +452,7 @@ import static java.util.Collections.singletonList;
 import static org.elasticsearch.xpack.core.ClientHelper.ML_ORIGIN;
 import static org.elasticsearch.xpack.core.ml.job.persistence.AnomalyDetectorsIndexFields.RESULTS_INDEX_PREFIX;
 import static org.elasticsearch.xpack.core.ml.job.persistence.AnomalyDetectorsIndexFields.STATE_INDEX_PREFIX;
-import static org.elasticsearch.xpack.ml.inference.ingest.InferenceProcessor.Factory.countNumberInferenceProcessors;
+import static org.elasticsearch.xpack.ml.utils.InferenceProcessorInfoExtractor.countInferenceProcessors;
 
 public class MachineLearning extends Plugin
     implements
@@ -680,6 +687,7 @@ public class MachineLearning extends Plugin
         return node.getRoles().contains(DiscoveryNodeRole.ML_ROLE);
     }
 
+    @Override
     public List<Setting<?>> getSettings() {
         return List.of(
             MachineLearningField.AUTODETECT_PROCESS,
@@ -781,7 +789,8 @@ public class MachineLearning extends Plugin
         NodeEnvironment nodeEnvironment,
         NamedWriteableRegistry namedWriteableRegistry,
         IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<RepositoriesService> repositoriesServiceSupplier
+        Supplier<RepositoriesService> repositoriesServiceSupplier,
+        Tracer tracer
     ) {
         if (enabled == false) {
             // special holder for @link(MachineLearningFeatureSetUsage) which needs access to job manager, empty if ML is disabled
@@ -1070,7 +1079,13 @@ public class MachineLearning extends Plugin
             threadPool
         );
         trainedModelAllocationClusterServiceSetOnce.set(
-            new TrainedModelAssignmentClusterService(settings, clusterService, threadPool, new NodeLoadDetector(memoryTracker))
+            new TrainedModelAssignmentClusterService(
+                settings,
+                clusterService,
+                threadPool,
+                new NodeLoadDetector(memoryTracker),
+                new SystemAuditor(client, clusterService)
+            )
         );
 
         mlAutoscalingDeciderService.set(
@@ -1242,6 +1257,7 @@ public class MachineLearning extends Plugin
             new RestPutTrainedModelDefinitionPartAction(),
             new RestPutTrainedModelVocabularyAction(),
             new RestInferTrainedModelAction(),
+            new RestClearDeploymentCacheAction(),
             // CAT Handlers
             new RestCatJobsAction(),
             new RestCatTrainedModelsAction(),
@@ -1346,6 +1362,7 @@ public class MachineLearning extends Plugin
                 UpdateTrainedModelAssignmentRoutingInfoAction.INSTANCE,
                 TransportUpdateTrainedModelAssignmentStateAction.class
             ),
+            new ActionHandler<>(ClearDeploymentCacheAction.INSTANCE, TransportClearDeploymentCacheAction.class),
             usageAction,
             infoAction
         );
@@ -1458,7 +1475,13 @@ public class MachineLearning extends Plugin
                 CategorizeTextAggregationBuilder::new,
                 CategorizeTextAggregationBuilder.PARSER
             ).addResultReader(InternalCategorizationAggregation::new)
-                .setAggregatorRegistrar(s -> s.registerUsage(CategorizeTextAggregationBuilder.NAME))
+                .setAggregatorRegistrar(s -> s.registerUsage(CategorizeTextAggregationBuilder.NAME)),
+            new AggregationSpec(
+                FrequentItemSetsAggregationBuilder.NAME,
+                FrequentItemSetsAggregationBuilder::new,
+                FrequentItemSetsAggregationBuilder.PARSER
+            ).addResultReader(FrequentItemSetsAggregatorFactory.getResultReader())
+                .setAggregatorRegistrar(FrequentItemSetsAggregationBuilder::registerAggregators)
         );
     }
 
@@ -1590,6 +1613,7 @@ public class MachineLearning extends Plugin
         namedWriteables.addAll(MlAutoscalingNamedWritableProvider.getNamedWriteables());
         namedWriteables.addAll(new CorrelationNamedContentProvider().getNamedWriteables());
         namedWriteables.addAll(new ChangePointNamedContentProvider().getNamedWriteables());
+
         return namedWriteables;
     }
 
@@ -1910,7 +1934,7 @@ public class MachineLearning extends Plugin
 
         // validate no pipelines are using machine learning models
         ActionListener<AcknowledgedResponse> afterResetModeSet = ActionListener.wrap(acknowledgedResponse -> {
-            int numberInferenceProcessors = countNumberInferenceProcessors(clusterService.state());
+            int numberInferenceProcessors = countInferenceProcessors(clusterService.state());
             if (numberInferenceProcessors > 0) {
                 unsetResetModeListener.onFailure(
                     new RuntimeException(
