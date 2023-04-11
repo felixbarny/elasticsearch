@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import static org.elasticsearch.core.Strings.format;
 import static org.elasticsearch.ingest.ConfigurationUtils.newConfigurationException;
@@ -191,8 +192,12 @@ public final class RerouteProcessor extends AbstractProcessor {
      */
     static final class DataStreamValueSource {
 
-        private static final char[] DISALLOWED_IN_DATASET = new char[] { '\\', '/', '*', '?', '"', '<', '>', '|', ' ', ',', '#', ':', '-' };
-        private static final char[] DISALLOWED_IN_NAMESPACE = new char[] { '\\', '/', '*', '?', '"', '<', '>', '|', ' ', ',', '#', ':' };
+        private static final Pattern DISALLOWED_IN_DATASET = pattern(
+            new char[] { '\\', '/', '*', '?', '"', '<', '>', '|', ' ', ',', '#', ':', '-' }
+        );
+        private static final Pattern DISALLOWED_IN_NAMESPACE = pattern(
+            new char[] { '\\', '/', '*', '?', '"', '<', '>', '|', ' ', ',', '#', ':' }
+        );
         static final DataStreamValueSource DATASET_VALUE_SOURCE = dataset("{{" + DATA_STREAM_DATASET + "}}");
         static final DataStreamValueSource NAMESPACE_VALUE_SOURCE = namespace("{{" + DATA_STREAM_NAMESPACE + "}}");
 
@@ -208,16 +213,17 @@ public final class RerouteProcessor extends AbstractProcessor {
             return new DataStreamValueSource(namespace, nsp -> sanitizeDataStreamField(nsp, DISALLOWED_IN_NAMESPACE));
         }
 
-        private static String sanitizeDataStreamField(String s, char[] disallowedInDataset) {
+        private static String sanitizeDataStreamField(String s, Pattern disallowedInDataset) {
             if (s == null) {
                 return null;
             }
             s = s.toLowerCase(Locale.ROOT);
             s = s.substring(0, Math.min(s.length(), MAX_LENGTH));
-            for (char c : disallowedInDataset) {
-                s = s.replace(c, REPLACEMENT_CHAR);
-            }
-            return s;
+            return disallowedInDataset.matcher(s).replaceAll(String.valueOf(REPLACEMENT_CHAR));
+        }
+
+        private static Pattern pattern(char[] disallowedInDataset) {
+            return Pattern.compile("[" + Pattern.quote(String.valueOf(disallowedInDataset)) + "]");
         }
 
         private DataStreamValueSource(String value, Function<String, String> sanitizer) {
