@@ -71,7 +71,8 @@ public class TestDocumentParserContext extends DocumentParserContext {
             ),
             source,
             mappingLookup.getMapping().getRoot(),
-            ObjectMapper.Dynamic.getRootDynamic(mappingLookup)
+            ObjectMapper.Dynamic.getRootDynamic(mappingLookup),
+            mappingLookup.getMapping().getRoot().schema()
         );
         this.parser = parser;
     }

@@ -46,6 +46,12 @@ final class DynamicFieldsBuilder {
      * The strategy defines if fields are going to be mapped as ordinary or runtime fields.
      */
     boolean createDynamicFieldFromValue(final DocumentParserContext context, String name) throws IOException {
+        Mapper.Builder builder = findMapperBuilderBuilderFromSchema(context, name);
+        if (builder != null) {
+            // if the field is defined by a schema, we can short-circuit the dynamic mapping process
+            CONCRETE.createDynamicField(builder, context);
+            return true;
+        }
         XContentParser.Token token = context.parser().currentToken();
         if (token == XContentParser.Token.VALUE_STRING) {
             String text = context.parser().text();
@@ -159,11 +165,15 @@ final class DynamicFieldsBuilder {
      * Returns a dynamically created object mapper, eventually based on a matching dynamic template.
      */
     static Mapper createDynamicObjectMapper(DocumentParserContext context, String name) {
-        Mapper mapper = createObjectMapperFromTemplate(context, name);
-        return mapper != null
-            ? mapper
-            : new ObjectMapper.Builder(name, context.parent().subobjects).enabled(ObjectMapper.Defaults.ENABLED)
+        Mapper mapper = createObjectMapperFromSchema(context, name);
+        if (mapper == null) {
+            mapper = createObjectMapperFromTemplate(context, name);
+        }
+        if (mapper == null) {
+            mapper = new ObjectMapper.Builder(name, context.parent().subobjects).enabled(ObjectMapper.Defaults.ENABLED)
                 .build(context.createDynamicMapperBuilderContext());
+        }
+        return mapper;
     }
 
     /**
@@ -172,6 +182,25 @@ final class DynamicFieldsBuilder {
     static Mapper createObjectMapperFromTemplate(DocumentParserContext context, String name) {
         Mapper.Builder templateBuilder = findTemplateBuilderForObject(context, name);
         return templateBuilder == null ? null : templateBuilder.build(context.createDynamicMapperBuilderContext());
+    }
+
+    /**
+     * Returns a dynamically created object mapper, based exclusively on a {@link DynamicMappingSchema}, null otherwise.
+     */
+    static Mapper createObjectMapperFromSchema(DocumentParserContext context, String name) {
+        Mapper.Builder builder = findMapperBuilderBuilderFromSchema(context, name);
+        return builder == null ? null : builder.build(context.createDynamicMapperBuilderContext());
+    }
+
+    private static Mapper.Builder findMapperBuilderBuilderFromSchema(DocumentParserContext context, String name) {
+        Map<String, Object> mappingFromSchema = context.findMappingFromSchema(name);
+        if (mappingFromSchema != null) {
+            String type = (String) mappingFromSchema.get("type");
+            if (type != null) {
+                return parseDynamicTemplateMapping(name, type, mappingFromSchema, null, context);
+            }
+        }
+        return null;
     }
 
     /**

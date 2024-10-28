@@ -46,7 +46,13 @@ public abstract class DocumentParserContext {
         private final DocumentParserContext in;
 
         private Wrapper(ObjectMapper parent, DocumentParserContext in) {
-            super(parent, parent.dynamic == null ? in.dynamic : parent.dynamic, in);
+            super(
+                parent,
+                parent.dynamic == null ? in.dynamic : parent.dynamic,
+                parent.schema == null ? in.schema : parent.schema,
+                parent.schema == null ? in.schemaRoot : parent.fullPath(),
+                in
+            );
             this.in = in;
         }
 
@@ -131,6 +137,8 @@ public abstract class DocumentParserContext {
     private final DocumentDimensions dimensions;
     private final ObjectMapper parent;
     private final ObjectMapper.Dynamic dynamic;
+    private final String schemaRoot;
+    private final DynamicMappingSchema schema;
     private String id;
     private Field version;
     private final SeqNoFieldMapper.SequenceIDFields seqID;
@@ -165,6 +173,8 @@ public abstract class DocumentParserContext {
         DocumentDimensions dimensions,
         ObjectMapper parent,
         ObjectMapper.Dynamic dynamic,
+        String schemaRoot,
+        DynamicMappingSchema schema,
         Set<String> fieldsAppliedFromTemplates,
         Set<String> copyToFields,
         DynamicMapperSize dynamicMapperSize,
@@ -187,13 +197,21 @@ public abstract class DocumentParserContext {
         this.dimensions = dimensions;
         this.parent = parent;
         this.dynamic = dynamic;
+        this.schemaRoot = schemaRoot;
+        this.schema = schema;
         this.fieldsAppliedFromTemplates = fieldsAppliedFromTemplates;
         this.copyToFields = copyToFields;
         this.dynamicMappersSize = dynamicMapperSize;
         this.recordedSource = recordedSource;
     }
 
-    private DocumentParserContext(ObjectMapper parent, ObjectMapper.Dynamic dynamic, DocumentParserContext in) {
+    private DocumentParserContext(
+        ObjectMapper parent,
+        ObjectMapper.Dynamic dynamic,
+        DynamicMappingSchema schema,
+        String schemaRoot,
+        DocumentParserContext in
+    ) {
         this(
             in.mappingLookup,
             in.mappingParserContext,
@@ -212,6 +230,8 @@ public abstract class DocumentParserContext {
             in.dimensions,
             parent,
             dynamic,
+            schemaRoot,
+            schema,
             in.fieldsAppliedFromTemplates,
             in.copyToFields,
             in.dynamicMappersSize,
@@ -224,7 +244,8 @@ public abstract class DocumentParserContext {
         MappingParserContext mappingParserContext,
         SourceToParse source,
         ObjectMapper parent,
-        ObjectMapper.Dynamic dynamic
+        ObjectMapper.Dynamic dynamic,
+        DynamicMappingSchema schema
     ) {
         this(
             mappingLookup,
@@ -244,6 +265,8 @@ public abstract class DocumentParserContext {
             DocumentDimensions.fromIndexSettings(mappingParserContext.getIndexSettings()),
             parent,
             dynamic,
+            "",
+            schema,
             new HashSet<>(),
             new HashSet<>(mappingLookup.fieldTypesLookup().getCopyToDestinationFields()),
             new DynamicMapperSize(),
@@ -862,6 +885,17 @@ public abstract class DocumentParserContext {
             );
         }
         return null;
+    }
+
+    public Map<String, Object> findMappingFromSchema(String fieldName) {
+        if (schema == null) {
+            return null;
+        }
+        String path = path().pathAsText(fieldName);
+        if (schemaRoot.isEmpty() == false) {
+            path = path.substring(schemaRoot.length() + 1);
+        }
+        return schema.mappingForPath(path);
     }
 
     // XContentParser that wraps an existing parser positioned on a value,

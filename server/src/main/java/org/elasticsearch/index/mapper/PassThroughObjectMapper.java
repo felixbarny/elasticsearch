@@ -81,6 +81,7 @@ public class PassThroughObjectMapper extends ObjectMapper {
                 enabled,
                 sourceKeepMode,
                 dynamic,
+                schema,
                 buildMappers(context.createChildContext(leafName(), timeSeriesDimensionSubFields.value(), dynamic)),
                 timeSeriesDimensionSubFields,
                 priority
@@ -99,12 +100,13 @@ public class PassThroughObjectMapper extends ObjectMapper {
         Explicit<Boolean> enabled,
         Optional<SourceKeepMode> sourceKeepMode,
         Dynamic dynamic,
+        DynamicMappingSchema schema,
         Map<String, Mapper> mappers,
         Explicit<Boolean> timeSeriesDimensionSubFields,
         int priority
     ) {
         // Subobjects are not currently supported.
-        super(name, fullPath, enabled, Optional.of(Subobjects.DISABLED), sourceKeepMode, dynamic, mappers);
+        super(name, fullPath, enabled, Optional.of(Subobjects.DISABLED), sourceKeepMode, dynamic, mappers, schema);
         this.timeSeriesDimensionSubFields = timeSeriesDimensionSubFields;
         this.priority = priority;
         if (priority < 0) {
@@ -120,6 +122,7 @@ public class PassThroughObjectMapper extends ObjectMapper {
             enabled,
             sourceKeepMode,
             dynamic,
+            schema,
             Map.of(),
             timeSeriesDimensionSubFields,
             priority
@@ -168,6 +171,7 @@ public class PassThroughObjectMapper extends ObjectMapper {
             mergeResult.enabled(),
             mergeResult.sourceKeepMode(),
             mergeResult.dynamic(),
+            schema,
             mergeResult.mappers(),
             containsDimensions,
             Math.max(priority, mergeWithObject.priority)

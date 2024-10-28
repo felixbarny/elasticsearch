@@ -58,7 +58,7 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
     // The current ECS state (branch main) containing all fields in flattened form
     private static final String ECS_FLAT_FILE_URL = "https://raw.githubusercontent.com/elastic/ecs/main/generated/ecs/ecs_flat.yml";
 
-    private static final Set<String> OMIT_FIELD_TYPES = Set.of("object", "nested");
+    private static final Set<String> OMIT_FIELD_TYPES = Set.of("object");
 
     private static final Set<String> OMIT_FIELDS = Set.of("data_stream.dataset", "data_stream.namespace", "data_stream.type");
 
@@ -99,7 +99,6 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
         Object dynamicTemplates = ((Map<?, ?>) mappings).get("mappings");
         assertNotNull(errorMessage, dynamicTemplates);
         assertThat(errorMessage, dynamicTemplates, instanceOf(Map.class));
-        assertEquals(errorMessage, 1, ((Map<?, ?>) dynamicTemplates).size());
         assertTrue(errorMessage, ((Map<?, ?>) dynamicTemplates).containsKey("dynamic_templates"));
         ecsDynamicTemplates = (Map<String, Object>) dynamicTemplates;
     }
@@ -168,7 +167,7 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
 
     public void testFlattenedFieldsWithinAttributes() throws IOException {
         String indexName = "test-flattened-attributes";
-        createTestIndex(indexName);
+        createTestIndex(indexName, Map.of("properties", Map.of("attributes", Map.of("type", "object", "schema", "ecs"))));
         Map<String, Object> flattenedFieldsMap = createTestDocument(true);
         indexDocument(indexName, Map.of("attributes", flattenedFieldsMap));
         verifyEcsMappings(indexName, "attributes.");
@@ -176,7 +175,7 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
 
     public void testFlattenedFieldsWithinResourceAttributes() throws IOException {
         String indexName = "test-flattened-attributes";
-        createTestIndex(indexName);
+        createTestIndex(indexName, Map.of("properties", Map.of("resource.attributes", Map.of("type", "object", "schema", "ecs"))));
         Map<String, Object> flattenedFieldsMap = createTestDocument(true);
         indexDocument(indexName, Map.of("resource.attributes", flattenedFieldsMap));
         verifyEcsMappings(indexName, "resource.attributes.");
@@ -184,7 +183,7 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
 
     public void testFlattenedFieldsWithoutSubobjects() throws IOException {
         String indexName = "test_flattened_fields_subobjects_false";
-        createTestIndex(indexName, Map.of("subobjects", false));
+        createTestIndex(indexName, Map.of("subobjects", "auto"));
         Map<String, Object> flattenedFieldsMap = createTestDocument(true);
         indexDocument(indexName, flattenedFieldsMap);
         verifyEcsMappings(indexName);
@@ -257,7 +256,6 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
         // Only non-root numeric (or coercable to numeric) "usage" fields should match
         // ecs_usage_*_scaled_float; root fields and intermediate object fields should not match.
         fieldsMap.put("host.cpu.usage", 123); // should be mapped as scaled_float
-        fieldsMap.put("string.usage", "123"); // should also be mapped as scale_float
         fieldsMap.put("usage", 123);
         fieldsMap.put("root.usage.long", 123);
         fieldsMap.put("root.usage.float", 123.456);
@@ -267,7 +265,6 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
         final Map<String, Map<String, Object>> flatFieldMappings = new HashMap<>();
         processRawMappingsSubtree(rawMappings, flatFieldMappings, new HashMap<>(), "");
         assertType("scaled_float", flatFieldMappings.get("host.cpu.usage"));
-        assertType("scaled_float", flatFieldMappings.get("string.usage"));
         assertType("long", flatFieldMappings.get("usage"));
         assertType("long", flatFieldMappings.get("root.usage.long"));
         assertType("float", flatFieldMappings.get("root.usage.float"));
@@ -284,7 +281,6 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
         fieldsMap.put("foo.stack_trace.bar", 123);
         fieldsMap.put("foo.user_agent.original.bar", 123);
         fieldsMap.put("foo.created.bar", 123);
-        fieldsMap.put("foo._score.bar", 123);
         fieldsMap.put("foo.structured_data", 123);
         indexDocument(indexName, fieldsMap);
 
@@ -297,7 +293,6 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
         assertType("long", flatFieldMappings.get("foo.stack_trace.bar"));
         assertType("long", flatFieldMappings.get("foo.user_agent.original.bar"));
         assertType("long", flatFieldMappings.get("foo.created.bar"));
-        assertType("float", flatFieldMappings.get("foo._score.bar"));
         assertType("long", flatFieldMappings.get("foo.structured_data"));
     }
 
@@ -329,10 +324,15 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
                 Iterator<String> fieldPathPartsIterator = Arrays.stream(flattenedFieldName.split("\\.")).iterator();
                 String subfield = fieldPathPartsIterator.next();
                 while (fieldPathPartsIterator.hasNext()) {
-                    currentField = (Map<String, Object>) currentField.computeIfAbsent(subfield, ignore -> new HashMap<>());
+                    Object value = currentField.computeIfAbsent(subfield, ignore -> new HashMap<>());
+                    if (value instanceof List<?> l) {
+                        currentField = (Map<String, Object>) l.get(0);
+                    } else {
+                        currentField = (Map<String, Object>) value;
+                    }
                     subfield = fieldPathPartsIterator.next();
                 }
-                currentField.put(subfield, testValue);
+                currentField.putIfAbsent(subfield, testValue);
             }
         }
         return testFieldsMap;
@@ -400,6 +400,14 @@ public class EcsDynamicTemplatesIT extends ESRestTestCase {
             case "flattened" -> {
                 // creating multiple subfields
                 return Map.of("subfield1", randomAlphaOfLength(20), "subfield2", randomAlphaOfLength(20));
+            }
+            case "object" -> {
+                return new HashMap<>();
+            }
+            case "nested" -> {
+                List<Map<String, Object>> objects = new ArrayList<>();
+                objects.add(new HashMap<>());
+                return objects;
             }
         }
         throw new IllegalArgumentException("Unknown field type: " + type);

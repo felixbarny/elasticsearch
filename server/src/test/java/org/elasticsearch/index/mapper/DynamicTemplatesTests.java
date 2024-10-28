@@ -2869,4 +2869,31 @@ public class DynamicTemplatesTests extends MapperServiceTestCase {
 
         assertEquals("double", mapperService.fieldType("a.b.b").typeName());
     }
+
+    public void testEcsMappingsRoot() throws Exception {
+        MapperService mapperService = createMapperService(topMapping(b -> b.field("schema", "ecs")));
+        DocumentMapper docMapper = mapperService.documentMapper();
+        ParsedDocument parsedDoc = docMapper.parse(source(b -> b.field("http.response.status_code", "200")));
+        merge(mapperService, dynamicMapping(parsedDoc.dynamicMappingsUpdate()));
+
+        assertEquals("long", mapperService.fieldType("http.response.status_code").typeName());
+    }
+
+    public void testEcsMappingsAttributes() throws Exception {
+        MapperService mapperService = createMapperService(topMapping(b -> {
+            b.startObject("properties");
+            b.startObject("attributes").field("type", "object").field("schema", "ecs").endObject();
+            b.endObject();
+        }));
+        DocumentMapper docMapper = mapperService.documentMapper();
+        ParsedDocument parsedDoc = docMapper.parse(source(b -> {
+            b.startObject("attributes");
+            b.field("http.response.status_code", "200");
+            b.endObject();
+        }));
+        merge(mapperService, dynamicMapping(parsedDoc.dynamicMappingsUpdate()));
+
+        assertEquals("long", mapperService.fieldType("attributes.http.response.status_code").typeName());
+    }
+
 }

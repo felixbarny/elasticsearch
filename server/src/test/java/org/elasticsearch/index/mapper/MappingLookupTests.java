@@ -86,7 +86,8 @@ public class MappingLookupTests extends ESTestCase {
             Optional.empty(),
             Optional.empty(),
             ObjectMapper.Dynamic.TRUE,
-            Collections.singletonMap("object.subfield", fieldMapper)
+            Collections.singletonMap("object.subfield", fieldMapper),
+            null
         );
         MappingLookup mappingLookup = createMappingLookup(
             Collections.singletonList(fieldMapper),

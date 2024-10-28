@@ -109,6 +109,9 @@ public class NestedObjectMapper extends ObjectMapper {
                         + "]"
                 );
             }
+            if (schema != null) {
+                throw new MapperException("parameter [schema] is not supported for nested object [" + fullPath + "]");
+            }
             final Query nestedTypeFilter = NestedPathFieldMapper.filter(indexCreatedVersion, nestedTypePath);
             NestedMapperBuilderContext nestedContext = new NestedMapperBuilderContext(
                 context.buildFullName(leafName()),
@@ -233,7 +236,7 @@ public class NestedObjectMapper extends ObjectMapper {
         Function<Query, BitSetProducer> bitsetProducer,
         IndexSettings indexSettings
     ) {
-        super(name, fullPath, enabled, Optional.empty(), sourceKeepMode, dynamic, mappers);
+        super(name, fullPath, enabled, Optional.empty(), sourceKeepMode, dynamic, mappers, null);
         this.parentTypeFilter = parentTypeFilter;
         this.nestedTypePath = nestedTypePath;
         this.nestedTypeFilter = nestedTypeFilter;

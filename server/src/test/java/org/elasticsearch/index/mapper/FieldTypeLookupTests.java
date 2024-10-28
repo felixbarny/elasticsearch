@@ -436,6 +436,7 @@ public class FieldTypeLookupTests extends ESTestCase {
             Explicit.EXPLICIT_TRUE,
             Optional.empty(),
             ObjectMapper.Dynamic.FALSE,
+            null,
             mappers,
             Explicit.EXPLICIT_FALSE,
             priority

@@ -181,7 +181,8 @@ public class FieldAliasMapperValidationTests extends ESTestCase {
             Optional.empty(),
             Optional.empty(),
             ObjectMapper.Dynamic.FALSE,
-            emptyMap()
+            emptyMap(),
+            null
         );
     }
 

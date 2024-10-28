@@ -189,6 +189,7 @@ public class PassThroughObjectMapperTests extends MapperServiceTestCase {
             Explicit.EXPLICIT_TRUE,
             Optional.empty(),
             ObjectMapper.Dynamic.FALSE,
+            null,
             Map.of(),
             Explicit.EXPLICIT_FALSE,
             priority

@@ -1,0 +1,6721 @@
+{
+  "@timestamp": {
+    "type": "date"
+  },
+  "agent.build.original": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "agent.ephemeral_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "agent.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "agent.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "agent.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "agent.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.as.number": {
+    "type": "long"
+  },
+  "client.as.organization.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.bytes": {
+    "type": "long"
+  },
+  "client.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.location": {
+    "type": "geo_point"
+  },
+  "client.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.ip": {
+    "type": "ip"
+  },
+  "client.mac": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.nat.ip": {
+    "type": "ip"
+  },
+  "client.nat.port": {
+    "type": "long"
+  },
+  "client.packets": {
+    "type": "long"
+  },
+  "client.port": {
+    "type": "long"
+  },
+  "client.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "client.user.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.account.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.account.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.availability_zone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.instance.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.instance.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.machine.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.account.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.account.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.availability_zone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.instance.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.instance.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.machine.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.project.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.project.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.provider": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.region": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.origin.service.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.project.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.project.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.provider": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.region": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.service.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.account.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.account.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.availability_zone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.instance.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.instance.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.machine.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.project.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.project.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.provider": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.region": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "cloud.target.service.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "container.cpu.usage": {
+    "scaling_factor": 1000,
+    "type": "scaled_float"
+  },
+  "container.disk.read.bytes": {
+    "type": "long"
+  },
+  "container.disk.write.bytes": {
+    "type": "long"
+  },
+  "container.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "container.image.hash.all": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "container.image.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "container.image.tag": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "container.labels": {
+    "type": "object"
+  },
+  "container.memory.usage": {
+    "scaling_factor": 1000,
+    "type": "scaled_float"
+  },
+  "container.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "container.network.egress.bytes": {
+    "type": "long"
+  },
+  "container.network.ingress.bytes": {
+    "type": "long"
+  },
+  "container.runtime": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "container.security_context.privileged": {
+    "type": "boolean"
+  },
+  "data_stream.dataset": {
+    "type": "constant_keyword"
+  },
+  "data_stream.namespace": {
+    "type": "constant_keyword"
+  },
+  "data_stream.type": {
+    "type": "constant_keyword"
+  },
+  "destination.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.as.number": {
+    "type": "long"
+  },
+  "destination.as.organization.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.bytes": {
+    "type": "long"
+  },
+  "destination.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.location": {
+    "type": "geo_point"
+  },
+  "destination.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.ip": {
+    "type": "ip"
+  },
+  "destination.mac": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.nat.ip": {
+    "type": "ip"
+  },
+  "destination.nat.port": {
+    "type": "long"
+  },
+  "destination.packets": {
+    "type": "long"
+  },
+  "destination.port": {
+    "type": "long"
+  },
+  "destination.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "destination.user.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "device.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "device.manufacturer": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "device.model.identifier": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "device.model.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "device.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.code_signature.digest_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.code_signature.exists": {
+    "type": "boolean"
+  },
+  "dll.code_signature.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.code_signature.signing_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.code_signature.status": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.code_signature.subject_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.code_signature.team_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.code_signature.timestamp": {
+    "type": "date"
+  },
+  "dll.code_signature.trusted": {
+    "type": "boolean"
+  },
+  "dll.code_signature.valid": {
+    "type": "boolean"
+  },
+  "dll.hash.cdhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.hash.sha384": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.hash.sha512": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.hash.ssdeep": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.hash.tlsh": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.path": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.company": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.file_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.go_imports": {
+    "type": "flattened"
+  },
+  "dll.pe.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "dll.pe.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "dll.pe.go_stripped": {
+    "type": "boolean"
+  },
+  "dll.pe.imphash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.imports": {
+    "type": "flattened"
+  },
+  "dll.pe.imports_names_entropy": {
+    "type": "long"
+  },
+  "dll.pe.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "dll.pe.original_file_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.pehash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.product": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.sections": {
+    "type": "nested"
+  },
+  "dll.pe.sections.entropy": {
+    "type": "long"
+  },
+  "dll.pe.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dll.pe.sections.physical_size": {
+    "type": "long"
+  },
+  "dll.pe.sections.var_entropy": {
+    "type": "long"
+  },
+  "dll.pe.sections.virtual_size": {
+    "type": "long"
+  },
+  "dns.answers": {
+    "type": "object"
+  },
+  "dns.answers.class": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.answers.data": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.answers.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.answers.ttl": {
+    "type": "long"
+  },
+  "dns.answers.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.header_flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.op_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.question.class": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.question.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.question.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.question.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.question.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.question.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.resolved_ip": {
+    "type": "ip"
+  },
+  "dns.response_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "dns.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "ecs.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments": {
+    "type": "nested"
+  },
+  "email.attachments.file.extension": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.cdhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.sha384": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.sha512": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.ssdeep": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.hash.tlsh": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.mime_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.attachments.file.size": {
+    "type": "long"
+  },
+  "email.bcc.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.cc.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.content_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.delivery_timestamp": {
+    "type": "date"
+  },
+  "email.direction": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.from.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.local_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.message_id": {
+    "type": "wildcard"
+  },
+  "email.origination_timestamp": {
+    "type": "date"
+  },
+  "email.reply_to.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.sender.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.subject": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.to.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "email.x_mailer": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "error.code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "error.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "error.message": {
+    "type": "match_only_text"
+  },
+  "error.stack_trace": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "error.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.action": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.agent_id_status": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.category": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.created": {
+    "type": "date"
+  },
+  "event.dataset": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.duration": {
+    "type": "long"
+  },
+  "event.end": {
+    "type": "date"
+  },
+  "event.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.ingested": {
+    "type": "date"
+  },
+  "event.kind": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.module": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.original": {
+    "doc_values": false,
+    "index": false,
+    "type": "keyword"
+  },
+  "event.outcome": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.provider": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.reason": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.risk_score": {
+    "type": "float"
+  },
+  "event.risk_score_norm": {
+    "type": "float"
+  },
+  "event.sequence": {
+    "type": "long"
+  },
+  "event.severity": {
+    "type": "long"
+  },
+  "event.start": {
+    "type": "date"
+  },
+  "event.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "event.url": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "faas.coldstart": {
+    "type": "boolean"
+  },
+  "faas.execution": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "faas.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "faas.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "faas.trigger.request_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "faas.trigger.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "faas.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.accessed": {
+    "type": "date"
+  },
+  "file.attributes": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.code_signature.digest_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.code_signature.exists": {
+    "type": "boolean"
+  },
+  "file.code_signature.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.code_signature.signing_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.code_signature.status": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.code_signature.subject_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.code_signature.team_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.code_signature.timestamp": {
+    "type": "date"
+  },
+  "file.code_signature.trusted": {
+    "type": "boolean"
+  },
+  "file.code_signature.valid": {
+    "type": "boolean"
+  },
+  "file.created": {
+    "type": "date"
+  },
+  "file.ctime": {
+    "type": "date"
+  },
+  "file.device": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.directory": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.drive_letter": {
+    "ignore_above": 1,
+    "type": "keyword"
+  },
+  "file.elf.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.byte_order": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.cpu_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.creation_date": {
+    "type": "date"
+  },
+  "file.elf.exports": {
+    "type": "flattened"
+  },
+  "file.elf.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.go_imports": {
+    "type": "flattened"
+  },
+  "file.elf.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "file.elf.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "file.elf.go_stripped": {
+    "type": "boolean"
+  },
+  "file.elf.header.abi_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.header.class": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.header.data": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.header.entrypoint": {
+    "type": "long"
+  },
+  "file.elf.header.object_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.header.os_abi": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.header.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.header.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.imports": {
+    "type": "flattened"
+  },
+  "file.elf.imports_names_entropy": {
+    "type": "long"
+  },
+  "file.elf.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "file.elf.sections": {
+    "type": "nested"
+  },
+  "file.elf.sections.chi2": {
+    "type": "long"
+  },
+  "file.elf.sections.entropy": {
+    "type": "long"
+  },
+  "file.elf.sections.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.sections.physical_offset": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.sections.physical_size": {
+    "type": "long"
+  },
+  "file.elf.sections.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.sections.var_entropy": {
+    "type": "long"
+  },
+  "file.elf.sections.virtual_address": {
+    "type": "long"
+  },
+  "file.elf.sections.virtual_size": {
+    "type": "long"
+  },
+  "file.elf.segments": {
+    "type": "nested"
+  },
+  "file.elf.segments.sections": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.segments.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.shared_libraries": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.elf.telfhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.extension": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.fork_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.gid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.group": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.cdhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.sha384": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.sha512": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.ssdeep": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.hash.tlsh": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.inode": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.macho.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.macho.go_imports": {
+    "type": "flattened"
+  },
+  "file.macho.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "file.macho.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "file.macho.go_stripped": {
+    "type": "boolean"
+  },
+  "file.macho.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.macho.imports": {
+    "type": "flattened"
+  },
+  "file.macho.imports_names_entropy": {
+    "type": "long"
+  },
+  "file.macho.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "file.macho.sections": {
+    "type": "nested"
+  },
+  "file.macho.sections.entropy": {
+    "type": "long"
+  },
+  "file.macho.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.macho.sections.physical_size": {
+    "type": "long"
+  },
+  "file.macho.sections.var_entropy": {
+    "type": "long"
+  },
+  "file.macho.sections.virtual_size": {
+    "type": "long"
+  },
+  "file.macho.symhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.mime_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.mode": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.mtime": {
+    "type": "date"
+  },
+  "file.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.owner": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.path": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.company": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.file_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.go_imports": {
+    "type": "flattened"
+  },
+  "file.pe.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "file.pe.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "file.pe.go_stripped": {
+    "type": "boolean"
+  },
+  "file.pe.imphash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.imports": {
+    "type": "flattened"
+  },
+  "file.pe.imports_names_entropy": {
+    "type": "long"
+  },
+  "file.pe.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "file.pe.original_file_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.pehash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.product": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.sections": {
+    "type": "nested"
+  },
+  "file.pe.sections.entropy": {
+    "type": "long"
+  },
+  "file.pe.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.pe.sections.physical_size": {
+    "type": "long"
+  },
+  "file.pe.sections.var_entropy": {
+    "type": "long"
+  },
+  "file.pe.sections.virtual_size": {
+    "type": "long"
+  },
+  "file.size": {
+    "type": "long"
+  },
+  "file.target_path": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.uid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.alternative_names": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.issuer.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.issuer.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.issuer.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.issuer.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.issuer.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.issuer.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.issuer.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.not_after": {
+    "type": "date"
+  },
+  "file.x509.not_before": {
+    "type": "date"
+  },
+  "file.x509.public_key_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.public_key_curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.public_key_exponent": {
+    "doc_values": false,
+    "index": false,
+    "type": "long"
+  },
+  "file.x509.public_key_size": {
+    "type": "long"
+  },
+  "file.x509.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.signature_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.subject.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.subject.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.subject.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.subject.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.subject.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.subject.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.subject.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "file.x509.version_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.boot.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.cpu.usage": {
+    "scaling_factor": 1000,
+    "type": "scaled_float"
+  },
+  "host.disk.read.bytes": {
+    "type": "long"
+  },
+  "host.disk.write.bytes": {
+    "type": "long"
+  },
+  "host.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.location": {
+    "type": "geo_point"
+  },
+  "host.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.hostname": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.ip": {
+    "type": "ip"
+  },
+  "host.mac": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.network.egress.bytes": {
+    "type": "long"
+  },
+  "host.network.egress.packets": {
+    "type": "long"
+  },
+  "host.network.ingress.bytes": {
+    "type": "long"
+  },
+  "host.network.ingress.packets": {
+    "type": "long"
+  },
+  "host.os.family": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.os.full": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.os.kernel": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.os.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.os.platform": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.os.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.os.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.pid_ns_ino": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.risk.calculated_level": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.risk.calculated_score": {
+    "type": "float"
+  },
+  "host.risk.calculated_score_norm": {
+    "type": "float"
+  },
+  "host.risk.static_level": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.risk.static_score": {
+    "type": "float"
+  },
+  "host.risk.static_score_norm": {
+    "type": "float"
+  },
+  "host.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "host.uptime": {
+    "type": "long"
+  },
+  "http.request.body.bytes": {
+    "type": "long"
+  },
+  "http.request.body.content": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "http.request.bytes": {
+    "type": "long"
+  },
+  "http.request.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "http.request.method": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "http.request.mime_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "http.request.referrer": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "http.response.body.bytes": {
+    "type": "long"
+  },
+  "http.response.body.content": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "http.response.bytes": {
+    "type": "long"
+  },
+  "http.response.mime_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "http.response.status_code": {
+    "type": "long"
+  },
+  "http.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "labels": {
+    "type": "object"
+  },
+  "log.file.path": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.level": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.logger": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.origin.file.line": {
+    "type": "long"
+  },
+  "log.origin.file.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.origin.function": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.syslog": {
+    "type": "object"
+  },
+  "log.syslog.appname": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.syslog.facility.code": {
+    "type": "long"
+  },
+  "log.syslog.facility.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.syslog.hostname": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.syslog.msgid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.syslog.priority": {
+    "type": "long"
+  },
+  "log.syslog.procid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.syslog.severity.code": {
+    "type": "long"
+  },
+  "log.syslog.severity.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "log.syslog.structured_data": {
+    "type": "flattened"
+  },
+  "log.syslog.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "message": {
+    "type": "match_only_text"
+  },
+  "network.application": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.bytes": {
+    "type": "long"
+  },
+  "network.community_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.direction": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.forwarded_ip": {
+    "type": "ip"
+  },
+  "network.iana_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.inner": {
+    "type": "object"
+  },
+  "network.inner.vlan.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.inner.vlan.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.packets": {
+    "type": "long"
+  },
+  "network.protocol": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.transport": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.vlan.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "network.vlan.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.egress": {
+    "type": "object"
+  },
+  "observer.egress.interface.alias": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.egress.interface.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.egress.interface.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.egress.vlan.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.egress.vlan.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.egress.zone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.location": {
+    "type": "geo_point"
+  },
+  "observer.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.hostname": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.ingress": {
+    "type": "object"
+  },
+  "observer.ingress.interface.alias": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.ingress.interface.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.ingress.interface.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.ingress.vlan.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.ingress.vlan.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.ingress.zone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.ip": {
+    "type": "ip"
+  },
+  "observer.mac": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.os.family": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.os.full": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.os.kernel": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.os.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.os.platform": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.os.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.os.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.product": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.vendor": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "observer.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.api_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.cluster.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.cluster.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.cluster.url": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.cluster.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.namespace": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.resource.annotation": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.resource.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.resource.ip": {
+    "type": "ip"
+  },
+  "orchestrator.resource.label": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.resource.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.resource.parent.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.resource.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "orchestrator.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "organization.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "organization.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.build_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.checksum": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.install_scope": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.installed": {
+    "type": "date"
+  },
+  "package.license": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.path": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.size": {
+    "type": "long"
+  },
+  "package.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "package.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.args": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.args_count": {
+    "type": "long"
+  },
+  "process.code_signature.digest_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.code_signature.exists": {
+    "type": "boolean"
+  },
+  "process.code_signature.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.code_signature.signing_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.code_signature.status": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.code_signature.subject_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.code_signature.team_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.code_signature.timestamp": {
+    "type": "date"
+  },
+  "process.code_signature.trusted": {
+    "type": "boolean"
+  },
+  "process.code_signature.valid": {
+    "type": "boolean"
+  },
+  "process.command_line": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "process.elf.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.byte_order": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.cpu_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.creation_date": {
+    "type": "date"
+  },
+  "process.elf.exports": {
+    "type": "flattened"
+  },
+  "process.elf.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.go_imports": {
+    "type": "flattened"
+  },
+  "process.elf.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "process.elf.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.elf.go_stripped": {
+    "type": "boolean"
+  },
+  "process.elf.header.abi_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.header.class": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.header.data": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.header.entrypoint": {
+    "type": "long"
+  },
+  "process.elf.header.object_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.header.os_abi": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.header.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.header.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.imports": {
+    "type": "flattened"
+  },
+  "process.elf.imports_names_entropy": {
+    "type": "long"
+  },
+  "process.elf.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.elf.sections": {
+    "type": "nested"
+  },
+  "process.elf.sections.chi2": {
+    "type": "long"
+  },
+  "process.elf.sections.entropy": {
+    "type": "long"
+  },
+  "process.elf.sections.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.sections.physical_offset": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.sections.physical_size": {
+    "type": "long"
+  },
+  "process.elf.sections.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.sections.var_entropy": {
+    "type": "long"
+  },
+  "process.elf.sections.virtual_address": {
+    "type": "long"
+  },
+  "process.elf.sections.virtual_size": {
+    "type": "long"
+  },
+  "process.elf.segments": {
+    "type": "nested"
+  },
+  "process.elf.segments.sections": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.segments.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.shared_libraries": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.elf.telfhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.end": {
+    "type": "date"
+  },
+  "process.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.args": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.args_count": {
+    "type": "long"
+  },
+  "process.entry_leader.attested_groups.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.attested_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.attested_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.command_line": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "process.entry_leader.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.entry_meta.source.ip": {
+    "type": "ip"
+  },
+  "process.entry_leader.entry_meta.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.executable": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.interactive": {
+    "type": "boolean"
+  },
+  "process.entry_leader.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.parent.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.parent.pid": {
+    "type": "long"
+  },
+  "process.entry_leader.parent.session_leader.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.parent.session_leader.pid": {
+    "type": "long"
+  },
+  "process.entry_leader.parent.session_leader.start": {
+    "type": "date"
+  },
+  "process.entry_leader.parent.session_leader.vpid": {
+    "type": "long"
+  },
+  "process.entry_leader.parent.start": {
+    "type": "date"
+  },
+  "process.entry_leader.parent.vpid": {
+    "type": "long"
+  },
+  "process.entry_leader.pid": {
+    "type": "long"
+  },
+  "process.entry_leader.real_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.real_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.real_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.real_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.same_as_process": {
+    "type": "boolean"
+  },
+  "process.entry_leader.saved_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.saved_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.saved_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.saved_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.start": {
+    "type": "date"
+  },
+  "process.entry_leader.supplemental_groups.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.supplemental_groups.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.tty": {
+    "type": "object"
+  },
+  "process.entry_leader.tty.char_device.major": {
+    "type": "long"
+  },
+  "process.entry_leader.tty.char_device.minor": {
+    "type": "long"
+  },
+  "process.entry_leader.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.entry_leader.vpid": {
+    "type": "long"
+  },
+  "process.entry_leader.working_directory": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.env_vars": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.executable": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.exit_code": {
+    "type": "long"
+  },
+  "process.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.args": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.args_count": {
+    "type": "long"
+  },
+  "process.group_leader.command_line": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "process.group_leader.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.executable": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.interactive": {
+    "type": "boolean"
+  },
+  "process.group_leader.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.pid": {
+    "type": "long"
+  },
+  "process.group_leader.real_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.real_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.real_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.real_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.same_as_process": {
+    "type": "boolean"
+  },
+  "process.group_leader.saved_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.saved_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.saved_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.saved_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.start": {
+    "type": "date"
+  },
+  "process.group_leader.supplemental_groups.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.supplemental_groups.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.tty": {
+    "type": "object"
+  },
+  "process.group_leader.tty.char_device.major": {
+    "type": "long"
+  },
+  "process.group_leader.tty.char_device.minor": {
+    "type": "long"
+  },
+  "process.group_leader.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.group_leader.vpid": {
+    "type": "long"
+  },
+  "process.group_leader.working_directory": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.cdhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.sha384": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.sha512": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.ssdeep": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.hash.tlsh": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.interactive": {
+    "type": "boolean"
+  },
+  "process.io": {
+    "type": "object"
+  },
+  "process.io.bytes_skipped": {
+    "type": "object"
+  },
+  "process.io.bytes_skipped.length": {
+    "type": "long"
+  },
+  "process.io.bytes_skipped.offset": {
+    "type": "long"
+  },
+  "process.io.max_bytes_per_process_exceeded": {
+    "type": "boolean"
+  },
+  "process.io.text": {
+    "type": "wildcard"
+  },
+  "process.io.total_bytes_captured": {
+    "type": "long"
+  },
+  "process.io.total_bytes_skipped": {
+    "type": "long"
+  },
+  "process.io.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.macho.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.macho.go_imports": {
+    "type": "flattened"
+  },
+  "process.macho.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "process.macho.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.macho.go_stripped": {
+    "type": "boolean"
+  },
+  "process.macho.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.macho.imports": {
+    "type": "flattened"
+  },
+  "process.macho.imports_names_entropy": {
+    "type": "long"
+  },
+  "process.macho.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.macho.sections": {
+    "type": "nested"
+  },
+  "process.macho.sections.entropy": {
+    "type": "long"
+  },
+  "process.macho.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.macho.sections.physical_size": {
+    "type": "long"
+  },
+  "process.macho.sections.var_entropy": {
+    "type": "long"
+  },
+  "process.macho.sections.virtual_size": {
+    "type": "long"
+  },
+  "process.macho.symhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.args": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.args_count": {
+    "type": "long"
+  },
+  "process.parent.code_signature.digest_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.code_signature.exists": {
+    "type": "boolean"
+  },
+  "process.parent.code_signature.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.code_signature.signing_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.code_signature.status": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.code_signature.subject_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.code_signature.team_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.code_signature.timestamp": {
+    "type": "date"
+  },
+  "process.parent.code_signature.trusted": {
+    "type": "boolean"
+  },
+  "process.parent.code_signature.valid": {
+    "type": "boolean"
+  },
+  "process.parent.command_line": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "process.parent.elf.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.byte_order": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.cpu_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.creation_date": {
+    "type": "date"
+  },
+  "process.parent.elf.exports": {
+    "type": "flattened"
+  },
+  "process.parent.elf.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.go_imports": {
+    "type": "flattened"
+  },
+  "process.parent.elf.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "process.parent.elf.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.parent.elf.go_stripped": {
+    "type": "boolean"
+  },
+  "process.parent.elf.header.abi_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.header.class": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.header.data": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.header.entrypoint": {
+    "type": "long"
+  },
+  "process.parent.elf.header.object_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.header.os_abi": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.header.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.header.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.imports": {
+    "type": "flattened"
+  },
+  "process.parent.elf.imports_names_entropy": {
+    "type": "long"
+  },
+  "process.parent.elf.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.parent.elf.sections": {
+    "type": "nested"
+  },
+  "process.parent.elf.sections.chi2": {
+    "type": "long"
+  },
+  "process.parent.elf.sections.entropy": {
+    "type": "long"
+  },
+  "process.parent.elf.sections.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.sections.physical_offset": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.sections.physical_size": {
+    "type": "long"
+  },
+  "process.parent.elf.sections.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.sections.var_entropy": {
+    "type": "long"
+  },
+  "process.parent.elf.sections.virtual_address": {
+    "type": "long"
+  },
+  "process.parent.elf.sections.virtual_size": {
+    "type": "long"
+  },
+  "process.parent.elf.segments": {
+    "type": "nested"
+  },
+  "process.parent.elf.segments.sections": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.segments.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.shared_libraries": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.elf.telfhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.end": {
+    "type": "date"
+  },
+  "process.parent.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.executable": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.exit_code": {
+    "type": "long"
+  },
+  "process.parent.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.group_leader.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.group_leader.pid": {
+    "type": "long"
+  },
+  "process.parent.group_leader.start": {
+    "type": "date"
+  },
+  "process.parent.group_leader.vpid": {
+    "type": "long"
+  },
+  "process.parent.hash.cdhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.hash.sha384": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.hash.sha512": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.hash.ssdeep": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.hash.tlsh": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.interactive": {
+    "type": "boolean"
+  },
+  "process.parent.macho.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.macho.go_imports": {
+    "type": "flattened"
+  },
+  "process.parent.macho.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "process.parent.macho.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.parent.macho.go_stripped": {
+    "type": "boolean"
+  },
+  "process.parent.macho.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.macho.imports": {
+    "type": "flattened"
+  },
+  "process.parent.macho.imports_names_entropy": {
+    "type": "long"
+  },
+  "process.parent.macho.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.parent.macho.sections": {
+    "type": "nested"
+  },
+  "process.parent.macho.sections.entropy": {
+    "type": "long"
+  },
+  "process.parent.macho.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.macho.sections.physical_size": {
+    "type": "long"
+  },
+  "process.parent.macho.sections.var_entropy": {
+    "type": "long"
+  },
+  "process.parent.macho.sections.virtual_size": {
+    "type": "long"
+  },
+  "process.parent.macho.symhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.company": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.file_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.go_imports": {
+    "type": "flattened"
+  },
+  "process.parent.pe.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "process.parent.pe.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.parent.pe.go_stripped": {
+    "type": "boolean"
+  },
+  "process.parent.pe.imphash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.imports": {
+    "type": "flattened"
+  },
+  "process.parent.pe.imports_names_entropy": {
+    "type": "long"
+  },
+  "process.parent.pe.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.parent.pe.original_file_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.pehash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.product": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.sections": {
+    "type": "nested"
+  },
+  "process.parent.pe.sections.entropy": {
+    "type": "long"
+  },
+  "process.parent.pe.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.pe.sections.physical_size": {
+    "type": "long"
+  },
+  "process.parent.pe.sections.var_entropy": {
+    "type": "long"
+  },
+  "process.parent.pe.sections.virtual_size": {
+    "type": "long"
+  },
+  "process.parent.pgid": {
+    "type": "long"
+  },
+  "process.parent.pid": {
+    "type": "long"
+  },
+  "process.parent.real_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.real_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.real_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.real_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.saved_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.saved_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.saved_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.saved_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.start": {
+    "type": "date"
+  },
+  "process.parent.supplemental_groups.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.supplemental_groups.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.thread.capabilities.effective": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.thread.capabilities.permitted": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.thread.id": {
+    "type": "long"
+  },
+  "process.parent.thread.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.title": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.tty": {
+    "type": "object"
+  },
+  "process.parent.tty.char_device.major": {
+    "type": "long"
+  },
+  "process.parent.tty.char_device.minor": {
+    "type": "long"
+  },
+  "process.parent.uptime": {
+    "type": "long"
+  },
+  "process.parent.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.parent.vpid": {
+    "type": "long"
+  },
+  "process.parent.working_directory": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.company": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.file_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.go_imports": {
+    "type": "flattened"
+  },
+  "process.pe.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "process.pe.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.pe.go_stripped": {
+    "type": "boolean"
+  },
+  "process.pe.imphash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.imports": {
+    "type": "flattened"
+  },
+  "process.pe.imports_names_entropy": {
+    "type": "long"
+  },
+  "process.pe.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "process.pe.original_file_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.pehash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.product": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.sections": {
+    "type": "nested"
+  },
+  "process.pe.sections.entropy": {
+    "type": "long"
+  },
+  "process.pe.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.pe.sections.physical_size": {
+    "type": "long"
+  },
+  "process.pe.sections.var_entropy": {
+    "type": "long"
+  },
+  "process.pe.sections.virtual_size": {
+    "type": "long"
+  },
+  "process.pgid": {
+    "type": "long"
+  },
+  "process.pid": {
+    "type": "long"
+  },
+  "process.previous.args": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.previous.args_count": {
+    "type": "long"
+  },
+  "process.previous.executable": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.real_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.real_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.real_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.real_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.saved_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.saved_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.saved_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.saved_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.args": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.args_count": {
+    "type": "long"
+  },
+  "process.session_leader.command_line": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "process.session_leader.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.executable": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.interactive": {
+    "type": "boolean"
+  },
+  "process.session_leader.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.parent.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.parent.pid": {
+    "type": "long"
+  },
+  "process.session_leader.parent.session_leader.entity_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.parent.session_leader.pid": {
+    "type": "long"
+  },
+  "process.session_leader.parent.session_leader.start": {
+    "type": "date"
+  },
+  "process.session_leader.parent.session_leader.vpid": {
+    "type": "long"
+  },
+  "process.session_leader.parent.start": {
+    "type": "date"
+  },
+  "process.session_leader.parent.vpid": {
+    "type": "long"
+  },
+  "process.session_leader.pid": {
+    "type": "long"
+  },
+  "process.session_leader.real_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.real_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.real_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.real_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.same_as_process": {
+    "type": "boolean"
+  },
+  "process.session_leader.saved_group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.saved_group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.saved_user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.saved_user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.start": {
+    "type": "date"
+  },
+  "process.session_leader.supplemental_groups.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.supplemental_groups.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.tty": {
+    "type": "object"
+  },
+  "process.session_leader.tty.char_device.major": {
+    "type": "long"
+  },
+  "process.session_leader.tty.char_device.minor": {
+    "type": "long"
+  },
+  "process.session_leader.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.session_leader.vpid": {
+    "type": "long"
+  },
+  "process.session_leader.working_directory": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.start": {
+    "type": "date"
+  },
+  "process.supplemental_groups.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.supplemental_groups.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.thread.capabilities.effective": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.thread.capabilities.permitted": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.thread.id": {
+    "type": "long"
+  },
+  "process.thread.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.title": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.tty": {
+    "type": "object"
+  },
+  "process.tty.char_device.major": {
+    "type": "long"
+  },
+  "process.tty.char_device.minor": {
+    "type": "long"
+  },
+  "process.tty.columns": {
+    "type": "long"
+  },
+  "process.tty.rows": {
+    "type": "long"
+  },
+  "process.uptime": {
+    "type": "long"
+  },
+  "process.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "process.vpid": {
+    "type": "long"
+  },
+  "process.working_directory": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "registry.data.bytes": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "registry.data.strings": {
+    "type": "wildcard"
+  },
+  "registry.data.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "registry.hive": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "registry.key": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "registry.path": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "registry.value": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "related.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "related.hosts": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "related.ip": {
+    "type": "ip"
+  },
+  "related.user": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.author": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.category": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.license": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.ruleset": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.uuid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "rule.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.as.number": {
+    "type": "long"
+  },
+  "server.as.organization.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.bytes": {
+    "type": "long"
+  },
+  "server.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.location": {
+    "type": "geo_point"
+  },
+  "server.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.ip": {
+    "type": "ip"
+  },
+  "server.mac": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.nat.ip": {
+    "type": "ip"
+  },
+  "server.nat.port": {
+    "type": "long"
+  },
+  "server.packets": {
+    "type": "long"
+  },
+  "server.port": {
+    "type": "long"
+  },
+  "server.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "server.user.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.environment": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.ephemeral_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.node.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.node.role": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.node.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.environment": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.ephemeral_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.node.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.node.role": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.node.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.state": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.origin.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.state": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.environment": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.ephemeral_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.node.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.node.role": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.node.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.state": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.target.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "service.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.as.number": {
+    "type": "long"
+  },
+  "source.as.organization.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.bytes": {
+    "type": "long"
+  },
+  "source.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.location": {
+    "type": "geo_point"
+  },
+  "source.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.ip": {
+    "type": "ip"
+  },
+  "source.mac": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.nat.ip": {
+    "type": "ip"
+  },
+  "source.nat.port": {
+    "type": "long"
+  },
+  "source.packets": {
+    "type": "long"
+  },
+  "source.port": {
+    "type": "long"
+  },
+  "source.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "source.user.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "span.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments": {
+    "type": "nested"
+  },
+  "threat.enrichments.indicator": {
+    "type": "object"
+  },
+  "threat.enrichments.indicator.as.number": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.as.organization.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.confidence": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.email.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.accessed": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.attributes": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.code_signature.digest_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.code_signature.exists": {
+    "type": "boolean"
+  },
+  "threat.enrichments.indicator.file.code_signature.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.code_signature.signing_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.code_signature.status": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.code_signature.subject_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.code_signature.team_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.code_signature.timestamp": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.code_signature.trusted": {
+    "type": "boolean"
+  },
+  "threat.enrichments.indicator.file.code_signature.valid": {
+    "type": "boolean"
+  },
+  "threat.enrichments.indicator.file.created": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.ctime": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.device": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.directory": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.drive_letter": {
+    "ignore_above": 1,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.byte_order": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.cpu_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.creation_date": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.elf.exports": {
+    "type": "flattened"
+  },
+  "threat.enrichments.indicator.file.elf.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.go_imports": {
+    "type": "flattened"
+  },
+  "threat.enrichments.indicator.file.elf.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.go_stripped": {
+    "type": "boolean"
+  },
+  "threat.enrichments.indicator.file.elf.header.abi_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.header.class": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.header.data": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.header.entrypoint": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.header.object_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.header.os_abi": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.header.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.header.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.imports": {
+    "type": "flattened"
+  },
+  "threat.enrichments.indicator.file.elf.imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.sections": {
+    "type": "nested"
+  },
+  "threat.enrichments.indicator.file.elf.sections.chi2": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.sections.entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.sections.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.sections.physical_offset": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.sections.physical_size": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.sections.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.sections.var_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.sections.virtual_address": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.sections.virtual_size": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.elf.segments": {
+    "type": "nested"
+  },
+  "threat.enrichments.indicator.file.elf.segments.sections": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.segments.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.shared_libraries": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.elf.telfhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.extension": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.fork_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.gid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.group": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.cdhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.sha384": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.sha512": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.ssdeep": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.hash.tlsh": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.inode": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.mime_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.mode": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.mtime": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.owner": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.path": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.company": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.file_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.go_imports": {
+    "type": "flattened"
+  },
+  "threat.enrichments.indicator.file.pe.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.pe.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.pe.go_stripped": {
+    "type": "boolean"
+  },
+  "threat.enrichments.indicator.file.pe.imphash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.imports": {
+    "type": "flattened"
+  },
+  "threat.enrichments.indicator.file.pe.imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.pe.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.pe.original_file_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.pehash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.product": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.sections": {
+    "type": "nested"
+  },
+  "threat.enrichments.indicator.file.pe.sections.entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.pe.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.pe.sections.physical_size": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.pe.sections.var_entropy": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.pe.sections.virtual_size": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.size": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.target_path": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.uid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.alternative_names": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.issuer.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.issuer.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.issuer.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.issuer.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.issuer.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.issuer.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.issuer.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.not_after": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.x509.not_before": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.file.x509.public_key_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.public_key_curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.public_key_exponent": {
+    "doc_values": false,
+    "index": false,
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.x509.public_key_size": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.file.x509.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.signature_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.subject.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.subject.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.subject.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.subject.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.subject.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.subject.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.subject.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.file.x509.version_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.first_seen": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.location": {
+    "type": "geo_point"
+  },
+  "threat.enrichments.indicator.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.ip": {
+    "type": "ip"
+  },
+  "threat.enrichments.indicator.last_seen": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.marking.tlp": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.marking.tlp_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.modified_at": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.port": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.provider": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.registry.data.bytes": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.registry.data.strings": {
+    "type": "wildcard"
+  },
+  "threat.enrichments.indicator.registry.data.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.registry.hive": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.registry.key": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.registry.path": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.registry.value": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.scanner_stats": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.sightings": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.extension": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.fragment": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.full": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "threat.enrichments.indicator.url.original": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "threat.enrichments.indicator.url.password": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.path": {
+    "type": "wildcard"
+  },
+  "threat.enrichments.indicator.url.port": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.url.query": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.scheme": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.url.username": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.alternative_names": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.issuer.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.issuer.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.issuer.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.issuer.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.issuer.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.issuer.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.issuer.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.not_after": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.x509.not_before": {
+    "type": "date"
+  },
+  "threat.enrichments.indicator.x509.public_key_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.public_key_curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.public_key_exponent": {
+    "doc_values": false,
+    "index": false,
+    "type": "long"
+  },
+  "threat.enrichments.indicator.x509.public_key_size": {
+    "type": "long"
+  },
+  "threat.enrichments.indicator.x509.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.signature_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.subject.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.subject.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.subject.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.subject.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.subject.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.subject.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.subject.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.indicator.x509.version_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.matched.atomic": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.matched.field": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.matched.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.matched.index": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.enrichments.matched.occurred": {
+    "type": "date"
+  },
+  "threat.enrichments.matched.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.feed.dashboard_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.feed.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.feed.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.feed.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.framework": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.group.alias": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.group.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.as.number": {
+    "type": "long"
+  },
+  "threat.indicator.as.organization.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.confidence": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.email.address": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.accessed": {
+    "type": "date"
+  },
+  "threat.indicator.file.attributes": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.code_signature.digest_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.code_signature.exists": {
+    "type": "boolean"
+  },
+  "threat.indicator.file.code_signature.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.code_signature.signing_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.code_signature.status": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.code_signature.subject_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.code_signature.team_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.code_signature.timestamp": {
+    "type": "date"
+  },
+  "threat.indicator.file.code_signature.trusted": {
+    "type": "boolean"
+  },
+  "threat.indicator.file.code_signature.valid": {
+    "type": "boolean"
+  },
+  "threat.indicator.file.created": {
+    "type": "date"
+  },
+  "threat.indicator.file.ctime": {
+    "type": "date"
+  },
+  "threat.indicator.file.device": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.directory": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.drive_letter": {
+    "ignore_above": 1,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.byte_order": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.cpu_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.creation_date": {
+    "type": "date"
+  },
+  "threat.indicator.file.elf.exports": {
+    "type": "flattened"
+  },
+  "threat.indicator.file.elf.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.go_imports": {
+    "type": "flattened"
+  },
+  "threat.indicator.file.elf.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.go_stripped": {
+    "type": "boolean"
+  },
+  "threat.indicator.file.elf.header.abi_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.header.class": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.header.data": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.header.entrypoint": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.header.object_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.header.os_abi": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.header.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.header.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.imports": {
+    "type": "flattened"
+  },
+  "threat.indicator.file.elf.imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.sections": {
+    "type": "nested"
+  },
+  "threat.indicator.file.elf.sections.chi2": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.sections.entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.sections.flags": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.sections.physical_offset": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.sections.physical_size": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.sections.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.sections.var_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.sections.virtual_address": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.sections.virtual_size": {
+    "type": "long"
+  },
+  "threat.indicator.file.elf.segments": {
+    "type": "nested"
+  },
+  "threat.indicator.file.elf.segments.sections": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.segments.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.shared_libraries": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.elf.telfhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.extension": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.fork_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.gid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.group": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.cdhash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.sha384": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.sha512": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.ssdeep": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.hash.tlsh": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.inode": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.mime_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.mode": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.mtime": {
+    "type": "date"
+  },
+  "threat.indicator.file.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.owner": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.path": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.architecture": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.company": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.description": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.file_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.go_import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.go_imports": {
+    "type": "flattened"
+  },
+  "threat.indicator.file.pe.go_imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.pe.go_imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.pe.go_stripped": {
+    "type": "boolean"
+  },
+  "threat.indicator.file.pe.imphash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.import_hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.imports": {
+    "type": "flattened"
+  },
+  "threat.indicator.file.pe.imports_names_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.pe.imports_names_var_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.pe.original_file_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.pehash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.product": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.sections": {
+    "type": "nested"
+  },
+  "threat.indicator.file.pe.sections.entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.pe.sections.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.pe.sections.physical_size": {
+    "type": "long"
+  },
+  "threat.indicator.file.pe.sections.var_entropy": {
+    "type": "long"
+  },
+  "threat.indicator.file.pe.sections.virtual_size": {
+    "type": "long"
+  },
+  "threat.indicator.file.size": {
+    "type": "long"
+  },
+  "threat.indicator.file.target_path": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.uid": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.alternative_names": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.issuer.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.issuer.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.issuer.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.issuer.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.issuer.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.issuer.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.issuer.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.not_after": {
+    "type": "date"
+  },
+  "threat.indicator.file.x509.not_before": {
+    "type": "date"
+  },
+  "threat.indicator.file.x509.public_key_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.public_key_curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.public_key_exponent": {
+    "doc_values": false,
+    "index": false,
+    "type": "long"
+  },
+  "threat.indicator.file.x509.public_key_size": {
+    "type": "long"
+  },
+  "threat.indicator.file.x509.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.signature_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.subject.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.subject.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.subject.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.subject.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.subject.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.subject.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.subject.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.file.x509.version_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.first_seen": {
+    "type": "date"
+  },
+  "threat.indicator.geo.city_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.continent_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.continent_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.country_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.country_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.location": {
+    "type": "geo_point"
+  },
+  "threat.indicator.geo.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.postal_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.region_iso_code": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.region_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.geo.timezone": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.ip": {
+    "type": "ip"
+  },
+  "threat.indicator.last_seen": {
+    "type": "date"
+  },
+  "threat.indicator.marking.tlp": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.marking.tlp_version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.modified_at": {
+    "type": "date"
+  },
+  "threat.indicator.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.port": {
+    "type": "long"
+  },
+  "threat.indicator.provider": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.registry.data.bytes": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.registry.data.strings": {
+    "type": "wildcard"
+  },
+  "threat.indicator.registry.data.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.registry.hive": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.registry.key": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.registry.path": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.registry.value": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.scanner_stats": {
+    "type": "long"
+  },
+  "threat.indicator.sightings": {
+    "type": "long"
+  },
+  "threat.indicator.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.extension": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.fragment": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.full": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "threat.indicator.url.original": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "threat.indicator.url.password": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.path": {
+    "type": "wildcard"
+  },
+  "threat.indicator.url.port": {
+    "type": "long"
+  },
+  "threat.indicator.url.query": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.scheme": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.url.username": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.alternative_names": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.issuer.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.issuer.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.issuer.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.issuer.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.issuer.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.issuer.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.issuer.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.not_after": {
+    "type": "date"
+  },
+  "threat.indicator.x509.not_before": {
+    "type": "date"
+  },
+  "threat.indicator.x509.public_key_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.public_key_curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.public_key_exponent": {
+    "doc_values": false,
+    "index": false,
+    "type": "long"
+  },
+  "threat.indicator.x509.public_key_size": {
+    "type": "long"
+  },
+  "threat.indicator.x509.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.signature_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.subject.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.subject.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.subject.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.subject.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.subject.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.subject.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.subject.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.indicator.x509.version_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.software.alias": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.software.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.software.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.software.platforms": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.software.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.software.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.tactic.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.tactic.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.tactic.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.technique.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.technique.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.technique.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.technique.subtechnique.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.technique.subtechnique.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "threat.technique.subtechnique.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.cipher": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.certificate": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.certificate_chain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.issuer": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.ja3": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.not_after": {
+    "type": "date"
+  },
+  "tls.client.not_before": {
+    "type": "date"
+  },
+  "tls.client.server_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.subject": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.supported_ciphers": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.alternative_names": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.issuer.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.issuer.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.issuer.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.issuer.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.issuer.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.issuer.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.issuer.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.not_after": {
+    "type": "date"
+  },
+  "tls.client.x509.not_before": {
+    "type": "date"
+  },
+  "tls.client.x509.public_key_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.public_key_curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.public_key_exponent": {
+    "doc_values": false,
+    "index": false,
+    "type": "long"
+  },
+  "tls.client.x509.public_key_size": {
+    "type": "long"
+  },
+  "tls.client.x509.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.signature_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.subject.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.subject.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.subject.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.subject.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.subject.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.subject.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.subject.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.client.x509.version_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.established": {
+    "type": "boolean"
+  },
+  "tls.next_protocol": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.resumed": {
+    "type": "boolean"
+  },
+  "tls.server.certificate": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.certificate_chain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.hash.md5": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.hash.sha1": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.hash.sha256": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.issuer": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.ja3s": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.not_after": {
+    "type": "date"
+  },
+  "tls.server.not_before": {
+    "type": "date"
+  },
+  "tls.server.subject": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.alternative_names": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.issuer.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.issuer.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.issuer.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.issuer.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.issuer.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.issuer.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.issuer.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.not_after": {
+    "type": "date"
+  },
+  "tls.server.x509.not_before": {
+    "type": "date"
+  },
+  "tls.server.x509.public_key_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.public_key_curve": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.public_key_exponent": {
+    "doc_values": false,
+    "index": false,
+    "type": "long"
+  },
+  "tls.server.x509.public_key_size": {
+    "type": "long"
+  },
+  "tls.server.x509.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.signature_algorithm": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.subject.common_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.subject.country": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.subject.distinguished_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.subject.locality": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.subject.organization": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.subject.organizational_unit": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.subject.state_or_province": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.server.x509.version_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "tls.version_protocol": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "trace.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "transaction.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.extension": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.fragment": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.full": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "url.original": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "type": "wildcard"
+  },
+  "url.password": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.path": {
+    "type": "wildcard"
+  },
+  "url.port": {
+    "type": "long"
+  },
+  "url.query": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.registered_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.scheme": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.subdomain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.top_level_domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "url.username": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.changes.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.effective.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.risk.calculated_level": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.risk.calculated_score": {
+    "type": "float"
+  },
+  "user.risk.calculated_score_norm": {
+    "type": "float"
+  },
+  "user.risk.static_level": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.risk.static_score": {
+    "type": "float"
+  },
+  "user.risk.static_score_norm": {
+    "type": "float"
+  },
+  "user.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.email": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.full_name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.group.domain": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.group.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.group.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.hash": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user.target.roles": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.device.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.original": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.os.family": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.os.full": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.os.kernel": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.os.name": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.os.platform": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.os.type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.os.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "user_agent.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.bus_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.default_access": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.device_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.device_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.dos_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.file_system_type": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.mount_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.nt_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.product_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.product_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.removable": {
+    "type": "boolean"
+  },
+  "volume.serial_number": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.size": {
+    "type": "long"
+  },
+  "volume.vendor_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.vendor_name": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "volume.writable": {
+    "type": "boolean"
+  },
+  "vulnerability.category": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.classification": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.description": {
+    "fields": {
+      "text": {
+        "type": "match_only_text"
+      }
+    },
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.enumeration": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.reference": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.report_id": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.scanner.vendor": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.score.base": {
+    "type": "float"
+  },
+  "vulnerability.score.environmental": {
+    "type": "float"
+  },
+  "vulnerability.score.temporal": {
+    "type": "float"
+  },
+  "vulnerability.score.version": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  },
+  "vulnerability.severity": {
+    "ignore_above": 1024,
+    "type": "keyword"
+  }
+}

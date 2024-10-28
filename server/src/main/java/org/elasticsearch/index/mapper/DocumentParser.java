@@ -755,8 +755,11 @@ public final class DocumentParser {
             }
             return;
         }
-        Mapper objectMapperFromTemplate = DynamicFieldsBuilder.createObjectMapperFromTemplate(context, currentFieldName);
-        if (objectMapperFromTemplate == null) {
+        Mapper dynamicMapper = DynamicFieldsBuilder.createObjectMapperFromSchema(context, currentFieldName);
+        if (dynamicMapper != null) {
+            dynamicMapper = DynamicFieldsBuilder.createObjectMapperFromTemplate(context, currentFieldName);
+        }
+        if (dynamicMapper == null) {
             if (context.indexSettings().isIgnoreDynamicFieldsBeyondLimit()
                 && context.mappingLookup().exceedsLimit(context.indexSettings().getMappingTotalFieldsLimit(), 1)) {
                 if (context.canAddIgnoredField()) {
@@ -775,18 +778,18 @@ public final class DocumentParser {
                 context.addIgnoredField(currentFieldName);
                 return;
             }
-            parseNonDynamicArray(context, objectMapperFromTemplate, currentFieldName, currentFieldName);
+            parseNonDynamicArray(context, null, currentFieldName, currentFieldName);
         } else {
-            if (parsesArrayValue(objectMapperFromTemplate)) {
-                if (context.addDynamicMapper(objectMapperFromTemplate) == false) {
+            if (parsesArrayValue(dynamicMapper)) {
+                if (context.addDynamicMapper(dynamicMapper) == false) {
                     context.parser().skipChildren();
                     return;
                 }
                 context.path().add(currentFieldName);
-                parseObjectOrField(context, objectMapperFromTemplate);
+                parseObjectOrField(context, dynamicMapper);
                 context.path().remove();
             } else {
-                parseNonDynamicArray(context, objectMapperFromTemplate, currentFieldName, currentFieldName);
+                parseNonDynamicArray(context, dynamicMapper, currentFieldName, currentFieldName);
             }
         }
     }
@@ -1141,7 +1144,16 @@ public final class DocumentParser {
 
     private static class NoOpObjectMapper extends ObjectMapper {
         NoOpObjectMapper(String name, String fullPath) {
-            super(name, fullPath, Explicit.IMPLICIT_TRUE, Optional.empty(), Optional.empty(), Dynamic.RUNTIME, Collections.emptyMap());
+            super(
+                name,
+                fullPath,
+                Explicit.IMPLICIT_TRUE,
+                Optional.empty(),
+                Optional.empty(),
+                Dynamic.RUNTIME,
+                Collections.emptyMap(),
+                null
+            );
         }
 
         @Override
@@ -1174,7 +1186,8 @@ public final class DocumentParser {
                 mappingParserContext,
                 source,
                 mappingLookup.getMapping().getRoot(),
-                ObjectMapper.Dynamic.getRootDynamic(mappingLookup)
+                ObjectMapper.Dynamic.getRootDynamic(mappingLookup),
+                mappingLookup.getMapping().getRoot().schema()
             );
             if (mappingLookup.getMapping().getRoot().subobjects() == ObjectMapper.Subobjects.ENABLED) {
                 this.parser = DotExpandingXContentParser.expandDots(parser, this.path);

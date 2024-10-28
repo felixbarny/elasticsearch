@@ -115,6 +115,7 @@ public class RootObjectMapper extends ObjectMapper {
                 subobjects,
                 sourceKeepMode,
                 dynamic,
+                schema,
                 buildMappers(context.createChildContext(null, dynamic)),
                 new HashMap<>(runtimeFields),
                 dynamicDateTimeFormatters,
@@ -137,6 +138,7 @@ public class RootObjectMapper extends ObjectMapper {
         Optional<Subobjects> subobjects,
         Optional<SourceKeepMode> sourceKeepMode,
         Dynamic dynamic,
+        DynamicMappingSchema schema,
         Map<String, Mapper> mappers,
         Map<String, RuntimeField> runtimeFields,
         Explicit<DateFormatter[]> dynamicDateTimeFormatters,
@@ -144,7 +146,7 @@ public class RootObjectMapper extends ObjectMapper {
         Explicit<Boolean> dateDetection,
         Explicit<Boolean> numericDetection
     ) {
-        super(name, name, enabled, subobjects, sourceKeepMode, dynamic, mappers);
+        super(name, name, enabled, subobjects, sourceKeepMode, dynamic, mappers, schema);
         this.runtimeFields = runtimeFields;
         this.dynamicTemplates = dynamicTemplates;
         this.dynamicDateTimeFormatters = dynamicDateTimeFormatters;
@@ -173,6 +175,7 @@ public class RootObjectMapper extends ObjectMapper {
             subobjects,
             sourceKeepMode,
             dynamic,
+            schema,
             Map.of(),
             Map.of(),
             dynamicDateTimeFormatters,
@@ -289,6 +292,7 @@ public class RootObjectMapper extends ObjectMapper {
             mergeResult.subObjects(),
             mergeResult.sourceKeepMode(),
             mergeResult.dynamic(),
+            schema,
             mergeResult.mappers(),
             Map.copyOf(runtimeFields),
             dynamicDateTimeFormatters,

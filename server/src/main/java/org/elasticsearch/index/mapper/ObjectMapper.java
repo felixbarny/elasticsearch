@@ -132,6 +132,7 @@ public class ObjectMapper extends Mapper {
         protected Explicit<Boolean> enabled = Explicit.IMPLICIT_TRUE;
         protected Optional<SourceKeepMode> sourceKeepMode = Optional.empty();
         protected Dynamic dynamic;
+        protected DynamicMappingSchema schema;
         protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
 
         public Builder(String name, Optional<Subobjects> subobjects) {
@@ -151,6 +152,11 @@ public class ObjectMapper extends Mapper {
 
         public Builder dynamic(Dynamic dynamic) {
             this.dynamic = dynamic;
+            return this;
+        }
+
+        public Builder schema(DynamicMappingSchema schema) {
+            this.schema = schema;
             return this;
         }
 
@@ -250,7 +256,8 @@ public class ObjectMapper extends Mapper {
                 subobjects,
                 sourceKeepMode,
                 dynamic,
-                buildMappers(context.createChildContext(leafName(), dynamic))
+                buildMappers(context.createChildContext(leafName(), dynamic)),
+                schema
             );
         }
     }
@@ -330,6 +337,11 @@ public class ObjectMapper extends Mapper {
                     "include_in_all",
                     "[include_in_all] is deprecated, the _all field have been removed in this version"
                 );
+                return true;
+            } else if (fieldName.equals("schema")) {
+                if (fieldNode != null) {
+                    builder.schema(DynamicMappingSchema.fromString(fieldNode.toString()));
+                }
                 return true;
             }
             return false;
@@ -442,6 +454,7 @@ public class ObjectMapper extends Mapper {
     protected final Optional<Subobjects> subobjects;
     protected final Optional<SourceKeepMode> sourceKeepMode;
     protected final Dynamic dynamic;
+    protected final DynamicMappingSchema schema;
 
     protected final Map<String, Mapper> mappers;
 
@@ -452,7 +465,8 @@ public class ObjectMapper extends Mapper {
         Optional<Subobjects> subobjects,
         Optional<SourceKeepMode> sourceKeepMode,
         Dynamic dynamic,
-        Map<String, Mapper> mappers
+        Map<String, Mapper> mappers,
+        DynamicMappingSchema schema
     ) {
         super(name);
         // could be blank but not empty on indices created < 8.6.0
@@ -462,6 +476,7 @@ public class ObjectMapper extends Mapper {
         this.subobjects = subobjects;
         this.sourceKeepMode = sourceKeepMode;
         this.dynamic = dynamic;
+        this.schema = schema;
         if (mappers == null) {
             this.mappers = Map.of();
         } else {
@@ -488,7 +503,7 @@ public class ObjectMapper extends Mapper {
      * This is typically used in the context of a mapper merge when there's not enough budget to add the entire object.
      */
     ObjectMapper withoutMappers() {
-        return new ObjectMapper(leafName(), fullPath, enabled, subobjects, sourceKeepMode, dynamic, Map.of());
+        return new ObjectMapper(leafName(), fullPath, enabled, subobjects, sourceKeepMode, dynamic, Map.of(), schema);
     }
 
     @Override
@@ -520,6 +535,10 @@ public class ObjectMapper extends Mapper {
 
     public final Dynamic dynamic() {
         return dynamic;
+    }
+
+    public DynamicMappingSchema schema() {
+        return schema;
     }
 
     public final Subobjects subobjects() {
@@ -558,7 +577,8 @@ public class ObjectMapper extends Mapper {
             mergeResult.subObjects,
             mergeResult.sourceKeepMode,
             mergeResult.dynamic,
-            mergeResult.mappers
+            mergeResult.mappers,
+            mergeResult.schema
         );
     }
 
@@ -567,6 +587,7 @@ public class ObjectMapper extends Mapper {
         Optional<Subobjects> subObjects,
         Optional<SourceKeepMode> sourceKeepMode,
         Dynamic dynamic,
+        DynamicMappingSchema schema,
         Map<String, Mapper> mappers
     ) {
         static MergeResult build(ObjectMapper existing, ObjectMapper mergeWithObject, MapperMergeContext parentMergeContext) {
@@ -625,6 +646,7 @@ public class ObjectMapper extends Mapper {
                 subObjects,
                 sourceKeepMode,
                 mergeWithObject.dynamic != null ? mergeWithObject.dynamic : existing.dynamic,
+                mergeWithObject.schema != null ? mergeWithObject.schema : existing.schema,
                 mergedMappers
             );
         }
@@ -784,6 +806,9 @@ public class ObjectMapper extends Mapper {
         }
         if (dynamic != null) {
             builder.field("dynamic", dynamic.name().toLowerCase(Locale.ROOT));
+        }
+        if (schema != null) {
+            builder.field("schema", schema.toString());
         }
         if (isEnabled() != Defaults.ENABLED) {
             builder.field("enabled", enabled.value());
