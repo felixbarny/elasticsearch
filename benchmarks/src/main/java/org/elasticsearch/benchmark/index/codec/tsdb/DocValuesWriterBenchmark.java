@@ -40,6 +40,9 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Fork(value = 1)
 @Warmup(iterations = 3)
@@ -58,6 +61,7 @@ public class DocValuesWriterBenchmark {
     private double indexingBufferMb;
     private Document[] documents;
     private Path path;
+    private ScheduledExecutorService executor;
 
     @Setup
     public void setup() throws IOException {
@@ -101,12 +105,20 @@ public class DocValuesWriterBenchmark {
             }
             documents[i] = doc;
         }
+        executor = Executors.newSingleThreadScheduledExecutor();
+        executor.scheduleAtFixedRate(() -> {
+            try {
+                if (iwriter != null) {
+                    iwriter.commit();
+                }
+            } catch (IOException ignore) {}
+        }, 1, 1, TimeUnit.SECONDS);
     }
 
     @TearDown
     public void tearDown() throws Exception {
+        executor.shutdown();
         if (iwriter != null) {
-            iwriter.commit();
             iwriter.close();
         }
         if (directory != null) {
