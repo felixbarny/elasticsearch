@@ -10,6 +10,7 @@
 package org.elasticsearch.benchmark.index.codec.tsdb;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
@@ -23,6 +24,11 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
+import org.elasticsearch.cluster.metadata.DataStream;
+import org.elasticsearch.common.logging.internal.LoggerFactoryImpl;
+import org.elasticsearch.index.codec.Elasticsearch900Lucene101Codec;
+import org.elasticsearch.index.codec.tsdb.es819.ES819TSDBDocValuesFormat;
+import org.elasticsearch.logging.internal.spi.LoggerFactory;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -51,6 +57,7 @@ import java.util.concurrent.TimeUnit;
 @State(value = Scope.Benchmark)
 public class DocValuesWriterBenchmark {
 
+    private static final int FLUSH_INTERVAL_SEC = 1;
     private Directory directory;
     private IndexWriter iwriter;
     @Param({ "1000" })
@@ -65,28 +72,47 @@ public class DocValuesWriterBenchmark {
 
     @Setup
     public void setup() throws IOException {
+        LoggerFactory.setInstance(new LoggerFactoryImpl());
+
         path = Path.of(System.getProperty("tests.index"));
         IOUtils.rm(path);
         directory = new MMapDirectory(path);
-        iwriter = new IndexWriter(
-            directory,
-            new IndexWriterConfig(new StandardAnalyzer())
-                // .setOpenMode(IndexWriterConfig.OpenMode.CREATE)
-                .setRAMBufferSizeMB(indexingBufferMb)
-                .setIndexSort(
-                    new Sort(
-                        new SortedNumericSortField("_tsid", SortField.Type.LONG),
-                        new SortedNumericSortField("@timestamp", SortField.Type.LONG, true)
-                    )
+        var codec = new Elasticsearch900Lucene101Codec() {
+            @Override
+            public DocValuesFormat getDocValuesFormatForField(String field) {
+                return new ES819TSDBDocValuesFormat();
+            }
+        };
+        var config = new IndexWriterConfig(new StandardAnalyzer()).setCodec(codec)
+            .setOpenMode(IndexWriterConfig.OpenMode.CREATE)
+            .setRAMBufferSizeMB(indexingBufferMb)
+            .setIndexSort(
+                new Sort(
+                    new SortedNumericSortField("_tsid", SortField.Type.LONG),
+                    new SortedNumericSortField("@timestamp", SortField.Type.LONG, true)
                 )
-        );
+            )
+            .setLeafSorter(DataStream.TIMESERIES_LEAF_READERS_SORTER);
+        iwriter = new IndexWriter(directory, config);
+        documents = initDocs();
+        executor = Executors.newSingleThreadScheduledExecutor();
+        executor.scheduleAtFixedRate(() -> {
+            try {
+                if (iwriter != null) {
+                    iwriter.commit();
+                }
+            } catch (IOException ignore) {}
+        }, FLUSH_INTERVAL_SEC, FLUSH_INTERVAL_SEC, TimeUnit.SECONDS);
+    }
+
+    private Document[] initDocs() {
         Random random = new Random();
         Map<String, String> resourceAttributes = new HashMap<>();
         for (int i = 0; i < dimensions; i++) {
             resourceAttributes.put("resource.attributes.attr-" + i, "value-" + i);
         }
         long tsid = resourceAttributes.hashCode();
-        documents = new Document[numDocsPerIteration];
+        Document[] docs = new Document[numDocsPerIteration];
         long value = 1_000_000L;
         for (int i = 0; i < numDocsPerIteration; i++) {
             Document doc = new Document();
@@ -103,16 +129,9 @@ public class DocValuesWriterBenchmark {
             for (Map.Entry<String, String> entry : resourceAttributes.entrySet()) {
                 doc.add(SortedDocValuesField.indexedField(entry.getKey(), new BytesRef(entry.getValue())));
             }
-            documents[i] = doc;
+            docs[i] = doc;
         }
-        executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleAtFixedRate(() -> {
-            try {
-                if (iwriter != null) {
-                    iwriter.commit();
-                }
-            } catch (IOException ignore) {}
-        }, 1, 1, TimeUnit.SECONDS);
+        return docs;
     }
 
     @TearDown
