@@ -17,6 +17,7 @@ import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSortField;
@@ -60,6 +61,8 @@ import java.util.concurrent.TimeUnit;
 public class DocValuesWriterBenchmark {
 
     private static final int FLUSH_INTERVAL_SEC = 1;
+    private final Object commitLock = new Object();
+
     private Directory directory;
     private IndexWriter iwriter;
     @Param({ "10000" })
@@ -71,7 +74,6 @@ public class DocValuesWriterBenchmark {
     private Document[] documents;
     private Path path;
     private ScheduledExecutorService executor;
-    private final Object commitLock = new Object();
 
     @Setup(Level.Iteration)
     public void setup() throws IOException {
@@ -95,7 +97,8 @@ public class DocValuesWriterBenchmark {
                     new SortedNumericSortField("@timestamp", SortField.Type.LONG, true)
                 )
             )
-            .setLeafSorter(DataStream.TIMESERIES_LEAF_READERS_SORTER);
+            .setLeafSorter(DataStream.TIMESERIES_LEAF_READERS_SORTER)
+            .setMergePolicy(new LogByteSizeMergePolicy());
         iwriter = new IndexWriter(directory, config);
         documents = initDocs();
         executor = Executors.newSingleThreadScheduledExecutor();
