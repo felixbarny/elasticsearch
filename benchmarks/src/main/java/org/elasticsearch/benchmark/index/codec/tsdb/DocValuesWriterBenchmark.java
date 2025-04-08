@@ -32,6 +32,7 @@ import org.elasticsearch.logging.internal.spi.LoggerFactory;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.Param;
@@ -39,6 +40,7 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
 import java.io.IOException;
@@ -60,7 +62,7 @@ public class DocValuesWriterBenchmark {
     private static final int FLUSH_INTERVAL_SEC = 1;
     private Directory directory;
     private IndexWriter iwriter;
-    @Param({ "1000" })
+    @Param({ "10000" })
     private int numDocsPerIteration;
     @Param({ "0", "2", "10", "20" })
     private int dimensions;
@@ -69,8 +71,9 @@ public class DocValuesWriterBenchmark {
     private Document[] documents;
     private Path path;
     private ScheduledExecutorService executor;
+    private final Object commitLock = new Object();
 
-    @Setup
+    @Setup(Level.Iteration)
     public void setup() throws IOException {
         LoggerFactory.setInstance(new LoggerFactoryImpl());
 
@@ -99,7 +102,9 @@ public class DocValuesWriterBenchmark {
         executor.scheduleAtFixedRate(() -> {
             try {
                 if (iwriter != null) {
-                    iwriter.commit();
+                    synchronized (commitLock) {
+                        iwriter.commit();
+                    }
                 }
             } catch (IOException ignore) {}
         }, FLUSH_INTERVAL_SEC, FLUSH_INTERVAL_SEC, TimeUnit.SECONDS);
@@ -134,11 +139,14 @@ public class DocValuesWriterBenchmark {
         return docs;
     }
 
-    @TearDown
+    @TearDown(Level.Iteration)
     public void tearDown() throws Exception {
         executor.shutdown();
         if (iwriter != null) {
-            iwriter.close();
+            synchronized (commitLock) {
+                iwriter.commit();
+                iwriter.close();
+            }
         }
         if (directory != null) {
             directory.close();
@@ -147,7 +155,16 @@ public class DocValuesWriterBenchmark {
     }
 
     @Benchmark
-    public void benchmarkOneMetricPerDocument() throws IOException {
+    @Threads(1)
+    public void benchmarkOneMetricPerDocument1Thread() throws IOException {
+        for (int i = 0; i < numDocsPerIteration; i++) {
+            iwriter.addDocument(documents[i]);
+        }
+    }
+
+    @Benchmark
+    @Threads(4)
+    public void benchmarkOneMetricPerDocument4Threads() throws IOException {
         for (int i = 0; i < numDocsPerIteration; i++) {
             iwriter.addDocument(documents[i]);
         }
