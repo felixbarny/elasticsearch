@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.metrics;
+package org.elasticsearch.action.otlp;
 
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
@@ -29,13 +29,23 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.datastreams.DataStreamsPlugin;
 import org.elasticsearch.http.HttpInfo;
+import org.elasticsearch.index.mapper.extras.MapperExtrasPlugin;
+import org.elasticsearch.ingest.common.IngestCommonPlugin;
+import org.elasticsearch.painless.PainlessPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
+import org.elasticsearch.xpack.constantkeyword.ConstantKeywordMapperPlugin;
+import org.elasticsearch.xpack.core.XPackPlugin;
+import org.elasticsearch.xpack.countedkeyword.CountedKeywordMapperPlugin;
 import org.elasticsearch.xpack.esql.action.EsqlQueryRequestBuilder;
 import org.elasticsearch.xpack.esql.action.EsqlQueryResponse;
 import org.elasticsearch.xpack.esql.plugin.EsqlPlugin;
+import org.elasticsearch.xpack.ilm.IndexLifecycle;
+import org.elasticsearch.xpack.oteldata.OTelPlugin;
+import org.elasticsearch.xpack.stack.StackPlugin;
 import org.elasticsearch.xpack.versionfield.VersionFieldPlugin;
+import org.elasticsearch.xpack.wildcard.Wildcard;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
@@ -46,13 +56,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.anEmptyMap;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-public class MetricsDBIndexingIT extends ESSingleNodeTestCase {
+public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
     private OtlpHttpMetricExporter exporter;
     private SdkMeterProvider meterProvider;
@@ -62,9 +71,18 @@ public class MetricsDBIndexingIT extends ESSingleNodeTestCase {
         return List.of(
             DataStreamsPlugin.class,
             InternalSettingsPlugin.class,
-            MetricsDBPlugin.class,
+            OTelPlugin.class,
+            StackPlugin.class,
             EsqlPlugin.class,
-            VersionFieldPlugin.class
+            VersionFieldPlugin.class,
+            CountedKeywordMapperPlugin.class,
+            ConstantKeywordMapperPlugin.class,
+            MapperExtrasPlugin.class,
+            Wildcard.class,
+            IndexLifecycle.class,
+            IngestCommonPlugin.class,
+            XPackPlugin.class,
+            PainlessPlugin.class
         );
     }
 
@@ -95,10 +113,7 @@ public class MetricsDBIndexingIT extends ESSingleNodeTestCase {
             )
             .build();
         assertBusy(() -> {
-            GetComposableIndexTemplateAction.Request getReq = new GetComposableIndexTemplateAction.Request(
-                TEST_REQUEST_TIMEOUT,
-                "metricsdb@template"
-            );
+            GetComposableIndexTemplateAction.Request getReq = new GetComposableIndexTemplateAction.Request(TEST_REQUEST_TIMEOUT, "*");
             var templates = client().execute(GetComposableIndexTemplateAction.INSTANCE, getReq).actionGet().indexTemplates();
             assertThat(templates, not(anEmptyMap()));
         });
@@ -134,12 +149,16 @@ public class MetricsDBIndexingIT extends ESSingleNodeTestCase {
         assertThat(result.isSuccess(), is(true));
 
         admin().indices().prepareRefresh().execute().actionGet();
-        String[] indices = admin().indices().prepareGetIndex(TimeValue.timeValueSeconds(1)).setIndices("metricsdb").get().indices();
+        String[] indices = admin().indices()
+            .prepareGetIndex(TimeValue.timeValueSeconds(1))
+            .setIndices("metrics-generic.otel-default")
+            .get()
+            .indices();
         assertThat(indices, not(emptyArray()));
 
         try (EsqlQueryResponse resp = query("""
-            FROM metricsdb
-             | STATS avg(metric.value.double) WHERE metric.name == "jvm.memory.total"
+            TS metrics-generic.otel-default
+             | STATS avg(jvm.memory.total)
             """)) {
             double avgJvmMemoryTotal = (double) resp.column(0).next();
             assertThat(avgJvmMemoryTotal, greaterThan(0.0));
@@ -170,12 +189,16 @@ public class MetricsDBIndexingIT extends ESSingleNodeTestCase {
         assertThat(result.isSuccess(), is(true));
 
         admin().indices().prepareRefresh().execute().actionGet();
-        String[] indices = admin().indices().prepareGetIndex(TimeValue.timeValueSeconds(1)).setIndices("metricsdb").get().indices();
+        String[] indices = admin().indices()
+            .prepareGetIndex(TimeValue.timeValueSeconds(1))
+            .setIndices("metrics-generic.otel-default")
+            .get()
+            .indices();
         assertThat(indices, not(emptyArray()));
 
         try (EsqlQueryResponse resp = query("""
-            FROM metricsdb
-             | STATS avg(metric.value.double) WHERE metric.name == "jvm.memory.total"
+            TS metrics-generic.otel-default
+             | STATS avg(jvm.memory.total)
             """)) {
             double avgJvmMemoryTotal = (double) resp.column(0).next();
             assertThat(avgJvmMemoryTotal, greaterThan(0.0));

@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.metrics;
+package org.elasticsearch.xpack.oteldata.otlp;
 
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
 
@@ -27,7 +27,7 @@ import java.util.List;
 
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
-public class MetricsDBRestAction extends BaseRestHandler {
+public class OTLPMetricsRestAction extends BaseRestHandler {
     @Override
     public String getName() {
         return "metrics_action";
@@ -47,17 +47,13 @@ public class MetricsDBRestAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         if (request.hasContent()) {
-            var transportRequest = new MetricsDBTransportAction.MetricsRequest(
-                Boolean.parseBoolean(request.header("X-MetricsDB-Normalized")),
-                Boolean.parseBoolean(request.header("X-MetricsDB-Noop")),
-                request.content().retain()
-            );
+            var transportRequest = new OTLPMetricsTransportAction.MetricsRequest(request.content().retain());
             return channel -> client.execute(
-                MetricsDBTransportAction.TYPE,
+                OTLPMetricsTransportAction.TYPE,
                 transportRequest,
                 ActionListener.releaseBefore(request.content(), new RestResponseListener<>(channel) {
                     @Override
-                    public RestResponse buildResponse(MetricsDBTransportAction.MetricsResponse r) throws Exception {
+                    public RestResponse buildResponse(OTLPMetricsTransportAction.MetricsResponse r) throws Exception {
                         return successResponse(r.getResponse());
                     }
                 })

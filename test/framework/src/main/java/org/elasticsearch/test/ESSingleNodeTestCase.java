@@ -19,6 +19,8 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteComponentTemplateAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteComposableIndexTemplateAction;
+import org.elasticsearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
+import org.elasticsearch.action.admin.indices.template.get.TransportGetComposableIndexTemplateAction;
 import org.elasticsearch.action.datastreams.DeleteDataStreamAction;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.ingest.DeletePipelineRequest;
@@ -75,6 +77,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -83,8 +86,10 @@ import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INI
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 import static org.elasticsearch.test.NodeRoles.dataNode;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 
 /**
  * A test that keep a singleton node started for all tests that can be used to get
@@ -156,10 +161,28 @@ public abstract class ESSingleNodeTestCase extends ESTestCase {
                 throw e;
             }
         }
-        var deleteComposableIndexTemplateRequest = new TransportDeleteComposableIndexTemplateAction.Request("*");
-        assertAcked(client().execute(TransportDeleteComposableIndexTemplateAction.TYPE, deleteComposableIndexTemplateRequest).actionGet());
-        var deleteComponentTemplateRequest = new TransportDeleteComponentTemplateAction.Request("*");
-        assertAcked(client().execute(TransportDeleteComponentTemplateAction.TYPE, deleteComponentTemplateRequest).actionGet());
+        var indexTemplates = client().execute(GetComposableIndexTemplateAction.INSTANCE, new GetComposableIndexTemplateAction.Request(
+            TEST_REQUEST_TIMEOUT,
+            "*"
+        )).actionGet().indexTemplates();
+        var deleteComposableIndexTemplateRequest = new TransportDeleteComposableIndexTemplateAction.Request(indexTemplates.keySet()
+            .stream()
+            .filter(Predicate.not(ESRestTestCase::isXPackTemplate))
+            .toArray(String[]::new));
+        if (deleteComposableIndexTemplateRequest.names().length > 0) {
+            assertAcked(client().execute(TransportDeleteComposableIndexTemplateAction.TYPE, deleteComposableIndexTemplateRequest).actionGet());
+        }
+        var componentTemplates = client().execute(
+            GetComposableIndexTemplateAction.INSTANCE,
+            new GetComposableIndexTemplateAction.Request(TEST_REQUEST_TIMEOUT, "*")
+        ).actionGet().indexTemplates();
+        var deleteComponentTemplateRequest = new TransportDeleteComponentTemplateAction.Request(componentTemplates.keySet()
+            .stream()
+            .filter(Predicate.not(ESRestTestCase::isXPackTemplate))
+            .toArray(String[]::new));
+        if (deleteComponentTemplateRequest.names().length > 0) {
+            assertAcked(client().execute(TransportDeleteComponentTemplateAction.TYPE, deleteComponentTemplateRequest).actionGet());
+        }
         assertAcked(indicesAdmin().prepareDelete("*").setIndicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED_HIDDEN).get());
         Metadata metadata = clusterAdmin().prepareState(TEST_REQUEST_TIMEOUT).get().getState().getMetadata();
         assertThat(

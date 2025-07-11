@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.metrics;
+package org.elasticsearch.xpack.oteldata.otlp;
 
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
@@ -35,7 +35,6 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.client.internal.Client;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -53,19 +52,24 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MetricsDBTransportAction extends HandledTransportAction<
-    MetricsDBTransportAction.MetricsRequest,
-    MetricsDBTransportAction.MetricsResponse> {
+public class OTLPMetricsTransportAction extends HandledTransportAction<
+    OTLPMetricsTransportAction.MetricsRequest,
+    OTLPMetricsTransportAction.MetricsResponse> {
 
     public static final String NAME = "indices:data/write/metrics";
-    public static final ActionType<MetricsDBTransportAction.MetricsResponse> TYPE = new ActionType<>(NAME);
+    public static final ActionType<OTLPMetricsTransportAction.MetricsResponse> TYPE = new ActionType<>(NAME);
 
-    private static final Logger logger = LogManager.getLogger(MetricsDBTransportAction.class);
+    private static final Logger logger = LogManager.getLogger(OTLPMetricsTransportAction.class);
     private static final Hasher128 HASHER = Hashing.murmur3_128();
     private final Client client;
 
     @Inject
-    public MetricsDBTransportAction(TransportService transportService, ActionFilters actionFilters, ThreadPool threadPool, Client client) {
+    public OTLPMetricsTransportAction(
+        TransportService transportService,
+        ActionFilters actionFilters,
+        ThreadPool threadPool,
+        Client client
+    ) {
         super(NAME, transportService, actionFilters, MetricsRequest::new, threadPool.executor(ThreadPool.Names.WRITE));
         this.client = client;
     }
@@ -171,7 +175,7 @@ public class MetricsDBTransportAction extends HandledTransportAction<
                     dp
                 );
                 bulkRequestBuilder.add(
-                    client.prepareIndex("metricsdb")
+                    client.prepareIndex("metrics-generic.otel-default")
                         .setCreate(true)
                         .setRequireDataStream(true)
                         .setPipeline(IngestService.NOOP_PIPELINE_NAME)
@@ -192,6 +196,11 @@ public class MetricsDBTransportAction extends HandledTransportAction<
     ) throws IOException {
         builder.startObject();
         builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(dp.getTimeUnixNano()));
+        builder.startObject("data_stream");
+        builder.field("type", "metrics");
+        builder.field("dataset", "generic.otel-default");
+        builder.field("namespace", "default");
+        builder.endObject();
         builder.startObject("resource");
         builder.startObject("attributes");
         buildAttributes(builder, resourceAttributes);
@@ -206,32 +215,12 @@ public class MetricsDBTransportAction extends HandledTransportAction<
         buildAttributes(builder, resourceAttributes);
         builder.endObject();
         builder.field("unit", metric.getUnit());
-        builder.field("type");
-        if (metric.getDataCase() == Metric.DataCase.SUM) {
-            if (metric.getSum().getIsMonotonic() == false) {
-                builder.value("up_down_counter");
-            } else {
-                builder.value("counter");
-            }
-        } else {
-            builder.value(Strings.toLowercaseAscii(metric.getDataCase().toString()));
-        }
-        switch (metric.getDataCase()) {
-            case SUM -> builder.field("temporality", metric.getSum().getAggregationTemporality().toString());
-            case HISTOGRAM -> builder.field("temporality", metric.getHistogram().getAggregationTemporality().toString());
-            case EXPONENTIAL_HISTOGRAM -> builder.field(
-                "temporality",
-                metric.getExponentialHistogram().getAggregationTemporality().toString()
-            );
-        }
-        builder.startObject("metric");
-        builder.field("name", metric.getName());
-        builder.startObject("value");
+        builder.field("_metric_names_hash", metric.getName());
+        builder.startObject("metrics");
         switch (dp.getValueCase()) {
-            case AS_DOUBLE -> builder.field("double", dp.getAsDouble());
-            case AS_INT -> builder.field("long", dp.getAsInt());
+            case AS_DOUBLE -> builder.field(metric.getName(), dp.getAsDouble());
+            case AS_INT -> builder.field(metric.getName(), dp.getAsInt());
         }
-        builder.endObject();
         builder.endObject();
         builder.endObject();
     }
@@ -262,20 +251,14 @@ public class MetricsDBTransportAction extends HandledTransportAction<
     }
 
     public static class MetricsRequest extends ActionRequest {
-        private final boolean normalized;
-        private final boolean noop;
         private final BytesReference exportMetricsServiceRequest;
 
         public MetricsRequest(StreamInput in) throws IOException {
             super(in);
-            normalized = in.readBoolean();
-            noop = in.readBoolean();
             exportMetricsServiceRequest = in.readBytesReference();
         }
 
-        public MetricsRequest(boolean normalized, boolean noop, BytesReference exportMetricsServiceRequest) {
-            this.normalized = normalized;
-            this.noop = noop;
+        public MetricsRequest(BytesReference exportMetricsServiceRequest) {
             this.exportMetricsServiceRequest = exportMetricsServiceRequest;
         }
 
