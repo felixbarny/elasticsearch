@@ -7,15 +7,19 @@
 
 package org.elasticsearch.xpack.oteldata.otlp;
 
+import com.dynatrace.hash4j.hashing.HashStream32;
+import com.dynatrace.hash4j.hashing.Hasher32;
+
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
 import io.opentelemetry.proto.common.v1.AnyValue;
+import io.opentelemetry.proto.common.v1.InstrumentationScope;
 import io.opentelemetry.proto.common.v1.KeyValue;
-import io.opentelemetry.proto.metrics.v1.AggregationTemporality;
 import io.opentelemetry.proto.metrics.v1.Metric;
 import io.opentelemetry.proto.metrics.v1.NumberDataPoint;
 import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
 import io.opentelemetry.proto.metrics.v1.ScopeMetrics;
+import io.opentelemetry.proto.resource.v1.Resource;
 
 import com.dynatrace.hash4j.hashing.HashValue128;
 import com.dynatrace.hash4j.hashing.Hasher128;
@@ -38,7 +42,6 @@ import org.elasticsearch.client.internal.Client;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.core.Nullable;
 import org.elasticsearch.ingest.IngestService;
 import org.elasticsearch.injection.guice.Inject;
 import org.elasticsearch.tasks.Task;
@@ -48,8 +51,11 @@ import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xcontent.cbor.CborXContent;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class OTLPMetricsTransportAction extends HandledTransportAction<
@@ -60,7 +66,8 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
     public static final ActionType<OTLPMetricsTransportAction.MetricsResponse> TYPE = new ActionType<>(NAME);
 
     private static final Logger logger = LogManager.getLogger(OTLPMetricsTransportAction.class);
-    private static final Hasher128 HASHER = Hashing.murmur3_128();
+    private static final Hasher128 HASHER_128 = Hashing.murmur3_128();
+    private static final Hasher32 HASHER_32 = Hashing.murmur3_32();
     private final Client client;
 
     @Inject
@@ -115,40 +122,45 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         for (int i = 0; i < resourceMetricsList.size(); i++) {
             ResourceMetrics resourceMetrics = resourceMetricsList.get(i);
             List<KeyValue> resourceAttributes = resourceMetrics.getResource().getAttributesList();
-            HashValue128 resourceAttributesHash = HASHER.hashTo128Bits(resourceAttributes, AttributeListHashFunnel.get());
+            HashValue128 resourceAttributesHash = HASHER_128.hashTo128Bits(resourceAttributes, AttributeListHashFunnel.get());
             List<ScopeMetrics> scopeMetricsList = resourceMetrics.getScopeMetricsList();
             for (int j = 0; j < scopeMetricsList.size(); j++) {
                 ScopeMetrics scopeMetrics = scopeMetricsList.get(j);
                 List<KeyValue> scopeAttributes = scopeMetrics.getScope().getAttributesList();
-                HashValue128 scopeAttributesHash = HASHER.hashTo128Bits(scopeAttributes, AttributeListHashFunnel.get());
+                HashValue128 scopeAttributesHash = HASHER_128.hashTo128Bits(scopeAttributes, AttributeListHashFunnel.get());
                 List<Metric> metricsList = scopeMetrics.getMetricsList();
+                Map<HashValue128, List<DataPoint>> dataPoints = new HashMap<>();
                 for (int k = 0; k < metricsList.size(); k++) {
                     var metric = metricsList.get(k);
                     switch (metric.getDataCase()) {
-                        case SUM -> createNumberDataPointDocs(
-                            resourceAttributes,
-                            resourceAttributesHash,
-                            scopeAttributes,
-                            scopeAttributesHash,
-                            metric,
-                            metric.getSum().getDataPointsList(),
-                            metric.getSum().getAggregationTemporality(),
-                            bulkRequestBuilder
-                        );
-                        case GAUGE -> createNumberDataPointDocs(
-                            resourceAttributes,
-                            resourceAttributesHash,
-                            scopeAttributes,
-                            scopeAttributesHash,
-                            metric,
-                            metric.getGauge().getDataPointsList(),
-                            null,
-                            bulkRequestBuilder
-                        );
+                        case SUM -> {
+                            List<NumberDataPoint> dataPointsList = metric.getSum().getDataPointsList();
+                            groupNumberDataPoints(dataPoints, metric, dataPointsList);
+                        }
+                        case GAUGE -> {
+                            List<NumberDataPoint> dataPointsList = metric.getGauge().getDataPointsList();
+                            groupNumberDataPoints(dataPoints, metric, dataPointsList);
+                        }
                         default -> throw new IllegalArgumentException("Unsupported metric type [" + metric.getDataCase() + "]");
                     }
                 }
+                createNumberDataPointDocs(
+                    resourceAttributes,
+                    resourceAttributesHash,
+                    scopeAttributes,
+                    scopeAttributesHash,
+                    dataPoints,
+                    bulkRequestBuilder
+                );
             }
+        }
+    }
+
+    private void groupNumberDataPoints(Map<HashValue128, List<DataPoint>> dataPoints, Metric metric, List<NumberDataPoint> dataPointsList) {
+        for (int l = 0; l < dataPointsList.size(); l++) {
+            DataPoint dataPoint = new DataPoint(dataPointsList.get(l), metric);
+            HashValue128 hash = HASHER_128.hashTo128Bits(dataPoint, DataPointHashFunnel.get());
+            dataPoints.computeIfAbsent(hash, h -> new ArrayList<>()).add(dataPoint);
         }
     }
 
@@ -157,13 +169,10 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         HashValue128 resourceAttributesHash,
         List<KeyValue> scopeAttributes,
         HashValue128 scopeAttributesHash,
-        Metric metric,
-        List<NumberDataPoint> dataPoints,
-        @Nullable AggregationTemporality temporality,
+        Map<HashValue128, List<DataPoint>> dataPoints,
         BulkRequestBuilder bulkRequestBuilder
     ) throws IOException {
-        for (int i = 0; i < dataPoints.size(); i++) {
-            NumberDataPoint dp = dataPoints.get(i);
+        for (Map.Entry<HashValue128, List<DataPoint>> entry : dataPoints.entrySet()) {
             try (XContentBuilder xContentBuilder = CborXContent.contentBuilder()) {
                 buildDataPointDoc(
                     xContentBuilder,
@@ -171,8 +180,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                     resourceAttributesHash,
                     scopeAttributes,
                     scopeAttributesHash,
-                    metric,
-                    dp
+                    entry.getValue()
                 );
                 bulkRequestBuilder.add(
                     client.prepareIndex("metrics-generic.otel-default")
@@ -191,11 +199,14 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         HashValue128 resourceAttributesHash,
         List<KeyValue> scopeAttributes,
         HashValue128 scopeAttributesHash,
-        Metric metric,
-        NumberDataPoint dp
+        List<DataPoint> dataPoints
     ) throws IOException {
         builder.startObject();
-        builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(dp.getTimeUnixNano()));
+        DataPoint first = dataPoints.getFirst();
+        builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(first.getTimestampUnixNano()));
+        if (first.getStartTimestampUnixNano() != 0) {
+            builder.field("start_timestamp", TimeUnit.NANOSECONDS.toMillis(first.getStartTimestampUnixNano()));
+        }
         builder.startObject("data_stream");
         builder.field("type", "metrics");
         builder.field("dataset", "generic.otel-default");
@@ -212,14 +223,19 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         builder.endObject();
         builder.endObject();
         builder.startObject("attributes");
-        buildAttributes(builder, resourceAttributes);
+        buildAttributes(builder, first.getAttributes());
         builder.endObject();
-        builder.field("unit", metric.getUnit());
-        builder.field("_metric_names_hash", metric.getName());
+        builder.field("unit", first.getUnit());
+        HashStream32 metricNamesHash = HASHER_32.hashStream();
+        dataPoints.stream().map(DataPoint::getMetricName).forEach(metricNamesHash::putString);
+        builder.field("_metric_names_hash", Integer.toHexString(metricNamesHash.getAsInt()));
         builder.startObject("metrics");
-        switch (dp.getValueCase()) {
-            case AS_DOUBLE -> builder.field(metric.getName(), dp.getAsDouble());
-            case AS_INT -> builder.field(metric.getName(), dp.getAsInt());
+        for (int i = 0; i < dataPoints.size(); i++) {
+            NumberDataPoint dp = dataPoints.get(i).dataPoint();
+            switch (dp.getValueCase()) {
+                case AS_DOUBLE -> builder.field(dataPoints.get(i).getMetricName(), dp.getAsDouble());
+                case AS_INT -> builder.field(dataPoints.get(i).getMetricName(), dp.getAsInt());
+            }
         }
         builder.endObject();
         builder.endObject();
@@ -249,6 +265,42 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             default -> throw new IllegalArgumentException("Unsupported attribute value type: " + value.getValueCase());
         }
     }
+
+    public record DataPoint(NumberDataPoint dataPoint, Metric metric) {
+
+        long getTimestampUnixNano() {
+            return dataPoint.getTimeUnixNano();
+        }
+
+        List<KeyValue> getAttributes() {
+            return dataPoint().getAttributesList();
+        }
+
+        Metric.DataCase getDataCase() {
+            return metric.getDataCase();
+        }
+
+        public long getStartTimestampUnixNano() {
+            return dataPoint.getStartTimeUnixNano();
+        }
+
+        public String getUnit() {
+            return metric().getUnit();
+        }
+
+        public String getMetricName() {
+            return metric.getName();
+        }
+    }
+
+    record DataPointGroup(
+        Resource resource,
+        String resourceSchemaUrl,
+        HashValue128 resourceHash,
+        InstrumentationScope scope,
+        HashValue128 scopeHash,
+        List<DataPoint> dataPoints
+    ) {}
 
     public static class MetricsRequest extends ActionRequest {
         private final BytesReference exportMetricsServiceRequest;

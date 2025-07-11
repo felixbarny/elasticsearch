@@ -24,6 +24,7 @@ import io.opentelemetry.sdk.resources.Resource;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.core.TimeValue;
@@ -52,17 +53,23 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.anEmptyMap;
+import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.emptyArray;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasLength;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
+    private static final Resource TEST_RESOURCE = Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), "elasticsearch"));
+    private static final InstrumentationScopeInfo TEST_SCOPE = InstrumentationScopeInfo.create("io.opentelemetry.example.metrics");
     private OtlpHttpMetricExporter exporter;
     private SdkMeterProvider meterProvider;
 
@@ -167,28 +174,9 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
     @Test
     public void testIngestMetricDataViaMetricExporter() throws Exception {
-        MetricData jvmMemoryMetricData = ImmutableMetricData.createDoubleGauge(
-            Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), "elasticsearch")),
-            InstrumentationScopeInfo.create("io.opentelemetry.example.metrics"),
-            "jvm.memory.total",
-            "Reports JVM memory usage.",
-            "By",
-            ImmutableGaugeData.create(
-                List.of(
-                    ImmutableDoublePointData.create(
-                        Clock.getDefault().now(),
-                        Clock.getDefault().now(),
-                        Attributes.empty(),
-                        Runtime.getRuntime().totalMemory()
-                    )
-                )
-            )
-        );
+        MetricData jvmMemoryMetricData = getDoubleGauge("jvm.memory.total", Runtime.getRuntime().totalMemory(), Attributes.empty(), "By", Clock.getDefault().now());
 
-        var result = exporter.export(List.of(jvmMemoryMetricData)).join(10, TimeUnit.SECONDS);
-        assertThat(result.isSuccess(), is(true));
-
-        admin().indices().prepareRefresh().execute().actionGet();
+        export(List.of(jvmMemoryMetricData));
         String[] indices = admin().indices()
             .prepareGetIndex(TimeValue.timeValueSeconds(1))
             .setIndices("metrics-generic.otel-default")
@@ -203,6 +191,57 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             double avgJvmMemoryTotal = (double) resp.column(0).next();
             assertThat(avgJvmMemoryTotal, greaterThan(0.0));
         }
+    }
+
+    @Test
+    public void testGroupingSameGroup() throws Exception {
+        long now = Clock.getDefault().now();
+        MetricData metric1 = getDoubleGauge("metric1", 42, Attributes.empty(), "By", now);
+        MetricData metric2 = getDoubleGauge("metric2", 42, Attributes.empty(), "By", now);
+
+        export(List.of(metric1, metric2));
+
+        SearchResponse resp = client().prepareSearch("metrics-generic.otel-default").get();
+        assertThat(resp.getHits().getHits(), arrayWithSize(1));
+        assertThat(resp.getHits().getAt(0).getSourceAsMap().get("metrics"), equalTo(Map.of(
+            "metric1", 42.0,
+            "metric2", 42.0
+        )));
+    }
+
+    @Test
+    public void testGroupingDifferentGroup() throws Exception {
+        long now = Clock.getDefault().now();
+        export(
+            List.of(
+                getDoubleGauge("metric1", 42, Attributes.empty(), "By", now),
+                getDoubleGauge("metric1", 42, Attributes.empty(), "By", now + TimeUnit.MILLISECONDS.toNanos(1)),
+                getDoubleGauge("metric1", 42, Attributes.empty(), "", now),
+                getDoubleGauge("metric1", 42, Attributes.of(AttributeKey.stringKey("foo"), "bar"), "By", now)
+            )
+        );
+
+        SearchResponse resp = client().prepareSearch("metrics-generic.otel-default").get();
+        assertThat(resp.getHits().getHits(), arrayWithSize(4));
+    }
+
+    private void export(List<MetricData> metrics) {
+        var result = exporter.export(metrics).join(10, TimeUnit.SECONDS);
+        assertThat(result.isSuccess(), is(true));
+        admin().indices().prepareRefresh().execute().actionGet();
+    }
+
+    private static MetricData getDoubleGauge(String name, double value, Attributes attributes, String unit, long timeEpochNanos) {
+        return ImmutableMetricData.createDoubleGauge(
+            TEST_RESOURCE,
+            TEST_SCOPE,
+            name,
+            "Your description could be here.",
+            unit,
+            ImmutableGaugeData.create(
+                List.of(ImmutableDoublePointData.create(timeEpochNanos, timeEpochNanos, attributes, value))
+            )
+        );
     }
 
     protected EsqlQueryResponse query(String esql) {
