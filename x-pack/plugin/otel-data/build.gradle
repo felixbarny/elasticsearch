@@ -39,8 +39,9 @@ dependencies {
   testImplementation project(xpackModule('wildcard'))
   testImplementation project(xpackModule('mapper-version'))
 
-  def otelVersion = "1.50.0"
+  def otelVersion = "1.52.0"
   implementation "io.opentelemetry:opentelemetry-api:$otelVersion"
+  implementation "io.opentelemetry:opentelemetry-common:${otelVersion}"
   implementation "io.opentelemetry:opentelemetry-context:$otelVersion"
   // TODO this is explicitly marked as "not for production" but it's good for now
   implementation "io.opentelemetry.proto:opentelemetry-proto:1.7.0-alpha"
