@@ -85,7 +85,7 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
      *
      * @see ReplicationRequest#createTask
      */
-    static final int MAX_SOURCE_LENGTH_IN_TOSTRING = 2048;
+    public static final int MAX_SOURCE_LENGTH_IN_TOSTRING = 2048;
 
     /**
      * Maximal allowed length (in bytes) of the document ID.

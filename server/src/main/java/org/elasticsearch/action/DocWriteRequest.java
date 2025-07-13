@@ -9,7 +9,9 @@
 package org.elasticsearch.action;
 
 import org.apache.lucene.util.Accountable;
+import org.elasticsearch.TransportVersions;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -203,7 +205,9 @@ public interface DocWriteRequest<T> extends IndicesRequest, Accountable {
         /** Updates a document */
         UPDATE(2),
         /** Deletes a document */
-        DELETE(3);
+        DELETE(3),
+        /** Represents a document fragment */
+        FRAGMENT(4);
 
         private final byte op;
         private final String lowercase;
@@ -227,6 +231,7 @@ public interface DocWriteRequest<T> extends IndicesRequest, Accountable {
                 case 1 -> CREATE;
                 case 2 -> UPDATE;
                 case 3 -> DELETE;
+                case 4 -> FRAGMENT;
                 default -> throw new IllegalArgumentException("Unknown opType: [" + id + "]");
             };
         }
@@ -257,6 +262,8 @@ public interface DocWriteRequest<T> extends IndicesRequest, Accountable {
             docWriteRequest = new DeleteRequest(shardId, in);
         } else if (type == 2) {
             docWriteRequest = new UpdateRequest(shardId, in);
+        } else if (type == 4 && in.getTransportVersion().onOrAfter(TransportVersions.DOCUMENT_FRAGMENTS_SUPPORT)) {
+            docWriteRequest = new FragmentRequest(shardId, in);
         } else {
             throw new IllegalStateException("invalid request type [" + type + " ]");
         }
@@ -274,6 +281,13 @@ public interface DocWriteRequest<T> extends IndicesRequest, Accountable {
         } else if (request instanceof UpdateRequest) {
             out.writeByte((byte) 2);
             ((UpdateRequest) request).writeTo(out);
+        } else if (request instanceof org.elasticsearch.action.fragment.FragmentRequest) {
+            if (out.getTransportVersion().onOrAfter(TransportVersions.DOCUMENT_FRAGMENTS_SUPPORT)) {
+                out.writeByte((byte) 4);
+                ((org.elasticsearch.action.fragment.FragmentRequest) request).writeTo(out);
+            } else {
+                throw new IllegalStateException("cannot send fragment requests to older nodes");
+            }
         } else {
             throw new IllegalStateException("invalid request [" + request.getClass().getSimpleName() + " ]");
         }
@@ -290,6 +304,13 @@ public interface DocWriteRequest<T> extends IndicesRequest, Accountable {
         } else if (request instanceof UpdateRequest) {
             out.writeByte((byte) 2);
             ((UpdateRequest) request).writeThin(out);
+        } else if (request instanceof org.elasticsearch.action.fragment.FragmentRequest) {
+            if (out.getTransportVersion().onOrAfter(TransportVersions.DOCUMENT_FRAGMENTS_SUPPORT)) {
+                out.writeByte((byte) 4);
+                ((org.elasticsearch.action.fragment.FragmentRequest) request).writeThin(out);
+            } else {
+                throw new IllegalStateException("cannot send fragment requests to older nodes");
+            }
         } else {
             throw new IllegalStateException("invalid request [" + request.getClass().getSimpleName() + " ]");
         }

@@ -18,6 +18,7 @@ import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.LegacyActionRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.WriteRequest;
@@ -206,6 +207,22 @@ public class BulkRequest extends LegacyActionRequest
      * Adds an {@link DeleteRequest} to the list of actions to execute.
      */
     public BulkRequest add(DeleteRequest request) {
+        Objects.requireNonNull(request, "'request' must not be null");
+        applyGlobalMandatoryParameters(request);
+
+        requests.add(request);
+        sizeInBytes += REQUEST_OVERHEAD;
+        indices.add(request.index());
+        return this;
+    }
+
+    /**
+     * Add a document fragment to the current BulkRequest.
+     *
+     * @param request The fragment request to add
+     * @return the current bulk request
+     */
+    public BulkRequest add(FragmentRequest request) {
         Objects.requireNonNull(request, "'request' must not be null");
         applyGlobalMandatoryParameters(request);
 
