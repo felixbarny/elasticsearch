@@ -33,6 +33,7 @@ import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequestBuilder;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.elasticsearch.action.fieldcaps.TransportFieldCapabilitiesAction;
+import org.elasticsearch.action.fragment.FragmentRequestBuilder;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
@@ -217,6 +218,16 @@ public abstract class AbstractClient implements Client {
     @Override
     public DeleteRequestBuilder prepareDelete(String index, String id) {
         return prepareDelete().setIndex(index).setId(id);
+    }
+
+    @Override
+    public FragmentRequestBuilder prepareFragment() {
+        return new FragmentRequestBuilder(this, null);
+    }
+
+    @Override
+    public FragmentRequestBuilder prepareFragment(String index) {
+        return new FragmentRequestBuilder(this, index);
     }
 
     @Override

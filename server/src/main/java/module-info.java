@@ -133,6 +133,7 @@ module org.elasticsearch.server {
     exports org.elasticsearch.action.delete;
     exports org.elasticsearch.action.explain;
     exports org.elasticsearch.action.fieldcaps;
+    exports org.elasticsearch.action.fragment;
     exports org.elasticsearch.action.get;
     exports org.elasticsearch.action.index;
     exports org.elasticsearch.action.ingest;

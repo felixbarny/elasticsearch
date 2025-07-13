@@ -24,6 +24,8 @@ import org.elasticsearch.action.explain.ExplainResponse;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequestBuilder;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesResponse;
+import org.elasticsearch.action.fragment.FragmentRequest;
+import org.elasticsearch.action.fragment.FragmentRequestBuilder;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
@@ -424,4 +426,16 @@ public interface Client extends ElasticsearchClient {
     ) {
         throw new UnsupportedOperationException("this client doesn't support remote cluster connections");
     }
+
+    /**
+     * Stores a document fragment that can be referenced by subsequent index operations.
+     */
+    FragmentRequestBuilder prepareFragment();
+
+    /**
+     * Stores a document fragment that can be referenced by subsequent index operations.
+     *
+     * @param index The index to store the document fragment in
+     */
+    FragmentRequestBuilder prepareFragment(String index);
 }
