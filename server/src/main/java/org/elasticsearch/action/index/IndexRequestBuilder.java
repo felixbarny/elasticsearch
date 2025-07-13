@@ -26,6 +26,8 @@ import org.elasticsearch.xcontent.XContentFactory;
 import org.elasticsearch.xcontent.XContentType;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -50,6 +52,7 @@ public class IndexRequestBuilder extends ReplicationRequestBuilder<IndexRequest,
     private Boolean create;
     private Long version;
     private VersionType versionType;
+    private List<String> fragmentIds = new ArrayList<>();
 
     public IndexRequestBuilder(ElasticsearchClient client) {
         this(client, null);
@@ -270,6 +273,32 @@ public class IndexRequestBuilder extends ReplicationRequestBuilder<IndexRequest,
         return this;
     }
 
+    /**
+     * Adds a fragment ID to the list of fragments referenced by this index request.
+     * Fragments contain reusable parts of document content to avoid repeated parsing.
+     *
+     * @param fragmentId The ID of the fragment to reference
+     * @return this index request builder
+     */
+    public IndexRequestBuilder addFragmentId(String fragmentId) {
+        java.util.Objects.requireNonNull(fragmentId, "fragmentId must not be null");
+        this.fragmentIds.add(fragmentId);
+        return this;
+    }
+
+    /**
+     * Sets the list of fragment IDs referenced by this index request.
+     * Fragments contain reusable parts of document content to avoid repeated parsing.
+     *
+     * @param fragmentIds The list of fragment IDs to reference
+     * @return this index request builder
+     */
+    public IndexRequestBuilder setFragmentIds(List<String> fragmentIds) {
+        java.util.Objects.requireNonNull(fragmentIds, "fragmentIds must not be null");
+        this.fragmentIds = new ArrayList<>(fragmentIds);
+        return this;
+    }
+
     @Override
     public IndexRequest request() {
         IndexRequest request = new IndexRequest();
@@ -313,6 +342,9 @@ public class IndexRequestBuilder extends ReplicationRequestBuilder<IndexRequest,
         }
         if (versionType != null) {
             request.versionType(versionType);
+        }
+        if (fragmentIds != null) {
+            request.fragmentIds(fragmentIds);
         }
         return request;
     }

@@ -149,6 +149,12 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
     private Map<String, String> dynamicTemplates = Map.of();
 
     /**
+     * Ids of fragments to be referenced by this index request.
+     * Fragments contain reusable parts of document content to avoid repeated parsing.
+     */
+    private List<String> fragmentIds;
+
+    /**
      * rawTimestamp field is used on the coordinate node, it doesn't need to be serialised.
      */
     private Object rawTimestamp;
@@ -216,10 +222,18 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
         if (in.getTransportVersion().onOrAfter(TransportVersions.INGEST_REQUEST_INCLUDE_SOURCE_ON_ERROR)) {
             includeSourceOnError = in.readBoolean();
         } // else default value is true
+
+        // Read fragment IDs if version supports document fragments
+        if (in.getTransportVersion().onOrAfter(TransportVersions.DOCUMENT_FRAGMENTS_SUPPORT)) {
+            this.fragmentIds = in.readCollectionAsImmutableList(StreamInput::readString);
+        } else {
+            this.fragmentIds = new ArrayList<>();
+        }
     }
 
     public IndexRequest() {
         super(NO_SHARD_ID);
+        this.fragmentIds = new ArrayList<>();
     }
 
     /**
@@ -229,6 +243,7 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
     public IndexRequest(String index) {
         super(NO_SHARD_ID);
         this.index = index;
+        this.fragmentIds = new ArrayList<>();
     }
 
     private static final StringLiteralDeduplicator pipelineNameDeduplicator = new StringLiteralDeduplicator();
@@ -815,6 +830,11 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
         if (out.getTransportVersion().onOrAfter(TransportVersions.INGEST_REQUEST_INCLUDE_SOURCE_ON_ERROR)) {
             out.writeBoolean(includeSourceOnError);
         }
+
+        // Write fragment IDs if version supports document fragments
+        if (out.getTransportVersion().onOrAfter(TransportVersions.DOCUMENT_FRAGMENTS_SUPPORT)) {
+            out.writeCollection(fragmentIds, StreamOutput::writeString);
+        }
     }
 
     @Override
@@ -1007,5 +1027,41 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
         } else {
             return Collections.unmodifiableList(executedPipelines);
         }
+    }
+
+    /**
+     * Returns the list of fragment IDs referenced by this index request.
+     * Fragments contain reusable parts of document content to avoid repeated parsing.
+     *
+     * @return An unmodifiable list of fragment IDs
+     */
+    public List<String> fragmentIds() {
+        return Collections.unmodifiableList(fragmentIds);
+    }
+
+    /**
+     * Adds a fragment ID to the list of fragments referenced by this index request.
+     * Fragments contain reusable parts of document content to avoid repeated parsing.
+     *
+     * @param fragmentId The ID of the fragment to reference
+     * @return this index request
+     */
+    public IndexRequest addFragmentId(String fragmentId) {
+        Objects.requireNonNull(fragmentId, "fragmentId must not be null");
+        this.fragmentIds.add(fragmentId);
+        return this;
+    }
+
+    /**
+     * Sets the list of fragment IDs referenced by this index request.
+     * Fragments contain reusable parts of document content to avoid repeated parsing.
+     *
+     * @param fragmentIds The list of fragment IDs to reference
+     * @return this index request
+     */
+    public IndexRequest fragmentIds(List<String> fragmentIds) {
+        Objects.requireNonNull(fragmentIds, "fragmentIds must not be null");
+        this.fragmentIds = new ArrayList<>(fragmentIds);
+        return this;
     }
 }
