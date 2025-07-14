@@ -13,9 +13,11 @@ import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.TransportVersions;
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionRequestLazyBuilder;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.DocWriteRequest;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.LegacyActionRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.fragment.FragmentRequest;
@@ -461,6 +463,8 @@ public class BulkRequest extends LegacyActionRequest
         if (requests.isEmpty()) {
             validationException = addValidationError("no requests added", validationException);
         }
+        // check for duplicate fragment request IDs
+        Set<String> fragmentIds = new HashSet<>();
         for (DocWriteRequest<?> request : requests) {
             // We first check if refresh has been set
             if (((WriteRequest<?>) request).getRefreshPolicy() != RefreshPolicy.NONE) {
@@ -475,6 +479,12 @@ public class BulkRequest extends LegacyActionRequest
                     validationException = new ActionRequestValidationException();
                 }
                 validationException.addValidationErrors(ex.validationErrors());
+            }
+            if (request instanceof FragmentRequest fragmentRequest) {
+                String id = fragmentRequest.id();
+                if (id != null && fragmentIds.add(id) == false) {
+                    throw new IllegalArgumentException("Duplicate fragment request ID: " + id);
+                }
             }
         }
 

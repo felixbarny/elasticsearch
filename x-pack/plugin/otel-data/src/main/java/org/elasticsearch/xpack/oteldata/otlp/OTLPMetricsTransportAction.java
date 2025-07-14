@@ -54,8 +54,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class OTLPMetricsTransportAction extends HandledTransportAction<
@@ -98,7 +100,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                             .setRejectedDataPoints(failures)
                             .setErrorMessage(bulkItemResponses.buildFailureMessage())
                             .build();
-                        logger.debug(bulkItemResponses.buildFailureMessage());
+                        logger.debug("OTLP request completed with failures {}", bulkItemResponses.buildFailureMessage());
                     } else {
                         response = ExportMetricsServiceResponse.newBuilder().build();
                     }
@@ -120,6 +122,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
     private void addIndexRequests(BulkRequestBuilder bulkRequestBuilder, ExportMetricsServiceRequest exportMetricsServiceRequest)
         throws IOException {
+        Set<String> fragmentIds = new HashSet<>();
         List<ResourceMetrics> resourceMetricsList = exportMetricsServiceRequest.getResourceMetricsList();
         for (int i = 0; i < resourceMetricsList.size(); i++) {
             ResourceMetrics resourceMetrics = resourceMetricsList.get(i);
@@ -127,7 +130,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             HashValue128 resourceAttributesHash = HASHER_128.hashTo128Bits(resourceAttributes, AttributeListHashFunnel.get());
             // Create a fragment for resource attributes to avoid repetition in each document
             String fragmentId = resourceAttributesHash.toString();
-            addResourceFragment(bulkRequestBuilder, resourceAttributes, fragmentId);
+            addResourceFragment(fragmentIds, bulkRequestBuilder, resourceAttributes, fragmentId);
             List<ScopeMetrics> scopeMetricsList = resourceMetrics.getScopeMetricsList();
             for (int j = 0; j < scopeMetricsList.size(); j++) {
                 ScopeMetrics scopeMetrics = scopeMetricsList.get(j);
@@ -161,7 +164,15 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         }
     }
 
-    private void addResourceFragment(BulkRequestBuilder bulkRequestBuilder, List<KeyValue> resourceAttributes, String fragmentId) throws IOException {
+    private void addResourceFragment(
+        Set<String> fragmentIds,
+        BulkRequestBuilder bulkRequestBuilder,
+        List<KeyValue> resourceAttributes,
+        String fragmentId
+    ) throws IOException {
+        if (fragmentIds.add(fragmentId) == false) {
+            return;
+        }
         try (XContentBuilder resourceBuilder = CborXContent.contentBuilder()) {
             resourceBuilder.startObject();
             resourceBuilder.startObject("resource");
@@ -172,11 +183,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             resourceBuilder.endObject();
 
             // Add the resource attributes fragment to the bulk request
-            bulkRequestBuilder.add(
-                client.prepareFragment("metrics-generic.otel-default")
-                    .setId(fragmentId)
-                    .setSource(resourceBuilder)
-            );
+            bulkRequestBuilder.add(client.prepareFragment("metrics-generic.otel-default").setId(fragmentId).setSource(resourceBuilder));
         }
     }
 
@@ -200,6 +207,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             try (XContentBuilder xContentBuilder = CborXContent.contentBuilder()) {
                 buildDataPointDoc(
                     xContentBuilder,
+                    resourceAttributesHash,
                     scopeAttributes,
                     scopeAttributesHash,
                     entry.getValue()
@@ -218,6 +226,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
     private void buildDataPointDoc(
         XContentBuilder builder,
+        HashValue128 resourceAttributesHash,
         List<KeyValue> scopeAttributes,
         HashValue128 scopeAttributesHash,
         List<DataPoint> dataPoints
@@ -244,7 +253,8 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         builder.field("unit", first.getUnit());
         HashStream32 metricNamesHash = HASHER_32.hashStream();
         dataPoints.stream().map(DataPoint::getMetricName).forEach(metricNamesHash::putString);
-        builder.field("_metric_names_hash", Integer.toHexString(metricNamesHash.getAsInt()));
+        // TODO remove hack to maintain single writer
+        builder.field("_metric_names_hash", Integer.toHexString(metricNamesHash.getAsInt()) + resourceAttributesHash.toString());
         builder.startObject("metrics");
         for (int i = 0; i < dataPoints.size(); i++) {
             NumberDataPoint dp = dataPoints.get(i).dataPoint();

@@ -17,11 +17,15 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This is a utility class that holds the per request state needed to perform bulk operations on the primary.
@@ -63,6 +67,7 @@ class BulkPrimaryExecutionContext {
     private BulkItemResponse executionResult;
     private int updateRetryCounter;
     private long noopMappingUpdateRetryForMappingVersion;
+    private final Map<String, ParsedDocument> fragments = new HashMap<>();
 
     BulkPrimaryExecutionContext(BulkShardRequest request, IndexShard primary) {
         this.request = request;
@@ -295,7 +300,11 @@ class BulkPrimaryExecutionContext {
                 executionResult = BulkItemResponse.success(current.id(), current.request().opType(), response);
                 // set a blank ShardInfo so we can safely send it to the replicas. We won't use it in the real response though.
                 executionResult.getResponse().setShardInfo(ReplicationResponse.ShardInfo.EMPTY);
-                locationToSync = TransportWriteAction.locationToSync(locationToSync, result.getTranslogLocation());
+                if (docWriteRequest.opType() != DocWriteRequest.OpType.FRAGMENT) {
+                    // TODO handling of fragments in translog
+                    // fragments as a dedicated entry vs fold into translog of index request referencing a fragment? probably the latter.
+                    locationToSync = TransportWriteAction.locationToSync(locationToSync, result.getTranslogLocation());
+                }
             }
             case FAILURE -> {
                 /*
@@ -367,5 +376,26 @@ class BulkPrimaryExecutionContext {
                 break;
         }
         return true;
+    }
+
+    public void addParsedFragment(String id, ParsedDocument fragment) {
+        this.fragments.put(id, fragment);
+    }
+
+    public List<ParsedDocument> getFragments(List<String> fragmentIds) {
+        List<ParsedDocument> result = new ArrayList<>(fragmentIds.size());
+        for (String id : fragmentIds) {
+            ParsedDocument fragment = fragments.get(id);
+            if (fragment == null) {
+                throw new IllegalArgumentException(
+                    "Fragment with id ["
+                        + id
+                        + "] not found in the current context. "
+                        + "Fragments need to be defined before other requests that reference them."
+                );
+            }
+            result.add(fragment);
+        }
+        return result;
     }
 }

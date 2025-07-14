@@ -93,7 +93,14 @@ public final class DocumentParser {
                 )
             )
         ) {
-            context = new RootDocumentParserContext(mappingLookup, mappingParserContext, source, parser);
+            context = new RootDocumentParserContext(mappingLookup, mappingParserContext, source, parser, source.isFragment());
+            if (source.isFragment()) {
+                context.id(source.id());
+            }
+            for (ParsedDocument fragment : source.getFragments()) {
+                context.rootDoc().addAll(fragment.rootDoc().getFields());
+                fragment.nonRootDocs().forEach(context::addDoc);
+            }
             validateStart(context.parser());
             MetadataFieldMapper[] metadataFieldsMappers = mappingLookup.getMapping().getSortedMetadataMappers();
             internalParseDocument(metadataFieldsMappers, context);
@@ -131,8 +138,10 @@ public final class DocumentParser {
         try {
             final boolean emptyDoc = isEmptyDoc(context.root(), context.parser());
 
-            for (MetadataFieldMapper metadataMapper : metadataFieldsMappers) {
-                metadataMapper.preParse(context);
+            if (context.isFragment() == false) {
+                for (MetadataFieldMapper metadataMapper : metadataFieldsMappers) {
+                    metadataMapper.preParse(context);
+                }
             }
 
             if (context.root().isEnabled() == false) {
@@ -156,8 +165,10 @@ public final class DocumentParser {
             executeIndexTimeScripts(context);
 
             context.processArrayOffsets(context);
-            for (MetadataFieldMapper metadataMapper : metadataFieldsMappers) {
-                metadataMapper.postParse(context);
+            if (context.isFragment() == false) {
+                for (MetadataFieldMapper metadataMapper : metadataFieldsMappers) {
+                    metadataMapper.postParse(context);
+                }
             }
         } catch (Exception e) {
             throw wrapInDocumentParsingException(context, e);
@@ -1076,6 +1087,7 @@ public final class DocumentParser {
         private final LuceneDocument document;
         private final List<LuceneDocument> documents = new ArrayList<>();
         private final long maxAllowedNumNestedDocs;
+        private final boolean fragment;
         private long numNestedDocs;
         private boolean docsReversed = false;
 
@@ -1083,8 +1095,8 @@ public final class DocumentParser {
             MappingLookup mappingLookup,
             MappingParserContext mappingParserContext,
             SourceToParse source,
-            XContentParser parser
-        ) throws IOException {
+            XContentParser parser,
+            boolean fragment) throws IOException {
             super(
                 mappingLookup,
                 mappingParserContext,
@@ -1092,6 +1104,7 @@ public final class DocumentParser {
                 mappingLookup.getMapping().getRoot(),
                 ObjectMapper.Dynamic.getRootDynamic(mappingLookup)
             );
+            this.fragment = fragment;
             if (mappingLookup.getMapping().getRoot().subobjects() == ObjectMapper.Subobjects.ENABLED) {
                 this.parser = DotExpandingXContentParser.expandDots(parser, this.path);
             } else {
@@ -1178,6 +1191,11 @@ public final class DocumentParser {
                 documents.addAll(newDocs);
             }
             return documents;
+        }
+
+        @Override
+        public boolean isFragment() {
+            return fragment;
         }
     }
 }

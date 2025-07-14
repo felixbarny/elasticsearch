@@ -15,6 +15,7 @@ import org.elasticsearch.core.Nullable;
 import org.elasticsearch.plugins.internal.XContentMeteringParserDecorator;
 import org.elasticsearch.xcontent.XContentType;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -34,6 +35,10 @@ public class SourceToParse {
 
     private final XContentMeteringParserDecorator meteringParserDecorator;
 
+    private final boolean fragment;
+
+    private final List<ParsedDocument> fragments;
+
     public SourceToParse(
         @Nullable String id,
         BytesReference source,
@@ -43,6 +48,19 @@ public class SourceToParse {
         boolean includeSourceOnError,
         XContentMeteringParserDecorator meteringParserDecorator
     ) {
+        this(id, source, xContentType, routing, dynamicTemplates, includeSourceOnError, meteringParserDecorator, false, List.of());
+    }
+
+    public SourceToParse(
+        @Nullable String id,
+        BytesReference source,
+        XContentType xContentType,
+        @Nullable String routing,
+        Map<String, String> dynamicTemplates,
+        boolean includeSourceOnError,
+        XContentMeteringParserDecorator meteringParserDecorator,
+        boolean fragment,
+        List<ParsedDocument> fragments) {
         this.id = id;
         // we always convert back to byte array, since we store it and Field only supports bytes..
         // so, we might as well do it here, and improve the performance of working with direct byte arrays
@@ -52,6 +70,11 @@ public class SourceToParse {
         this.dynamicTemplates = Objects.requireNonNull(dynamicTemplates);
         this.includeSourceOnError = includeSourceOnError;
         this.meteringParserDecorator = meteringParserDecorator;
+        this.fragment = fragment;
+        this.fragments = fragments;
+        if (fragment && fragments.isEmpty() == false) {
+            throw new IllegalStateException("A fragment can't contain other fragments");
+        }
     }
 
     public SourceToParse(String id, BytesReference source, XContentType xContentType) {
@@ -112,5 +135,13 @@ public class SourceToParse {
 
     public boolean getIncludeSourceOnError() {
         return includeSourceOnError;
+    }
+
+    public boolean isFragment() {
+        return fragment;
+    }
+
+    public List<ParsedDocument> getFragments() {
+        return fragments;
     }
 }

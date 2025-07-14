@@ -203,10 +203,12 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
         SearchResponse resp = client().prepareSearch("metrics-generic.otel-default").get();
         assertThat(resp.getHits().getHits(), arrayWithSize(1));
-        assertThat(resp.getHits().getAt(0).getSourceAsMap().get("metrics"), equalTo(Map.of(
+        Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
+        assertThat(sourceMap.get("metrics"), equalTo(Map.of(
             "metric1", 42.0,
             "metric2", 42.0
         )));
+        assertThat(sourceMap.get("resource"), equalTo(Map.of("attributes", Map.of("service.name", "elasticsearch"))));
     }
 
     @Test

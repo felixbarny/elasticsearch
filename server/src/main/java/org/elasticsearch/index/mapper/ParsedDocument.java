@@ -142,6 +142,13 @@ public class ParsedDocument {
         return this.documents;
     }
 
+    public List<LuceneDocument> nonRootDocs() {
+        if (documents.size() <= 1) {
+            return List.of();
+        }
+        return documents.subList(0, documents.size() - 1);
+    }
+
     public BytesReference source() {
         return this.source;
     }

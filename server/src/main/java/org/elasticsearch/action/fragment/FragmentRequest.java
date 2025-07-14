@@ -50,10 +50,6 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
     private BytesReference source;
     private XContentType contentType;
 
-    public FragmentRequest(StreamInput in) throws IOException {
-        this(null, in);
-    }
-
     public FragmentRequest(@Nullable ShardId shardId, StreamInput in) throws IOException {
         super(shardId, in);
         this.id = in.readString();
@@ -251,9 +247,9 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
         try {
             if (source.length() > IndexRequest.MAX_SOURCE_LENGTH_IN_TOSTRING) {
                 sSource = "n/a, actual length: ["
-                          + ByteSizeValue.ofBytes(source.length()).toString()
-                          + "], max length: "
-                          + ByteSizeValue.ofBytes(IndexRequest.MAX_SOURCE_LENGTH_IN_TOSTRING).toString();
+                    + ByteSizeValue.ofBytes(source.length()).toString()
+                    + "], max length: "
+                    + ByteSizeValue.ofBytes(IndexRequest.MAX_SOURCE_LENGTH_IN_TOSTRING).toString();
             } else {
                 sSource = XContentHelper.convertToJson(source, false);
             }

@@ -20,6 +20,7 @@ import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.ActionFilters;
@@ -52,6 +53,7 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.InferenceMetadataFieldsMapper;
 import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.MappingLookup;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
@@ -71,6 +73,7 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.xcontent.XContentType;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -78,6 +81,7 @@ import java.util.function.LongSupplier;
 import java.util.function.ObjLongConsumer;
 
 import static org.elasticsearch.core.Strings.format;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 /** Performs shard-level bulk (index, delete or update) operations */
 public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequest, BulkShardRequest, BulkShardResponse> {
@@ -404,6 +408,53 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                 request.ifSeqNo(),
                 request.ifPrimaryTerm()
             );
+        } else if (context.getRequestToExecute().opType() == DocWriteRequest.OpType.FRAGMENT) {
+            // Handle FragmentRequest - parse the document but don't index it
+            final FragmentRequest request = context.getRequestToExecute();
+
+            XContentMeteringParserDecorator meteringParserDecorator = documentParsingProvider.newMeteringParserDecorator(null);
+            final SourceToParse sourceToParse = new SourceToParse(
+                request.id(),
+                request.source(),
+                request.getContentType(),
+                request.routing(),
+                Map.of(), // TODO dynamic templates support for fragments
+                false, // TODO includeSourceOnError support for fragments
+                meteringParserDecorator,
+                true,
+                List.of());
+
+            Engine.Index operation = IndexShard.prepareIndex(primary.mapperService(),
+                sourceToParse,
+                UNASSIGNED_SEQ_NO,
+               -1,
+                version,
+                request.versionType(),
+                Engine.Operation.Origin.PRIMARY,
+                -1,
+                false,
+                request.ifSeqNo(),
+                request.ifPrimaryTerm(),
+                -1);
+
+            Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
+            if (update != null) {
+                result = new Engine.IndexResult(update, operation.parsedDoc().id());
+                return handleMappingUpdateRequired(
+                    context,
+                    mappingUpdater,
+                    waitForMappingUpdate,
+                    itemDoneListener,
+                    primary,
+                    result,
+                    version,
+                    updateResult
+                );
+            } else {
+                context.addParsedFragment(request.id(), operation.parsedDoc());
+                // No mapping update, return success
+                result = new Engine.IndexResult(version, -1, UNASSIGNED_SEQ_NO, false, request.id());
+            }
         } else {
             final IndexRequest request = context.getRequestToExecute();
 
@@ -415,8 +466,9 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                 request.routing(),
                 request.getDynamicTemplates(),
                 request.getIncludeSourceOnError(),
-                meteringParserDecorator
-            );
+                meteringParserDecorator,
+                false,
+                context.getFragments(request.fragmentIds()));
             result = primary.applyIndexOperationOnPrimary(
                 version,
                 request.versionType(),

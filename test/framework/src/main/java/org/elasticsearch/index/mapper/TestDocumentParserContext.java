@@ -87,6 +87,11 @@ public class TestDocumentParserContext extends DocumentParserContext {
     }
 
     @Override
+    protected boolean isFragment() {
+        return false;
+    }
+
+    @Override
     public Iterable<LuceneDocument> nonRootDocuments() {
         throw new UnsupportedOperationException();
     }

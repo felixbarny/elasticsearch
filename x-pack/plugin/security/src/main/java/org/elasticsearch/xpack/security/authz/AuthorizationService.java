@@ -939,6 +939,8 @@ public class AuthorizationService {
             case CREATE -> IMPLIED_CREATE_ACTION;
             case UPDATE -> TransportUpdateAction.NAME;
             case DELETE -> TransportDeleteAction.NAME;
+            // TODO this could be index, update, or create. Do we need a new permission for fragments? Do we want to ignore it?
+            case FRAGMENT -> IMPLIED_CREATE_ACTION;
         };
     }
 

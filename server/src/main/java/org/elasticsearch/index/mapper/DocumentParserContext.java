@@ -93,6 +93,11 @@ public abstract class DocumentParserContext {
         }
 
         @Override
+        protected boolean isFragment() {
+            return in.isFragment();
+        }
+
+        @Override
         public void processArrayOffsets(DocumentParserContext context) throws IOException {
             in.processArrayOffsets(context);
         }
@@ -429,6 +434,8 @@ public abstract class DocumentParserContext {
         }
         return id;
     }
+
+    protected abstract boolean isFragment();
 
     public final void id(String id) {
         this.id = id;
