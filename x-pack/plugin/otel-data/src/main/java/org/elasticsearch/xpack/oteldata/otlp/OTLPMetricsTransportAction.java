@@ -98,6 +98,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                             .setRejectedDataPoints(failures)
                             .setErrorMessage(bulkItemResponses.buildFailureMessage())
                             .build();
+                        logger.debug(bulkItemResponses.buildFailureMessage());
                     } else {
                         response = ExportMetricsServiceResponse.newBuilder().build();
                     }
