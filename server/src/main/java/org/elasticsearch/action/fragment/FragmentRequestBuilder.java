@@ -9,6 +9,7 @@
 
 package org.elasticsearch.action.fragment;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.support.WriteRequestBuilder;
@@ -16,6 +17,7 @@ import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
 import org.elasticsearch.client.internal.ElasticsearchClient;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.core.Nullable;
+import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xcontent.XContentType;
 
 /**
@@ -24,6 +26,8 @@ import org.elasticsearch.xcontent.XContentType;
 public class FragmentRequestBuilder extends ReplicationRequestBuilder<FragmentRequest, DocWriteResponse, FragmentRequestBuilder>
     implements
         WriteRequestBuilder<FragmentRequestBuilder> {
+
+    private static final ActionType<DocWriteResponse> TYPE = new ActionType<>("indices:data/write/fragment");
 
     private String id = null;
     private BytesReference sourceBytesReference;
@@ -37,7 +41,7 @@ public class FragmentRequestBuilder extends ReplicationRequestBuilder<FragmentRe
 
     @SuppressWarnings("this-escape")
     public FragmentRequestBuilder(ElasticsearchClient client, @Nullable String index) {
-        super(client, null); // FragmentAction.TYPE will be added later once an action is created
+        super(client, TYPE);
         setIndex(index);
     }
 
@@ -64,6 +68,12 @@ public class FragmentRequestBuilder extends ReplicationRequestBuilder<FragmentRe
     public FragmentRequestBuilder setSource(BytesReference source, XContentType xContentType) {
         this.sourceBytesReference = source;
         this.sourceContentType = xContentType;
+        return this;
+    }
+
+    public FragmentRequestBuilder setSource(XContentBuilder sourceBuilder) {
+        this.sourceBytesReference = BytesReference.bytes(sourceBuilder);
+        this.sourceContentType = sourceBuilder.contentType();
         return this;
     }
 

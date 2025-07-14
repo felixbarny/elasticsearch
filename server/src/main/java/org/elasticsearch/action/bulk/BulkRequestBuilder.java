@@ -14,6 +14,8 @@ import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteRequestBuilder;
+import org.elasticsearch.action.fragment.FragmentRequest;
+import org.elasticsearch.action.fragment.FragmentRequestBuilder;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -118,6 +120,14 @@ public class BulkRequestBuilder extends ActionRequestLazyBuilder<BulkRequest, Bu
      * Adds an {@link UpdateRequest} to the list of actions to execute.
      */
     public BulkRequestBuilder add(UpdateRequestBuilder request) {
+        requestBuilders.add(request);
+        return this;
+    }
+
+    /**
+     * Adds an {@link FragmentRequest} to the list of actions to execute.
+     */
+    public BulkRequestBuilder add(FragmentRequestBuilder request) {
         requestBuilders.add(request);
         return this;
     }

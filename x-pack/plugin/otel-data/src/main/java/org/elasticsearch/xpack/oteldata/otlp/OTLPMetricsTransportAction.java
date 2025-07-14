@@ -106,12 +106,13 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
                 @Override
                 public void onFailure(Exception e) {
+                    logger.debug(e.getMessage(), e);
                     listener.onFailure(e);
                 }
             });
 
         } catch (Exception e) {
-            logger.error(e);
+            logger.error(e.getMessage(), e);
             listener.onFailure(e);
         }
     }
@@ -123,6 +124,9 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             ResourceMetrics resourceMetrics = resourceMetricsList.get(i);
             List<KeyValue> resourceAttributes = resourceMetrics.getResource().getAttributesList();
             HashValue128 resourceAttributesHash = HASHER_128.hashTo128Bits(resourceAttributes, AttributeListHashFunnel.get());
+            // Create a fragment for resource attributes to avoid repetition in each document
+            String fragmentId = resourceAttributesHash.toString();
+            addResourceFragment(bulkRequestBuilder, resourceAttributes, fragmentId);
             List<ScopeMetrics> scopeMetricsList = resourceMetrics.getScopeMetricsList();
             for (int j = 0; j < scopeMetricsList.size(); j++) {
                 ScopeMetrics scopeMetrics = scopeMetricsList.get(j);
@@ -156,6 +160,25 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         }
     }
 
+    private void addResourceFragment(BulkRequestBuilder bulkRequestBuilder, List<KeyValue> resourceAttributes, String fragmentId) throws IOException {
+        try (XContentBuilder resourceBuilder = CborXContent.contentBuilder()) {
+            resourceBuilder.startObject();
+            resourceBuilder.startObject("resource");
+            resourceBuilder.startObject("attributes");
+            buildAttributes(resourceBuilder, resourceAttributes);
+            resourceBuilder.endObject();
+            resourceBuilder.endObject();
+            resourceBuilder.endObject();
+
+            // Add the resource attributes fragment to the bulk request
+            bulkRequestBuilder.add(
+                client.prepareFragment("metrics-generic.otel-default")
+                    .setId(fragmentId)
+                    .setSource(resourceBuilder)
+            );
+        }
+    }
+
     private void groupNumberDataPoints(Map<HashValue128, List<DataPoint>> dataPoints, Metric metric, List<NumberDataPoint> dataPointsList) {
         for (int l = 0; l < dataPointsList.size(); l++) {
             DataPoint dataPoint = new DataPoint(dataPointsList.get(l), metric);
@@ -176,8 +199,6 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             try (XContentBuilder xContentBuilder = CborXContent.contentBuilder()) {
                 buildDataPointDoc(
                     xContentBuilder,
-                    resourceAttributes,
-                    resourceAttributesHash,
                     scopeAttributes,
                     scopeAttributesHash,
                     entry.getValue()
@@ -188,6 +209,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                         .setRequireDataStream(true)
                         .setPipeline(IngestService.NOOP_PIPELINE_NAME)
                         .setSource(xContentBuilder)
+                        .addFragmentId(resourceAttributesHash.toString()) // Reference the resource attributes fragment
                 );
             }
         }
@@ -195,8 +217,6 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
     private void buildDataPointDoc(
         XContentBuilder builder,
-        List<KeyValue> resourceAttributes,
-        HashValue128 resourceAttributesHash,
         List<KeyValue> scopeAttributes,
         HashValue128 scopeAttributesHash,
         List<DataPoint> dataPoints
@@ -211,11 +231,6 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         builder.field("type", "metrics");
         builder.field("dataset", "generic.otel-default");
         builder.field("namespace", "default");
-        builder.endObject();
-        builder.startObject("resource");
-        builder.startObject("attributes");
-        buildAttributes(builder, resourceAttributes);
-        builder.endObject();
         builder.endObject();
         builder.startObject("scope");
         builder.startObject("attributes");

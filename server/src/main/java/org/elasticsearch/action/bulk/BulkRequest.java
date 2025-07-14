@@ -19,6 +19,7 @@ import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.LegacyActionRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.fragment.FragmentRequest;
+import org.elasticsearch.action.fragment.FragmentRequestBuilder;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.WriteRequest;
@@ -142,6 +143,8 @@ public class BulkRequest extends LegacyActionRequest
             add(deleteRequest);
         } else if (request instanceof UpdateRequest updateRequest) {
             add(updateRequest);
+        } else if (request instanceof FragmentRequest fragmentRequest) {
+            add(fragmentRequest);
         } else {
             throw new IllegalArgumentException("No support for request [" + request + "]");
         }
