@@ -376,10 +376,32 @@ final class BulkOperation extends ActionRunnable<BulkResponse> {
         }
 
         // Second pass: route fragment requests to all relevant shards
+        // Create a map to collect fragments for each shard
+        Map<ShardId, Map<String, BulkItemRequest>> fragmentsByShardId = new HashMap<>();
+
         for (Map.Entry<String, BulkItemRequest> entry : fragmentRequests.entrySet()) {
             // Add the fragment to each shard that references it
-            for (ShardId shardId : fragmentToShards.get(entry.getKey())) {
-                requestsByShard.get(shardId).addFirst(entry.getValue());
+            List<ShardId> shardIds = fragmentToShards.get(entry.getKey());
+            if (shardIds != null && shardIds.isEmpty() == false) {
+                for (ShardId shardId : shardIds) {
+                    // making sure to only add fragments once, even if they're referenced multiple times
+                    fragmentsByShardId.computeIfAbsent(shardId, k -> new HashMap<>())
+                        .putIfAbsent(entry.getValue().request().id(), entry.getValue());
+                }
+            }
+        }
+
+        // Now merge the fragments with the existing requests (fragments should come first)
+        for (Map.Entry<ShardId, Map<String, BulkItemRequest>> entry : fragmentsByShardId.entrySet()) {
+            ShardId shardId = entry.getKey();
+            Map<String, BulkItemRequest> fragments = entry.getValue();
+            List<BulkItemRequest> existingRequests = requestsByShard.get(shardId);
+
+            if (existingRequests != null) {
+                List<BulkItemRequest> newRequests = new ArrayList<>(fragments.size() + existingRequests.size());
+                newRequests.addAll(fragments.values());
+                newRequests.addAll(existingRequests);
+                requestsByShard.put(shardId, newRequests);
             }
         }
 

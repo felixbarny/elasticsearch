@@ -379,6 +379,9 @@ class BulkPrimaryExecutionContext {
     }
 
     public void addParsedFragment(String id, ParsedDocument fragment) {
+        if (fragments.containsKey(id)) {
+            throw new IllegalStateException("fragment [" + id + "] has already been processed");
+        }
         this.fragments.put(id, fragment);
     }
 
