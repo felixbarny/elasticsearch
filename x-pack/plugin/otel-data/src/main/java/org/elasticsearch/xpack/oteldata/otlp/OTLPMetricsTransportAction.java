@@ -7,9 +7,6 @@
 
 package org.elasticsearch.xpack.oteldata.otlp;
 
-import com.dynatrace.hash4j.hashing.HashStream32;
-import com.dynatrace.hash4j.hashing.Hasher32;
-
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
 import io.opentelemetry.proto.common.v1.AnyValue;
@@ -21,8 +18,10 @@ import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
 import io.opentelemetry.proto.metrics.v1.ScopeMetrics;
 import io.opentelemetry.proto.resource.v1.Resource;
 
+import com.dynatrace.hash4j.hashing.HashStream32;
 import com.dynatrace.hash4j.hashing.HashValue128;
 import com.dynatrace.hash4j.hashing.Hasher128;
+import com.dynatrace.hash4j.hashing.Hasher32;
 import com.dynatrace.hash4j.hashing.Hashing;
 import com.google.protobuf.MessageLite;
 
@@ -42,6 +41,7 @@ import org.elasticsearch.client.internal.Client;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.core.CheckedConsumer;
 import org.elasticsearch.ingest.IngestService;
 import org.elasticsearch.injection.guice.Inject;
 import org.elasticsearch.tasks.Task;
@@ -127,15 +127,12 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         for (int i = 0; i < resourceMetricsList.size(); i++) {
             ResourceMetrics resourceMetrics = resourceMetricsList.get(i);
             List<KeyValue> resourceAttributes = resourceMetrics.getResource().getAttributesList();
-            HashValue128 resourceAttributesHash = HASHER_128.hashTo128Bits(resourceAttributes, AttributeListHashFunnel.get());
-            // Create a fragment for resource attributes to avoid repetition in each document
-            String fragmentId = resourceAttributesHash.toString();
-            addResourceFragment(fragmentIds, bulkRequestBuilder, resourceAttributes, fragmentId);
+            String resourceAttributesHash = HASHER_128.hashTo128Bits(resourceAttributes, AttributeListHashFunnel.get()).toString();
             List<ScopeMetrics> scopeMetricsList = resourceMetrics.getScopeMetricsList();
             for (int j = 0; j < scopeMetricsList.size(); j++) {
                 ScopeMetrics scopeMetrics = scopeMetricsList.get(j);
                 List<KeyValue> scopeAttributes = scopeMetrics.getScope().getAttributesList();
-                HashValue128 scopeAttributesHash = HASHER_128.hashTo128Bits(scopeAttributes, AttributeListHashFunnel.get());
+                String scopeAttributesHash = HASHER_128.hashTo128Bits(scopeAttributes, AttributeListHashFunnel.get()).toString();
                 List<Metric> metricsList = scopeMetrics.getMetricsList();
                 Map<HashValue128, List<DataPoint>> dataPoints = new HashMap<>();
                 for (int k = 0; k < metricsList.size(); k++) {
@@ -153,6 +150,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                     }
                 }
                 createNumberDataPointDocs(
+                    fragmentIds,
                     resourceAttributes,
                     resourceAttributesHash,
                     scopeAttributes,
@@ -164,49 +162,56 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         }
     }
 
-    private void addResourceFragment(
+    private void addFragmentIfMissing(
         Set<String> fragmentIds,
         BulkRequestBuilder bulkRequestBuilder,
-        List<KeyValue> resourceAttributes,
+        CheckedConsumer<XContentBuilder, IOException> sourceBuilder,
         String fragmentId
     ) throws IOException {
         if (fragmentIds.add(fragmentId) == false) {
             return;
         }
-        try (XContentBuilder resourceBuilder = CborXContent.contentBuilder()) {
-            resourceBuilder.startObject();
-            resourceBuilder.startObject("resource");
-            resourceBuilder.startObject("attributes");
-            buildAttributes(resourceBuilder, resourceAttributes);
-            resourceBuilder.endObject();
-            resourceBuilder.endObject();
-            resourceBuilder.endObject();
+        try (XContentBuilder fragmentBuilder = CborXContent.contentBuilder()) {
+            fragmentBuilder.startObject();
+            sourceBuilder.accept(fragmentBuilder);
+            fragmentBuilder.endObject();
 
-            // Add the resource attributes fragment to the bulk request
-            bulkRequestBuilder.add(client.prepareFragment("metrics-generic.otel-default").setId(fragmentId).setSource(resourceBuilder));
+            bulkRequestBuilder.add(client.prepareFragment("metrics-generic.otel-default").setId(fragmentId).setSource(fragmentBuilder));
         }
+    }
+
+    private void buildResource(List<KeyValue> resourceAttributes, XContentBuilder resourceBuilder) throws IOException {
+        resourceBuilder.startObject("resource");
+        resourceBuilder.startObject("attributes");
+        buildAttributes(resourceBuilder, resourceAttributes);
+        resourceBuilder.endObject();
+        resourceBuilder.endObject();
     }
 
     private void groupNumberDataPoints(Map<HashValue128, List<DataPoint>> dataPoints, Metric metric, List<NumberDataPoint> dataPointsList) {
         for (int l = 0; l < dataPointsList.size(); l++) {
             DataPoint dataPoint = new DataPoint(dataPointsList.get(l), metric);
-            HashValue128 hash = HASHER_128.hashTo128Bits(dataPoint, DataPointHashFunnel.get());
+            HashValue128 hash = HASHER_128.hashTo128Bits(dataPoint, DataPointDocumentGroupHashFunnel.get());
             dataPoints.computeIfAbsent(hash, h -> new ArrayList<>()).add(dataPoint);
         }
     }
 
     private void createNumberDataPointDocs(
+        Set<String> fragmentIds,
         List<KeyValue> resourceAttributes,
-        HashValue128 resourceAttributesHash,
+        String resourceAttributesHash,
         List<KeyValue> scopeAttributes,
-        HashValue128 scopeAttributesHash,
+        String scopeAttributesHash,
         Map<HashValue128, List<DataPoint>> dataPoints,
         BulkRequestBuilder bulkRequestBuilder
     ) throws IOException {
         for (Map.Entry<HashValue128, List<DataPoint>> entry : dataPoints.entrySet()) {
             try (XContentBuilder xContentBuilder = CborXContent.contentBuilder()) {
-                buildDataPointDoc(
+                List<String> dataPointFragmentIds = buildDataPointDoc(
+                    bulkRequestBuilder,
+                    fragmentIds,
                     xContentBuilder,
+                    resourceAttributes,
                     resourceAttributesHash,
                     scopeAttributes,
                     scopeAttributesHash,
@@ -218,17 +223,20 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                         .setRequireDataStream(true)
                         .setPipeline(IngestService.NOOP_PIPELINE_NAME)
                         .setSource(xContentBuilder)
-                        .addFragmentId(resourceAttributesHash.toString()) // Reference the resource attributes fragment
+                        .setFragmentIds(dataPointFragmentIds)
                 );
             }
         }
     }
 
-    private void buildDataPointDoc(
+    private List<String> buildDataPointDoc(
+        BulkRequestBuilder requestBuilder,
+        Set<String> fragmentIds,
         XContentBuilder builder,
-        HashValue128 resourceAttributesHash,
+        List<KeyValue> resourceAttributes,
+        String resourceAttributesHash,
         List<KeyValue> scopeAttributes,
-        HashValue128 scopeAttributesHash,
+        String scopeAttributesHash,
         List<DataPoint> dataPoints
     ) throws IOException {
         builder.startObject();
@@ -237,24 +245,18 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         if (first.getStartTimestampUnixNano() != 0) {
             builder.field("start_timestamp", TimeUnit.NANOSECONDS.toMillis(first.getStartTimestampUnixNano()));
         }
-        builder.startObject("data_stream");
-        builder.field("type", "metrics");
-        builder.field("dataset", "generic.otel-default");
-        builder.field("namespace", "default");
-        builder.endObject();
-        builder.startObject("scope");
-        builder.startObject("attributes");
-        buildAttributes(builder, scopeAttributes);
-        builder.endObject();
-        builder.endObject();
-        builder.startObject("attributes");
-        buildAttributes(builder, first.getAttributes());
-        builder.endObject();
-        builder.field("unit", first.getUnit());
         HashStream32 metricNamesHash = HASHER_32.hashStream();
+        String dataPointDimensionsHash = HASHER_128.hashTo128Bits(first, DataPointDimensionsHashFunnel.get()).toString();
+        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildResource(resourceAttributes, b), resourceAttributesHash);
+        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildDataStream(builder), "datastream");
+        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildScope(builder, scopeAttributes), scopeAttributesHash);
+        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildDataPointAttributes(builder, first), dataPointDimensionsHash);
         dataPoints.stream().map(DataPoint::getMetricName).forEach(metricNamesHash::putString);
         // TODO remove hack to maintain single writer
-        builder.field("_metric_names_hash", Integer.toHexString(metricNamesHash.getAsInt()) + resourceAttributesHash.toString());
+        builder.field(
+            "_metric_names_hash",
+            Integer.toHexString(metricNamesHash.getAsInt()) + dataPointDimensionsHash + scopeAttributesHash + resourceAttributesHash
+        );
         builder.startObject("metrics");
         for (int i = 0; i < dataPoints.size(); i++) {
             NumberDataPoint dp = dataPoints.get(i).dataPoint();
@@ -264,6 +266,30 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             }
         }
         builder.endObject();
+        builder.endObject();
+        return List.of(resourceAttributesHash, "datastream", scopeAttributesHash, dataPointDimensionsHash);
+    }
+
+    private void buildDataPointAttributes(XContentBuilder builder, DataPoint dp) throws IOException {
+        builder.startObject("attributes");
+        buildAttributes(builder, dp.getAttributes());
+        builder.endObject();
+        builder.field("unit", dp.getUnit());
+    }
+
+    private void buildScope(XContentBuilder builder, List<KeyValue> scopeAttributes) throws IOException {
+        builder.startObject("scope");
+        builder.startObject("attributes");
+        buildAttributes(builder, scopeAttributes);
+        builder.endObject();
+        builder.endObject();
+    }
+
+    private void buildDataStream(XContentBuilder builder) throws IOException {
+        builder.startObject("data_stream");
+        builder.field("type", "metrics");
+        builder.field("dataset", "generic.otel-default");
+        builder.field("namespace", "default");
         builder.endObject();
     }
 

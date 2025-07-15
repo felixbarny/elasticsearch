@@ -10,22 +10,19 @@ package org.elasticsearch.xpack.oteldata.otlp;
 import com.dynatrace.hash4j.hashing.HashFunnel;
 import com.dynatrace.hash4j.hashing.HashSink;
 
-public class DataPointHashFunnel implements HashFunnel<OTLPMetricsTransportAction.DataPoint> {
+public class DataPointDimensionsHashFunnel implements HashFunnel<OTLPMetricsTransportAction.DataPoint> {
 
-    private static final DataPointHashFunnel INSTANCE = new DataPointHashFunnel();
+    private static final DataPointDimensionsHashFunnel INSTANCE = new DataPointDimensionsHashFunnel();
 
-    private DataPointHashFunnel() {}
+    private DataPointDimensionsHashFunnel() {}
 
-    public static DataPointHashFunnel get() {
+    public static DataPointDimensionsHashFunnel get() {
         return INSTANCE;
     }
 
     @Override
     public void put(OTLPMetricsTransportAction.DataPoint dataPoint, HashSink hashSink) {
-        hashSink.putLong(dataPoint.getTimestampUnixNano());
-        hashSink.putLong(dataPoint.getStartTimestampUnixNano());
         hashSink.putString(dataPoint.getUnit());
-        hashSink.putInt(dataPoint.getDataCase().getNumber());
         hashSink.put(dataPoint.getAttributes(), AttributeListHashFunnel.get());
     }
 }
