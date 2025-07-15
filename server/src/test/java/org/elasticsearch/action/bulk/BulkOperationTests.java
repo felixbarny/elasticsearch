@@ -1043,7 +1043,7 @@ public class BulkOperationTests extends ESTestCase {
             ? IndexDocFailureStoreStatus.USED
             : IndexDocFailureStoreStatus.NOT_APPLICABLE_OR_UNKNOWN;
         return BulkItemResponse.success(itemRequest.id(), itemRequest.request().opType(), switch (itemRequest.request().opType()) {
-            case INDEX, CREATE -> new IndexResponse(shardId, itemRequest.request().id(), 1, 1, 1, true, null, failureStatus);
+            case INDEX, CREATE, FRAGMENT -> new IndexResponse(shardId, itemRequest.request().id(), 1, 1, 1, true, null, failureStatus);
             case UPDATE -> new UpdateResponse(shardId, itemRequest.request().id(), 1, 1, 1, DocWriteResponse.Result.UPDATED);
             case DELETE -> new DeleteResponse(shardId, itemRequest.request().id(), 1, 1, 1, true);
         });

@@ -11,6 +11,7 @@ package org.elasticsearch.action.bulk;
 
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -71,6 +72,7 @@ public class BulkShardRequestTests extends ESTestCase {
                 case CREATE -> new IndexRequest(indexName).id("id_" + i).create(true);
                 case UPDATE -> new UpdateRequest(indexName, "id_" + i);
                 case DELETE -> new DeleteRequest(indexName, "id_" + i);
+                case FRAGMENT -> new FragmentRequest(indexName, "id_" + i);
             };
             items[i] = new BulkItemRequest(i, request);
         }

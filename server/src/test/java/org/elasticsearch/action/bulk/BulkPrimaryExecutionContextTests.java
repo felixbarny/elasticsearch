@@ -14,6 +14,7 @@ import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.bulk.TransportShardBulkActionTests.FakeDeleteResult;
 import org.elasticsearch.action.bulk.TransportShardBulkActionTests.FakeIndexResult;
 import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -66,6 +67,7 @@ public class BulkPrimaryExecutionContextTests extends ESTestCase {
                 case CREATE -> new IndexRequest("index").id("id_" + i).create(true);
                 case UPDATE -> new UpdateRequest("index", "id_" + i);
                 case DELETE -> new DeleteRequest("index", "id_" + i);
+                case FRAGMENT -> new FragmentRequest("index", "id_" + i);
             };
             items[i] = new BulkItemRequest(i, request);
         }
