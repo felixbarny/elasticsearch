@@ -1234,6 +1234,12 @@ public final class DateFieldMapper extends FieldMapper {
 
     @Override
     protected void parseCreateField(DocumentParserContext context) throws IOException {
+        if (context.parser().currentToken() == XContentParser.Token.VALUE_NUMBER
+            && context.parser().numberType() == XContentParser.NumberType.LONG
+            && fieldType().dateTimeFormatter().equals(DEFAULT_DATE_TIME_FORMATTER)) {
+            indexValue(context, context.parser().longValue());
+            return;
+        }
         String dateAsString = context.parser().textOrNull();
 
         long timestamp;
