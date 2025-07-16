@@ -248,9 +248,9 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         HashStream32 metricNamesHash = HASHER_32.hashStream();
         String dataPointDimensionsHash = HASHER_128.hashTo128Bits(first, DataPointDimensionsHashFunnel.get()).toString();
         addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildResource(resourceAttributes, b), resourceAttributesHash);
-        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildDataStream(builder), "datastream");
-        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildScope(builder, scopeAttributes), scopeAttributesHash);
-        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildDataPointAttributes(builder, first), dataPointDimensionsHash);
+        addFragmentIfMissing(fragmentIds, requestBuilder, this::buildDataStream, "datastream");
+        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildScope(b, scopeAttributes), scopeAttributesHash);
+        addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildDataPointAttributes(b, first), dataPointDimensionsHash);
         dataPoints.stream().map(DataPoint::getMetricName).forEach(metricNamesHash::putString);
         // TODO remove hack to maintain single writer
         builder.field(
