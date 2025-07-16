@@ -22,6 +22,7 @@ import org.elasticsearch.action.RoutingMissingException;
 import org.elasticsearch.action.admin.indices.rollover.LazyRolloverAction;
 import org.elasticsearch.action.admin.indices.rollover.RolloverRequest;
 import org.elasticsearch.action.admin.indices.rollover.RolloverResponse;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.IndexComponentSelector;
@@ -60,6 +61,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -298,9 +300,8 @@ final class BulkOperation extends ActionRunnable<BulkResponse> {
         final ConcreteIndices concreteIndices = new ConcreteIndices(project, indexNameExpressionResolver);
         // Group the requests by ShardId -> Operations mapping
         Map<ShardId, List<BulkItemRequest>> requestsByShard = new HashMap<>();
-
-        // Track fragment IDs and the shards they need to be routed to
-        Map<String, List<ShardId>> fragmentToShards = new HashMap<>();
+        // Helps to ensure that a fragment is sent to a shard only once, even if it is referenced multiple times
+        Map<ShardId, Set<String>> fragmentsPerShard = new HashMap<>();
         // Store fragment requests for later processing
         Map<String, BulkItemRequest> fragmentRequests = new HashMap<>();
 
@@ -329,6 +330,9 @@ final class BulkOperation extends ActionRunnable<BulkResponse> {
             if (failedRolloverRequests.contains(bulkItemRequest.id())) {
                 continue;
             }
+            if (docWriteRequest instanceof IndexRequest indexRequest) {
+                indexRequest.initFragments(fragmentRequests);
+            }
 
             IndexAbstraction ia = null;
             try {
@@ -349,17 +353,16 @@ final class BulkOperation extends ActionRunnable<BulkResponse> {
                 docWriteRequest.postRoutingProcess(indexRouting);
                 ShardId targetShardId = new ShardId(concreteIndex, shardId);
                 List<BulkItemRequest> shardRequests = requestsByShard.computeIfAbsent(targetShardId, shard -> new ArrayList<>());
-                shardRequests.add(bulkItemRequest);
-
-                // Track which fragments are referenced by this IndexRequest
                 if (docWriteRequest instanceof IndexRequest indexRequest) {
-                    List<String> referencedFragmentIds = indexRequest.fragmentIds();
-                    if (referencedFragmentIds.isEmpty() == false) {
-                        for (String fragmentId : referencedFragmentIds) {
-                            fragmentToShards.computeIfAbsent(fragmentId, id -> new ArrayList<>()).add(targetShardId);
+                    Set<String> shardFragments = fragmentsPerShard.computeIfAbsent(targetShardId, shard -> new HashSet<>());
+                    for (String fragmentIds : indexRequest.fragmentIds()) {
+                        if (shardFragments.add(fragmentIds)) {
+                            shardRequests.add(fragmentRequests.get(fragmentIds));
                         }
                     }
                 }
+                shardRequests.add(bulkItemRequest);
+
             } catch (DataStream.TimestampError timestampError) {
                 IndexDocFailureStoreStatus failureStoreStatus = processFailure(bulkItemRequest, project, timestampError);
                 if (IndexDocFailureStoreStatus.USED.equals(failureStoreStatus) == false) {
@@ -372,36 +375,6 @@ final class BulkOperation extends ActionRunnable<BulkResponse> {
                     ? IndexDocFailureStoreStatus.FAILED
                     : IndexDocFailureStoreStatus.NOT_APPLICABLE_OR_UNKNOWN;
                 addFailureAndDiscardRequest(docWriteRequest, bulkItemRequest.id(), name, e, failureStoreStatus);
-            }
-        }
-
-        // Second pass: route fragment requests to all relevant shards
-        // Create a map to collect fragments for each shard
-        Map<ShardId, Map<String, BulkItemRequest>> fragmentsByShardId = new HashMap<>();
-
-        for (Map.Entry<String, BulkItemRequest> entry : fragmentRequests.entrySet()) {
-            // Add the fragment to each shard that references it
-            List<ShardId> shardIds = fragmentToShards.get(entry.getKey());
-            if (shardIds != null && shardIds.isEmpty() == false) {
-                for (ShardId shardId : shardIds) {
-                    // making sure to only add fragments once, even if they're referenced multiple times
-                    fragmentsByShardId.computeIfAbsent(shardId, k -> new HashMap<>())
-                        .putIfAbsent(entry.getValue().request().id(), entry.getValue());
-                }
-            }
-        }
-
-        // Now merge the fragments with the existing requests (fragments should come first)
-        for (Map.Entry<ShardId, Map<String, BulkItemRequest>> entry : fragmentsByShardId.entrySet()) {
-            ShardId shardId = entry.getKey();
-            Map<String, BulkItemRequest> fragments = entry.getValue();
-            List<BulkItemRequest> existingRequests = requestsByShard.get(shardId);
-
-            if (existingRequests != null) {
-                List<BulkItemRequest> newRequests = new ArrayList<>(fragments.size() + existingRequests.size());
-                newRequests.addAll(fragments.values());
-                newRequests.addAll(existingRequests);
-                requestsByShard.put(shardId, newRequests);
             }
         }
 

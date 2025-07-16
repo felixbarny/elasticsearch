@@ -460,7 +460,7 @@ public class IndexRoutingTests extends ESTestCase {
      */
     private int shardIdFromSimple(IndexRouting indexRouting, String id, @Nullable String routing) {
         return switch (between(0, 3)) {
-            case 0 -> indexRouting.indexShard(id, routing, null, null);
+            case 0 -> indexRouting.indexShard(id, routing, null, null, List.of());
             case 1 -> indexRouting.updateShard(id, routing);
             case 2 -> indexRouting.deleteShard(id, routing);
             case 3 -> indexRouting.getShard(id, routing);
@@ -493,7 +493,7 @@ public class IndexRoutingTests extends ESTestCase {
         IndexRouting routing = indexRoutingForPath(between(1, 5), randomAlphaOfLength(5));
         Exception e = expectThrows(
             IllegalArgumentException.class,
-            () -> routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, source(Map.of()))
+            () -> routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, source(Map.of()), List.of())
         );
         assertThat(e.getMessage(), equalTo("Error extracting routing: source didn't contain any routing fields"));
     }
@@ -502,7 +502,7 @@ public class IndexRoutingTests extends ESTestCase {
         IndexRouting routing = indexRoutingForPath(between(1, 5), "foo");
         Exception e = expectThrows(
             IllegalArgumentException.class,
-            () -> routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, source(Map.of("bar", "dog")))
+            () -> routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, source(Map.of("bar", "dog")), List.of())
         );
         assertThat(e.getMessage(), equalTo("Error extracting routing: source didn't contain any routing fields"));
     }
@@ -523,7 +523,7 @@ public class IndexRoutingTests extends ESTestCase {
         String docRouting = randomAlphaOfLength(5);
         Exception e = expectThrows(
             IllegalArgumentException.class,
-            () -> indexRouting.indexShard(randomAlphaOfLength(5), docRouting, XContentType.JSON, source)
+            () -> indexRouting.indexShard(randomAlphaOfLength(5), docRouting, XContentType.JSON, source, List.of())
         );
         assertThat(
             e.getMessage(),
@@ -617,7 +617,7 @@ public class IndexRoutingTests extends ESTestCase {
         BytesReference source = source(Map.of("a", List.of("foo", Map.of("foo", "bar"))));
         Exception e = expectThrows(
             IllegalArgumentException.class,
-            () -> routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, source)
+            () -> routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, source, List.of())
         );
         assertThat(
             e.getMessage(),
@@ -680,7 +680,7 @@ public class IndexRoutingTests extends ESTestCase {
         // Verify that routing uses the field name and value in the routing path.
         int expectedShard = Math.floorMod(hash(List.of("foo", "A")), shards);
         BytesReference sourceBytes = source(Map.of("foo", "A", "bar", "B"));
-        assertEquals(expectedShard, routing.indexShard(null, null, XContentType.JSON, sourceBytes));
+        assertEquals(expectedShard, routing.indexShard(null, null, XContentType.JSON, sourceBytes, List.of()));
 
         // Verify that the request id gets updated to contain the routing hash.
         routing.postProcess(req);
@@ -717,7 +717,7 @@ public class IndexRoutingTests extends ESTestCase {
     private void assertIndexShard(IndexRouting routing, Map<String, Object> source, int expectedShard) throws IOException {
         byte[] suffix = randomSuffix();
         BytesReference sourceBytes = source(source);
-        assertThat(routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, sourceBytes), equalTo(expectedShard));
+        assertThat(routing.indexShard(randomAlphaOfLength(5), null, XContentType.JSON, sourceBytes, List.of()), equalTo(expectedShard));
         IndexRouting.ExtractFromSource r = (IndexRouting.ExtractFromSource) routing;
         String idFromSource = r.createId(XContentType.JSON, sourceBytes, suffix);
         assertThat(shardIdForReadFromSourceExtracting(routing, idFromSource), equalTo(expectedShard));

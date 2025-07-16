@@ -29,6 +29,7 @@ import org.elasticsearch.xcontent.XContentType;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.function.BiFunction;
 
 import static org.elasticsearch.action.ValidateActions.addValidationError;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
@@ -45,15 +46,13 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
     private static final ShardId NO_SHARD_ID = null;
 
     private String id;
-    @Nullable
-    private String routing;
     private BytesReference source;
     private XContentType contentType;
+    private IndexRouting.ExtractFromSource.Builder routingBuilder;
 
     public FragmentRequest(@Nullable ShardId shardId, StreamInput in) throws IOException {
         super(shardId, in);
         this.id = in.readString();
-        this.routing = in.readOptionalString();
         this.source = in.readBytesReference();
         boolean hasContentType = in.readBoolean();
         if (hasContentType) {
@@ -63,14 +62,6 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
 
     public FragmentRequest() {
         super(NO_SHARD_ID);
-    }
-
-    /**
-     * Constructs a new fragment request against the specified index.
-     */
-    public FragmentRequest(String index) {
-        super(NO_SHARD_ID);
-        this.index = index;
     }
 
     /**
@@ -113,27 +104,14 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
         return this;
     }
 
-    /**
-     * Controls the shard routing of the request. Using this value to hash the shard
-     * and not the id.
-     */
     @Override
     public FragmentRequest routing(String routing) {
-        if (routing != null && routing.isEmpty()) {
-            this.routing = null;
-        } else {
-            this.routing = routing;
-        }
-        return this;
+        throw new UnsupportedOperationException("Fragment requests do not support routing");
     }
 
-    /**
-     * Controls the shard routing of the request. Using this value to hash the shard
-     * and not the id.
-     */
     @Override
     public String routing() {
-        return this.routing;
+        return null;
     }
 
     /**
@@ -228,7 +206,6 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
 
     private void writeBody(StreamOutput out) throws IOException {
         out.writeString(id);
-        out.writeOptionalString(routing);
         out.writeBytesReference(source);
         out.writeBoolean(contentType != null);
         if (contentType != null) {
@@ -238,7 +215,7 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
 
     @Override
     public int route(IndexRouting indexRouting) {
-        return indexRouting.indexShard(id, routing, contentType, source);
+        throw new UnsupportedOperationException("Fragment requests do not support routing");
     }
 
     @Override
@@ -267,5 +244,24 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
     @Override
     public long ramBytesUsed() {
         return SHALLOW_SIZE + RamUsageEstimator.sizeOf(id) + (source == null ? 0 : source.length());
+    }
+
+    /**
+     * Returns the routing builder for the document fragment.
+     * Returns a cached value if the builder has already been created
+     * to avoid re-computing it if this fragment is referenced multiple times.
+     *
+     * @param hashSource A function that returns the routing builder for the document fragment.
+     * @return The routing builder for the document fragment.
+     */
+    public IndexRouting.ExtractFromSource.Builder getRoutingBuilder(
+        BiFunction<XContentType, BytesReference, IndexRouting.ExtractFromSource.Builder> hashSource
+    ) {
+        if (routingBuilder == null) {
+            routingBuilder = hashSource.apply(contentType, source);
+            // sorting the fragment routing builder speeds up the sorting of the merged routing builders
+            routingBuilder.sort();
+        }
+        return routingBuilder;
     }
 }

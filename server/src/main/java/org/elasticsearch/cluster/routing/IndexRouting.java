@@ -13,6 +13,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.RoutingMissingException;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -94,7 +95,13 @@ public abstract class IndexRouting {
      * Called when indexing a document to generate the shard id that should contain
      * a document with the provided parameters.
      */
-    public abstract int indexShard(String id, @Nullable String routing, XContentType sourceType, BytesReference source);
+    public abstract int indexShard(
+        String id,
+        @Nullable String routing,
+        XContentType sourceType,
+        BytesReference source,
+        List<FragmentRequest> fragments
+    );
 
     /**
      * Called when updating a document to generate the shard id that should contain
@@ -190,7 +197,13 @@ public abstract class IndexRouting {
         }
 
         @Override
-        public int indexShard(String id, @Nullable String routing, XContentType sourceType, BytesReference source) {
+        public int indexShard(
+            String id,
+            @Nullable String routing,
+            XContentType sourceType,
+            BytesReference source,
+            List<FragmentRequest> fragments
+        ) {
             if (id == null) {
                 throw new IllegalStateException("id is required and should have been set by process");
             }
@@ -310,10 +323,20 @@ public abstract class IndexRouting {
         }
 
         @Override
-        public int indexShard(String id, @Nullable String routing, XContentType sourceType, BytesReference source) {
+        public int indexShard(
+            String id,
+            @Nullable String routing,
+            XContentType sourceType,
+            BytesReference source,
+            List<FragmentRequest> fragments
+        ) {
             assert Transports.assertNotTransportThread("parsing the _source can get slow");
             checkNoRouting(routing);
-            hash = hashSource(sourceType, source).buildHash(IndexRouting.ExtractFromSource::defaultOnEmpty);
+            Builder builder = hashSource(sourceType, source);
+            for (FragmentRequest fragment : fragments) {
+                builder.merge(fragment.getRoutingBuilder(this::hashSource));
+            }
+            hash = builder.buildHash(IndexRouting.ExtractFromSource::defaultOnEmpty);
             return hashToShardId(hash);
         }
 
@@ -350,7 +373,7 @@ public abstract class IndexRouting {
             try (XContentParser parser = XContentHelper.createParserNotCompressed(parserConfig, source, sourceType)) {
                 parser.nextToken(); // Move to first token
                 if (parser.currentToken() == null) {
-                    throw new IllegalArgumentException("Error extracting routing: source didn't contain any routing fields");
+                    return b;
                 }
                 parser.nextToken();
                 b.extractObject(null, parser);
@@ -433,12 +456,20 @@ public abstract class IndexRouting {
                 if (hashes.isEmpty()) {
                     return onEmpty.getAsInt();
                 }
-                Collections.sort(hashes);
+                sort();
                 int hash = 0;
                 for (NameAndHash nah : hashes) {
                     hash = 31 * hash + (hash(nah.name) ^ nah.hash);
                 }
                 return hash;
+            }
+
+            public void sort() {
+                Collections.sort(hashes);
+            }
+
+            void merge(Builder builder) {
+                hashes.addAll(builder.hashes);
             }
         }
 

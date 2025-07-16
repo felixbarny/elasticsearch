@@ -17,6 +17,8 @@ import org.elasticsearch.TransportVersions;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.CompositeIndicesRequest;
 import org.elasticsearch.action.DocWriteRequest;
+import org.elasticsearch.action.bulk.BulkItemRequest;
+import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.client.internal.Requests;
@@ -153,6 +155,11 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
      * Fragments contain reusable parts of document content to avoid repeated parsing.
      */
     private List<String> fragmentIds;
+
+    /**
+     * This is a transient field that is only used during shard routing on the coordinating node and is not sent over the wire.
+     */
+    private List<FragmentRequest> fragments;
 
     /**
      * rawTimestamp field is used on the coordinate node, it doesn't need to be serialised.
@@ -937,7 +944,7 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
 
     @Override
     public int route(IndexRouting indexRouting) {
-        return indexRouting.indexShard(id, routing, contentType, source);
+        return indexRouting.indexShard(id, routing, contentType, source, getFragments());
     }
 
     public IndexRequest setRequireAlias(boolean requireAlias) {
@@ -1040,19 +1047,6 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
     }
 
     /**
-     * Adds a fragment ID to the list of fragments referenced by this index request.
-     * Fragments contain reusable parts of document content to avoid repeated parsing.
-     *
-     * @param fragmentId The ID of the fragment to reference
-     * @return this index request
-     */
-    public IndexRequest addFragmentId(String fragmentId) {
-        Objects.requireNonNull(fragmentId, "fragmentId must not be null");
-        this.fragmentIds.add(fragmentId);
-        return this;
-    }
-
-    /**
      * Sets the list of fragment IDs referenced by this index request.
      * Fragments contain reusable parts of document content to avoid repeated parsing.
      *
@@ -1063,5 +1057,42 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
         Objects.requireNonNull(fragmentIds, "fragmentIds must not be null");
         this.fragmentIds = new ArrayList<>(fragmentIds);
         return this;
+    }
+
+    private List<FragmentRequest> getFragments() {
+        if (fragments == null) {
+            throw new IllegalStateException("fragments has not been initialized");
+        }
+        return fragments;
+    }
+
+    public void initFragments(Map<String, BulkItemRequest> fragmentRequests) {
+        List<FragmentRequest> result = new ArrayList<>(fragmentIds.size());
+        for (String id : fragmentIds) {
+            BulkItemRequest request = fragmentRequests.get(id);
+            if (request == null) {
+                throw new IllegalArgumentException(
+                    "Fragment with id ["
+                        + id
+                        + "] not found in the current context. "
+                        + "Fragments need to be defined before other requests that reference them."
+                );
+            }
+            if (request.index().equals(index()) == false) {
+                throw new IllegalArgumentException(
+                    "Fragment with id ["
+                    + id
+                    + "] has a different index ["
+                    + request.index()
+                    + "] than the current index ["
+                    + index()
+                    + "]. "
+                );
+            }
+            if (request.request() instanceof FragmentRequest fragment) {
+                result.add(fragment);
+            }
+        }
+        this.fragments = result;
     }
 }
