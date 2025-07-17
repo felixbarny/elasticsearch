@@ -83,6 +83,7 @@ public final class DocumentParser {
         final RootDocumentParserContext context;
         final XContentType xContentType = source.getXContentType();
 
+        long totalSize = 0;
         XContentMeteringParserDecorator meteringParserDecorator = source.getMeteringParserDecorator();
         try (
             XContentParser parser = meteringParserDecorator.decorate(
@@ -100,6 +101,12 @@ public final class DocumentParser {
             for (ParsedDocument fragment : source.getFragments()) {
                 context.rootDoc().addAll(fragment.rootDoc().getFields());
                 fragment.nonRootDocs().forEach(context::addDoc);
+                context.getRoutingFields().merge(fragment.getRoutingFields());
+
+                long fragmentSize = fragment.getNormalizedSize();
+                if (fragmentSize > 0) {
+                    totalSize += fragmentSize;
+                }
             }
             validateStart(context.parser());
             MetadataFieldMapper[] metadataFieldsMappers = mappingLookup.getMapping().getSortedMetadataMappers();
@@ -115,6 +122,7 @@ public final class DocumentParser {
 
         Mapping dynamicUpdate = createDynamicUpdate(context);
 
+        totalSize += meteringParserDecorator.meteredDocumentSize();
         return new ParsedDocument(
             context.version(),
             context.seqID(),
@@ -124,7 +132,8 @@ public final class DocumentParser {
             context.sourceToParse().source(),
             context.sourceToParse().getXContentType(),
             dynamicUpdate,
-            meteringParserDecorator.meteredDocumentSize()
+            totalSize,
+            context.getRoutingFields()
         ) {
             @Override
             public String documentDescription() {
@@ -1096,7 +1105,8 @@ public final class DocumentParser {
             MappingParserContext mappingParserContext,
             SourceToParse source,
             XContentParser parser,
-            boolean fragment) throws IOException {
+            boolean fragment
+        ) throws IOException {
             super(
                 mappingLookup,
                 mappingParserContext,

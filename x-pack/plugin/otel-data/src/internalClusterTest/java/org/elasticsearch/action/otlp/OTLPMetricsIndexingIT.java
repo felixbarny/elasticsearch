@@ -62,7 +62,6 @@ import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasLength;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
@@ -174,7 +173,13 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
     @Test
     public void testIngestMetricDataViaMetricExporter() throws Exception {
-        MetricData jvmMemoryMetricData = getDoubleGauge("jvm.memory.total", Runtime.getRuntime().totalMemory(), Attributes.empty(), "By", Clock.getDefault().now());
+        MetricData jvmMemoryMetricData = getDoubleGauge(
+            "jvm.memory.total",
+            Runtime.getRuntime().totalMemory(),
+            Attributes.empty(),
+            "By",
+            Clock.getDefault().now()
+        );
 
         export(List.of(jvmMemoryMetricData));
         String[] indices = admin().indices()
@@ -204,10 +209,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         SearchResponse resp = client().prepareSearch("metrics-generic.otel-default").get();
         assertThat(resp.getHits().getHits(), arrayWithSize(1));
         Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
-        assertThat(sourceMap.get("metrics"), equalTo(Map.of(
-            "metric1", 42.0,
-            "metric2", 42.0
-        )));
+        assertThat(sourceMap.get("metrics"), equalTo(Map.of("metric1", 42.0, "metric2", 42.0)));
         assertThat(sourceMap.get("resource"), equalTo(Map.of("attributes", Map.of("service.name", "elasticsearch"))));
     }
 
@@ -240,9 +242,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             name,
             "Your description could be here.",
             unit,
-            ImmutableGaugeData.create(
-                List.of(ImmutableDoublePointData.create(timeEpochNanos, timeEpochNanos, attributes, value))
-            )
+            ImmutableGaugeData.create(List.of(ImmutableDoublePointData.create(timeEpochNanos, timeEpochNanos, attributes, value)))
         );
     }
 

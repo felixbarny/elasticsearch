@@ -111,6 +111,7 @@ import org.elasticsearch.index.mapper.LuceneDocument;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MappingLookup;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.mapper.RoutingFields;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
@@ -5536,7 +5537,8 @@ public class InternalEngineTests extends EngineTestCase {
                 source,
                 XContentType.JSON,
                 null,
-                XContentMeteringParserDecorator.UNKNOWN_SIZE
+                XContentMeteringParserDecorator.UNKNOWN_SIZE,
+                RoutingFields.Noop.INSTANCE
             );
 
             final Engine.Index index = new Engine.Index(

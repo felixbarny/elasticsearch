@@ -28,6 +28,7 @@ import org.elasticsearch.index.IndexingSlowLog.IndexingSlowLogMessage;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineTestCase;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.mapper.RoutingFields;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
@@ -217,7 +218,8 @@ public class IndexingSlowLogTests extends ESTestCase {
             source,
             XContentType.JSON,
             null,
-            XContentMeteringParserDecorator.UNKNOWN_SIZE
+            XContentMeteringParserDecorator.UNKNOWN_SIZE,
+            RoutingFields.Noop.INSTANCE
         );
         Index index = new Index("foo", "123");
         // Turning off document logging doesn't log source[]
@@ -246,7 +248,8 @@ public class IndexingSlowLogTests extends ESTestCase {
             source,
             XContentType.JSON,
             null,
-            XContentMeteringParserDecorator.UNKNOWN_SIZE
+            XContentMeteringParserDecorator.UNKNOWN_SIZE,
+            RoutingFields.Noop.INSTANCE
         );
         Index index = new Index("foo", "123");
         // Turning off document logging doesn't log source[]
@@ -276,7 +279,8 @@ public class IndexingSlowLogTests extends ESTestCase {
             source,
             XContentType.JSON,
             null,
-            XContentMeteringParserDecorator.UNKNOWN_SIZE
+            XContentMeteringParserDecorator.UNKNOWN_SIZE,
+            RoutingFields.Noop.INSTANCE
         );
         Index index = new Index("foo", "123");
 
@@ -295,7 +299,8 @@ public class IndexingSlowLogTests extends ESTestCase {
             source,
             XContentType.JSON,
             null,
-            XContentMeteringParserDecorator.UNKNOWN_SIZE
+            XContentMeteringParserDecorator.UNKNOWN_SIZE,
+            RoutingFields.Noop.INSTANCE
         );
         Index index = new Index("foo", "123");
         // Turning off document logging doesn't log source[]
@@ -327,7 +332,8 @@ public class IndexingSlowLogTests extends ESTestCase {
             source,
             XContentType.JSON,
             null,
-            XContentMeteringParserDecorator.UNKNOWN_SIZE
+            XContentMeteringParserDecorator.UNKNOWN_SIZE,
+            RoutingFields.Noop.INSTANCE
         );
 
         final XContentParseException e = expectThrows(

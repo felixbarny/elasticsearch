@@ -252,11 +252,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildScope(b, scopeAttributes), scopeAttributesHash);
         addFragmentIfMissing(fragmentIds, requestBuilder, b -> buildDataPointAttributes(b, first), dataPointDimensionsHash);
         dataPoints.stream().map(DataPoint::getMetricName).forEach(metricNamesHash::putString);
-        // TODO remove hack to maintain single writer
-        builder.field(
-            "_metric_names_hash",
-            Integer.toHexString(metricNamesHash.getAsInt()) + dataPointDimensionsHash + scopeAttributesHash + resourceAttributesHash
-        );
+        builder.field("_metric_names_hash", Integer.toHexString(metricNamesHash.getAsInt()));
         builder.startObject("metrics");
         for (int i = 0; i < dataPoints.size(); i++) {
             NumberDataPoint dp = dataPoints.get(i).dataPoint();

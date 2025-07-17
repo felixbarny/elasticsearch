@@ -422,12 +422,14 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                 false, // TODO includeSourceOnError support for fragments
                 meteringParserDecorator,
                 true,
-                List.of());
+                List.of()
+            );
 
-            Engine.Index operation = IndexShard.prepareIndex(primary.mapperService(),
+            Engine.Index operation = IndexShard.prepareIndex(
+                primary.mapperService(),
                 sourceToParse,
                 UNASSIGNED_SEQ_NO,
-               -1,
+                -1,
                 version,
                 request.versionType(),
                 Engine.Operation.Origin.PRIMARY,
@@ -435,7 +437,8 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                 false,
                 request.ifSeqNo(),
                 request.ifPrimaryTerm(),
-                -1);
+                -1
+            );
 
             Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
             if (update != null) {
@@ -468,7 +471,8 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                 request.getIncludeSourceOnError(),
                 meteringParserDecorator,
                 false,
-                context.getFragments(request.fragmentIds()));
+                context.getFragments(request.fragmentIds())
+            );
             result = primary.applyIndexOperationOnPrimary(
                 version,
                 request.versionType(),

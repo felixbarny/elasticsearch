@@ -1081,12 +1081,12 @@ public class IndexRequest extends ReplicatedWriteRequest<IndexRequest> implement
             if (request.index().equals(index()) == false) {
                 throw new IllegalArgumentException(
                     "Fragment with id ["
-                    + id
-                    + "] has a different index ["
-                    + request.index()
-                    + "] than the current index ["
-                    + index()
-                    + "]. "
+                        + id
+                        + "] has a different index ["
+                        + request.index()
+                        + "] than the current index ["
+                        + index()
+                        + "]. "
                 );
             }
             if (request.request() instanceof FragmentRequest fragment) {

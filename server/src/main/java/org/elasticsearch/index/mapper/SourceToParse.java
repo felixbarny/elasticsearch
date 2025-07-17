@@ -60,7 +60,8 @@ public class SourceToParse {
         boolean includeSourceOnError,
         XContentMeteringParserDecorator meteringParserDecorator,
         boolean fragment,
-        List<ParsedDocument> fragments) {
+        List<ParsedDocument> fragments
+    ) {
         this.id = id;
         // we always convert back to byte array, since we store it and Field only supports bytes..
         // so, we might as well do it here, and improve the performance of working with direct byte arrays

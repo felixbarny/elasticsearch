@@ -45,6 +45,8 @@ public interface RoutingFields {
 
     RoutingFields addBoolean(String fieldName, boolean value);
 
+    void merge(RoutingFields other);
+
     /**
      * Noop implementation that doesn't perform validations on routing fields
      */
@@ -81,5 +83,8 @@ public interface RoutingFields {
         public RoutingFields addBoolean(String fieldName, boolean value) {
             return this;
         }
+
+        @Override
+        public void merge(RoutingFields other) {}
     }
 }

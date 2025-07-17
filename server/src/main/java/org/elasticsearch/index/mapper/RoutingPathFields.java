@@ -207,6 +207,16 @@ public final class RoutingPathFields implements RoutingFields {
         return this;
     }
 
+    @Override
+    public void merge(RoutingFields other) {
+        if (other instanceof RoutingPathFields routingPathFields) {
+            this.routingValues.putAll(routingPathFields.routingValues);
+            if (this.routingBuilder != null) {
+                this.routingBuilder.merge(routingPathFields.routingBuilder());
+            }
+        }
+    }
+
     private void add(String fieldName, BytesReference encoded) throws IOException {
         BytesRef name = new BytesRef(fieldName);
         List<BytesReference> values = routingValues.get(name);

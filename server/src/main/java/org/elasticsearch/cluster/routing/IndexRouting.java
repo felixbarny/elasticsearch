@@ -468,8 +468,10 @@ public abstract class IndexRouting {
                 Collections.sort(hashes);
             }
 
-            void merge(Builder builder) {
-                hashes.addAll(builder.hashes);
+            public void merge(Builder builder) {
+                if (builder != null) {
+                    hashes.addAll(builder.hashes);
+                }
             }
         }
 

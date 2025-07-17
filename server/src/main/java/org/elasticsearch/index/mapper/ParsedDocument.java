@@ -37,6 +37,8 @@ public class ParsedDocument {
 
     private final long normalizedSize;
 
+    private final RoutingFields routingFields;
+
     private BytesReference source;
     private XContentType xContentType;
     private Mapping dynamicMappingsUpdate;
@@ -63,7 +65,8 @@ public class ParsedDocument {
             new BytesArray("{}"),
             XContentType.JSON,
             null,
-            XContentMeteringParserDecorator.UNKNOWN_SIZE
+            XContentMeteringParserDecorator.UNKNOWN_SIZE,
+            RoutingFields.Noop.INSTANCE
         );
     }
 
@@ -88,7 +91,8 @@ public class ParsedDocument {
             new BytesArray("{}"),
             XContentType.JSON,
             null,
-            XContentMeteringParserDecorator.UNKNOWN_SIZE
+            XContentMeteringParserDecorator.UNKNOWN_SIZE,
+            RoutingFields.Noop.INSTANCE
         );
     }
 
@@ -101,7 +105,8 @@ public class ParsedDocument {
         BytesReference source,
         XContentType xContentType,
         Mapping dynamicMappingsUpdate,
-        long normalizedSize
+        long normalizedSize,
+        RoutingFields routingFields
     ) {
         this.version = version;
         this.seqID = seqID;
@@ -112,6 +117,7 @@ public class ParsedDocument {
         this.dynamicMappingsUpdate = dynamicMappingsUpdate;
         this.xContentType = xContentType;
         this.normalizedSize = normalizedSize;
+        this.routingFields = routingFields;
     }
 
     public String id() {
@@ -189,5 +195,9 @@ public class ParsedDocument {
 
     public long getNormalizedSize() {
         return normalizedSize;
+    }
+
+    public RoutingFields getRoutingFields() {
+        return routingFields;
     }
 }

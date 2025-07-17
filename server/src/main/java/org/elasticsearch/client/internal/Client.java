@@ -24,7 +24,6 @@ import org.elasticsearch.action.explain.ExplainResponse;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesRequestBuilder;
 import org.elasticsearch.action.fieldcaps.FieldCapabilitiesResponse;
-import org.elasticsearch.action.fragment.FragmentRequest;
 import org.elasticsearch.action.fragment.FragmentRequestBuilder;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
