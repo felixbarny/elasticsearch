@@ -277,7 +277,6 @@ final class IndexDiskUsageAnalyzer {
                     SortedSetDocValues sortedSet = iterateDocValues(maxDocs, () -> docValuesReader.getSortedSet(field), dv -> {
                         for (int i = 0; i < dv.docValueCount(); i++) {
                             cancellationChecker.logEvent();
-                            dv.nextOrd();
                         }
                     });
                     if (sortedSet.getValueCount() > 0) {
