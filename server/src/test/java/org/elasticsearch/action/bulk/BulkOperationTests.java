@@ -19,6 +19,7 @@ import org.elasticsearch.action.admin.indices.rollover.LazyRolloverAction;
 import org.elasticsearch.action.admin.indices.rollover.RolloverRequest;
 import org.elasticsearch.action.admin.indices.rollover.RolloverResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.fragment.FragmentResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.SubscribableListener;
@@ -1043,7 +1044,8 @@ public class BulkOperationTests extends ESTestCase {
             ? IndexDocFailureStoreStatus.USED
             : IndexDocFailureStoreStatus.NOT_APPLICABLE_OR_UNKNOWN;
         return BulkItemResponse.success(itemRequest.id(), itemRequest.request().opType(), switch (itemRequest.request().opType()) {
-            case INDEX, CREATE, FRAGMENT -> new IndexResponse(shardId, itemRequest.request().id(), 1, 1, 1, true, null, failureStatus);
+            case INDEX, CREATE -> new IndexResponse(shardId, itemRequest.request().id(), 1, 1, 1, true, null, failureStatus);
+            case FRAGMENT -> new FragmentResponse(shardId, itemRequest.request().id());
             case UPDATE -> new UpdateResponse(shardId, itemRequest.request().id(), 1, 1, 1, DocWriteResponse.Result.UPDATED);
             case DELETE -> new DeleteResponse(shardId, itemRequest.request().id(), 1, 1, 1, true);
         });
