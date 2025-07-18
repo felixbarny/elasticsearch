@@ -25,10 +25,10 @@ import java.util.Set;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertHitCount;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertResponse;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isA;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numClientNodes = 1, minNumDataNodes = 2)
@@ -70,12 +70,12 @@ public class BulkFragmentIT extends ESIntegTestCase {
 
         BulkResponse bulkResponse = internalCluster().coordOnlyNodeClient().bulk(bulkRequest).actionGet();
         assertThat(bulkResponse.hasFailures(), is(true));
-        
+
         // Verify that the fragment operation failed because it wasn't used
         BulkItemResponse fragmentResponse = bulkResponse.getItems()[0];
         assertThat(fragmentResponse.isFailed(), is(true));
         assertThat(fragmentResponse.getFailureMessage(), containsString("fragment [fragment1] was not used"));
-        
+
         // Verify that the index operation succeeded
         BulkItemResponse indexResponse = bulkResponse.getItems()[1];
         assertThat(indexResponse.isFailed(), is(false));
@@ -95,8 +95,10 @@ public class BulkFragmentIT extends ESIntegTestCase {
         assertThat(failedItem.isFailed(), is(true));
         assertThat(
             failedItem.getFailureMessage(),
-            containsString("Fragment with id [fragment1] not found in the current context. " +
-                           "Fragments need to be defined before other requests that reference them.")
+            containsString(
+                "Fragment with id [fragment1] not found in the current context. "
+                    + "Fragments need to be defined before other requests that reference them."
+            )
         );
     }
 
@@ -148,10 +150,12 @@ public class BulkFragmentIT extends ESIntegTestCase {
         bulkRequest.add(new FragmentRequest().index("index").id("fragment3").source(Map.of("field3", "value3")));
 
         // Reference all fragments in one document
-        bulkRequest.add(new IndexRequest().index("index")
-            .id("1")
-            .source(Map.of("field4", "value4"))
-            .fragmentIds(List.of("fragment1", "fragment2", "fragment3")));
+        bulkRequest.add(
+            new IndexRequest().index("index")
+                .id("1")
+                .source(Map.of("field4", "value4"))
+                .fragmentIds(List.of("fragment1", "fragment2", "fragment3"))
+        );
 
         BulkResponse bulkResponse = internalCluster().coordOnlyNodeClient().bulk(bulkRequest).actionGet();
         assertThat(bulkResponse.hasFailures(), is(false));
@@ -175,10 +179,12 @@ public class BulkFragmentIT extends ESIntegTestCase {
         bulkRequest.add(new FragmentRequest().index("index").id("fragment1").source(Map.of("conflicting_field", "fragment_value")));
 
         // Add a document with the same field but different value
-        bulkRequest.add(new IndexRequest().index("index")
-            .id("1")
-            .source(Map.of("conflicting_field", "document_value"))
-            .fragmentIds(List.of("fragment1")));
+        bulkRequest.add(
+            new IndexRequest().index("index")
+                .id("1")
+                .source(Map.of("conflicting_field", "document_value"))
+                .fragmentIds(List.of("fragment1"))
+        );
 
         BulkResponse bulkResponse = internalCluster().coordOnlyNodeClient().bulk(bulkRequest).actionGet();
         assertThat(bulkResponse.hasFailures(), is(false));
