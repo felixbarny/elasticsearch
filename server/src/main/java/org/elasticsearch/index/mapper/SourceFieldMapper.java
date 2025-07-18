@@ -436,6 +436,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     public void preParse(DocumentParserContext context) throws IOException {
         XContentType contentType = context.sourceToParse().getXContentType();
 
+        // TODO make source fragment aware (merge source fragments from SourceToParse#getFragments)
         final var originalSource = context.sourceToParse().source();
         final var storedSource = stored() ? removeSyntheticVectorFields(context.mappingLookup(), originalSource, contentType) : null;
         final var adaptedStoredSource = applyFilters(context.mappingLookup(), storedSource, contentType, false);

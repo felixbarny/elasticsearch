@@ -15,6 +15,7 @@ import org.elasticsearch.TransportVersions;
 import org.elasticsearch.action.DocWriteRequest.OpType;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.fragment.FragmentResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.ingest.SimulateIndexResponse;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -478,6 +479,8 @@ public class BulkItemResponse implements Writeable, ToXContentObject {
             out.writeByte((byte) 1);
         } else if (response instanceof UpdateResponse) {
             out.writeByte((byte) 3); // make 3 instead of 2, because 2 is already in use for 'no responses'
+        } else if (response instanceof FragmentResponse) {
+            out.writeByte((byte) 5); // make 3 instead of 2, because 2 is already in use for 'no responses'
         } else {
             throw new IllegalStateException("Unexpected response type found [" + response.getClass() + "]");
         }
@@ -491,6 +494,7 @@ public class BulkItemResponse implements Writeable, ToXContentObject {
             case 2 -> null;
             case 3 -> new UpdateResponse(shardId, in);
             case 4 -> new SimulateIndexResponse(in);
+            case 5 -> new FragmentResponse(shardId, in);
             default -> throw new IllegalArgumentException("Unexpected type [" + type + "]");
         };
     }
@@ -503,6 +507,7 @@ public class BulkItemResponse implements Writeable, ToXContentObject {
             case 2 -> null;
             case 3 -> new UpdateResponse(in);
             case 4 -> new SimulateIndexResponse(in);
+            case 5 -> new FragmentResponse(in);
             default -> throw new IllegalArgumentException("Unexpected type [" + type + "]");
         };
     }

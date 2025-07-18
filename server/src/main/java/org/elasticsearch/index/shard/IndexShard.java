@@ -51,6 +51,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
+import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.settings.Settings;
@@ -196,6 +197,7 @@ import java.util.function.Supplier;
 import static org.elasticsearch.cluster.metadata.DataStream.TIMESERIES_LEAF_READERS_SORTER;
 import static org.elasticsearch.core.Strings.format;
 import static org.elasticsearch.index.seqno.RetentionLeaseActions.RETAIN_ALL;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
@@ -991,6 +993,50 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             Engine.Operation.Origin.REPLICA,
             sourceToParse
         );
+    }
+
+    public Engine.FragmentResult applyFragmentOperationOnPrimary(VersionType versionType, SourceToParse sourceToParse) {
+        Engine.Index operation = IndexShard.prepareIndex(
+            mapperService(),
+            sourceToParse,
+            UNASSIGNED_SEQ_NO,
+            -1,
+            Versions.MATCH_ANY,
+            versionType,
+            Engine.Operation.Origin.PRIMARY,
+            -1,
+            false,
+            UNASSIGNED_SEQ_NO,
+            UNASSIGNED_PRIMARY_TERM,
+            -1
+        );
+        if (operation.parsedDoc().dynamicMappingsUpdate() != null) {
+            return new Engine.FragmentResult(operation.parsedDoc().dynamicMappingsUpdate(), operation.parsedDoc().id());
+        } else {
+            return new Engine.FragmentResult(operation.parsedDoc());
+        }
+    }
+
+    public Engine.FragmentResult applyFragmentOperationOnReplica(SourceToParse sourceToParse) {
+        Engine.Index operation = IndexShard.prepareIndex(
+            mapperService(),
+            sourceToParse,
+            UNASSIGNED_SEQ_NO,
+            UNASSIGNED_PRIMARY_TERM,
+            Versions.MATCH_ANY,
+            null,
+            Engine.Operation.Origin.REPLICA,
+            -1,
+            false,
+            UNASSIGNED_SEQ_NO,
+            UNASSIGNED_PRIMARY_TERM,
+            -1
+        );
+        if (operation.parsedDoc().dynamicMappingsUpdate() != null) {
+            return new Engine.FragmentResult(operation.parsedDoc().dynamicMappingsUpdate(), operation.parsedDoc().id());
+        } else {
+            return new Engine.FragmentResult(operation.parsedDoc());
+        }
     }
 
     private Engine.IndexResult applyIndexOperation(

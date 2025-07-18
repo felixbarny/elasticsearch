@@ -1276,6 +1276,7 @@ public abstract class EngineTestCase extends ESTestCase {
             case INDEX -> engine.index((Engine.Index) operation);
             case DELETE -> engine.delete((Engine.Delete) operation);
             case NO_OP -> engine.noOp((Engine.NoOp) operation);
+            case FRAGMENT -> throw new IllegalStateException("Fragment operations should not be executed by the engine");
         };
         return result;
     }

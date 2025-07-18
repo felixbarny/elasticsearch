@@ -53,8 +53,8 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.InferenceMetadataFieldsMapper;
 import org.elasticsearch.index.mapper.MapperException;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.MappingLookup;
+import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.RoutingFieldMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -73,6 +73,7 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.xcontent.XContentType;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -81,7 +82,6 @@ import java.util.function.LongSupplier;
 import java.util.function.ObjLongConsumer;
 
 import static org.elasticsearch.core.Strings.format;
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 /** Performs shard-level bulk (index, delete or update) operations */
 public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequest, BulkShardRequest, BulkShardResponse> {
@@ -413,36 +413,12 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
             final FragmentRequest request = context.getRequestToExecute();
 
             XContentMeteringParserDecorator meteringParserDecorator = documentParsingProvider.newMeteringParserDecorator(null);
-            final SourceToParse sourceToParse = new SourceToParse(
-                request.id(),
-                request.source(),
-                request.getContentType(),
-                request.routing(),
-                Map.of(), // TODO dynamic templates support for fragments
-                false, // TODO includeSourceOnError support for fragments
-                meteringParserDecorator,
-                true,
-                List.of()
-            );
-
-            Engine.Index operation = IndexShard.prepareIndex(
-                primary.mapperService(),
-                sourceToParse,
-                UNASSIGNED_SEQ_NO,
-                -1,
-                version,
+            Engine.FragmentResult fragmentResult = primary.applyFragmentOperationOnPrimary(
                 request.versionType(),
-                Engine.Operation.Origin.PRIMARY,
-                -1,
-                false,
-                request.ifSeqNo(),
-                request.ifPrimaryTerm(),
-                -1
+                request.getSourceToParse(Map.of(), false, meteringParserDecorator)
             );
-
-            Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
-            if (update != null) {
-                result = new Engine.IndexResult(update, operation.parsedDoc().id());
+            result = fragmentResult;
+            if (fragmentResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 return handleMappingUpdateRequired(
                     context,
                     mappingUpdater,
@@ -453,10 +429,9 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                     version,
                     updateResult
                 );
-            } else {
-                context.addParsedFragment(request.id(), operation.parsedDoc());
-                // No mapping update, return success
-                result = new Engine.IndexResult(version, -1, UNASSIGNED_SEQ_NO, false, request.id());
+            }
+            if (fragmentResult.getResultType() == Engine.Result.Type.SUCCESS) {
+                context.addParsedFragment(request.id(), fragmentResult.getParsedDoc());
             }
         } else {
             final IndexRequest request = context.getRequestToExecute();
@@ -751,6 +726,7 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
     }
 
     public static Translog.Location performOnReplica(BulkShardRequest request, IndexShard replica) throws Exception {
+        BulkReplicaExecutionContext context = new BulkReplicaExecutionContext();
         Translog.Location location = null;
         for (int i = 0; i < request.items().length; i++) {
             final BulkItemRequest item = request.items()[i];
@@ -777,8 +753,9 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                 if (response.getResponse().getResult() == DocWriteResponse.Result.NOOP) {
                     continue; // ignore replication as it's a noop
                 }
-                assert response.getResponse().getSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO;
-                operationResult = performOpOnReplica(response.getResponse(), item.request(), replica);
+                assert response.getResponse().getSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO
+                       || response.getOpType() == DocWriteRequest.OpType.FRAGMENT;
+                operationResult = performOpOnReplica(context, response.getResponse(), item.request(), replica);
             }
             assert operationResult != null : "operation result must never be null when primary response has no failure";
             location = syncOperationResultOrThrow(operationResult, location);
@@ -786,20 +763,54 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
         return location;
     }
 
+    record BulkReplicaExecutionContext(Map<String, ParsedDocument> fragments) {
+
+        BulkReplicaExecutionContext() {
+            this(new HashMap<>());
+        }
+
+        public void addParsedFragment(ParsedDocument fragment) {
+            String id = fragment.id();
+            if (fragments.containsKey(id)) {
+                throw new IllegalStateException("fragment [" + id + "] has already been processed");
+            }
+            this.fragments.put(id, fragment);
+        }
+
+        public List<ParsedDocument> getFragments(List<String> fragmentIds) {
+            return BulkPrimaryExecutionContext.getFragments(fragmentIds, fragments);
+        }
+    }
+
     private static Engine.Result performOpOnReplica(
-        DocWriteResponse primaryResponse,
+        BulkReplicaExecutionContext context, DocWriteResponse primaryResponse,
         DocWriteRequest<?> docWriteRequest,
         IndexShard replica
     ) throws Exception {
         final Engine.Result result;
         switch (docWriteRequest.opType()) {
+            case FRAGMENT -> {
+                final FragmentRequest request = (FragmentRequest) docWriteRequest;
+                Engine.FragmentResult fragmentResult = replica.applyFragmentOperationOnReplica(
+                    request.getSourceToParse(Map.of(), true, XContentMeteringParserDecorator.NOOP)
+                );
+                if (fragmentResult.getResultType() == Engine.Result.Type.SUCCESS) {
+                    context.addParsedFragment(fragmentResult.getParsedDoc());
+                }
+                result = fragmentResult;
+            }
             case CREATE, INDEX -> {
                 final IndexRequest indexRequest = (IndexRequest) docWriteRequest;
                 final SourceToParse sourceToParse = new SourceToParse(
                     indexRequest.id(),
                     indexRequest.source(),
                     indexRequest.getContentType(),
-                    indexRequest.routing()
+                    indexRequest.routing(),
+                    Map.of(),
+                    true,
+                    XContentMeteringParserDecorator.NOOP,
+                    false,
+                    context.getFragments(indexRequest.fragmentIds())
                 );
                 result = replica.applyIndexOperationOnReplica(
                     primaryResponse.getSeqNo(),

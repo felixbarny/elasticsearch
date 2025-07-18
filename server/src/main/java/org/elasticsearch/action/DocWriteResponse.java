@@ -58,7 +58,8 @@ public abstract class DocWriteResponse extends ReplicationResponse implements Wr
         UPDATED(1),
         DELETED(2),
         NOT_FOUND(3),
-        NOOP(4);
+        NOOP(4),
+        FRAGMENT(5);
 
         private final byte op;
         private final String lowercase;
@@ -84,6 +85,7 @@ public abstract class DocWriteResponse extends ReplicationResponse implements Wr
                 case 2 -> DELETED;
                 case 3 -> NOT_FOUND;
                 case 4 -> NOOP;
+                case 5 -> FRAGMENT;
                 default -> throw new IllegalArgumentException("Unknown result code: " + opcode);
             };
         }

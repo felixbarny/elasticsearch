@@ -205,6 +205,8 @@ public abstract class TransportWriteAction<
             Exception failure = operationResult.getFailure();
             assert failure instanceof MapperParsingException : "expected mapper parsing failures. got " + failure;
             throw failure;
+        } else if (operationResult.getOperationType() == Engine.Operation.TYPE.FRAGMENT) {
+            location = currentLocation;
         } else {
             location = locationToSync(currentLocation, operationResult.getTranslogLocation());
         }

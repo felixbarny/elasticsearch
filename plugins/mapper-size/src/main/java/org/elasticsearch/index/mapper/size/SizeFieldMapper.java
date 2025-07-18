@@ -89,6 +89,7 @@ public class SizeFieldMapper extends MetadataFieldMapper {
         if (enabled.value() == false) {
             return;
         }
+        // TODO incorporate fragments
         final int value = context.sourceToParse().source().length();
         NumberType.INTEGER.addFields(context.doc(), fullPath(), value, true, true, true);
     }

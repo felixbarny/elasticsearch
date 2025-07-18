@@ -12,6 +12,7 @@ package org.elasticsearch.action.bulk;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.fragment.FragmentResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -294,8 +295,10 @@ class BulkPrimaryExecutionContext {
                         deleteResult.isFound()
                     );
 
+                } else if (result.getOperationType() == Engine.Operation.TYPE.FRAGMENT) {
+                    response = new FragmentResponse(primary.shardId(), requestToExecute.id());
                 } else {
-                    throw new AssertionError("unknown result type :" + result.getResultType());
+                    throw new AssertionError("unknown result type :" + result.getOperationType());
                 }
                 executionResult = BulkItemResponse.success(current.id(), current.request().opType(), response);
                 // set a blank ShardInfo so we can safely send it to the replicas. We won't use it in the real response though.
@@ -386,15 +389,19 @@ class BulkPrimaryExecutionContext {
     }
 
     public List<ParsedDocument> getFragments(List<String> fragmentIds) {
+        return getFragments(fragmentIds, fragments);
+    }
+
+    public static List<ParsedDocument> getFragments(List<String> fragmentIds, Map<String, ParsedDocument> fragments) {
         List<ParsedDocument> result = new ArrayList<>(fragmentIds.size());
         for (String id : fragmentIds) {
             ParsedDocument fragment = fragments.get(id);
             if (fragment == null) {
                 throw new IllegalArgumentException(
                     "Fragment with id ["
-                        + id
-                        + "] not found in the current context. "
-                        + "Fragments need to be defined before other requests that reference them."
+                    + id
+                    + "] not found in the current context. "
+                    + "Fragments need to be defined before other requests that reference them."
                 );
             }
             result.add(fragment);

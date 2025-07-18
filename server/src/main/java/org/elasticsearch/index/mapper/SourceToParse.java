@@ -62,6 +62,10 @@ public class SourceToParse {
         boolean fragment,
         List<ParsedDocument> fragments
     ) {
+        if (fragment && fragments.isEmpty() == false) {
+            throw new IllegalStateException("A fragment can't contain other fragments");
+        }
+        Objects.requireNonNull(fragments, "fragments must not be null");
         this.id = id;
         // we always convert back to byte array, since we store it and Field only supports bytes..
         // so, we might as well do it here, and improve the performance of working with direct byte arrays
@@ -73,9 +77,6 @@ public class SourceToParse {
         this.meteringParserDecorator = meteringParserDecorator;
         this.fragment = fragment;
         this.fragments = fragments;
-        if (fragment && fragments.isEmpty() == false) {
-            throw new IllegalStateException("A fragment can't contain other fragments");
-        }
     }
 
     public SourceToParse(String id, BytesReference source, XContentType xContentType) {

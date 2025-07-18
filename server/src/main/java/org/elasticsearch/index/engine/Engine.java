@@ -855,6 +855,30 @@ public abstract class Engine implements Closeable {
 
     }
 
+    public static class FragmentResult extends Result {
+
+        private final ParsedDocument parsedDoc;
+
+        public FragmentResult(ParsedDocument parsedDoc) {
+            super(Operation.TYPE.FRAGMENT, 0, UNASSIGNED_PRIMARY_TERM, UNASSIGNED_SEQ_NO, parsedDoc.id());
+            this.parsedDoc = parsedDoc;
+        }
+
+        public FragmentResult(Mapping mappingUpdate, String id) {
+            super(Operation.TYPE.FRAGMENT, mappingUpdate, id);
+            parsedDoc = null;
+        }
+
+        @Override
+        public Translog.Location getTranslogLocation() {
+            return Translog.Location.EMPTY;
+        }
+
+        public ParsedDocument getParsedDoc() {
+            return parsedDoc;
+        }
+    }
+
     protected final GetResult getFromSearcher(Get get, Engine.Searcher searcher, boolean uncachedLookup) throws EngineException {
         final DocIdAndVersion docIdAndVersion;
         try {
@@ -1684,7 +1708,8 @@ public abstract class Engine implements Closeable {
         public enum TYPE {
             INDEX,
             DELETE,
-            NO_OP;
+            NO_OP,
+            FRAGMENT;
 
             private final String lowercase;
 

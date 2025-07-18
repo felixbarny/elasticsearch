@@ -18,10 +18,12 @@ import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.DocWriteRequest;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.RoutingMissingException;
 import org.elasticsearch.action.admin.indices.rollover.LazyRolloverAction;
 import org.elasticsearch.action.admin.indices.rollover.RolloverRequest;
 import org.elasticsearch.action.admin.indices.rollover.RolloverResponse;
+import org.elasticsearch.action.fragment.FragmentResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.support.IndexComponentSelector;
@@ -329,12 +331,12 @@ final class BulkOperation extends ActionRunnable<BulkResponse> {
             if (failedRolloverRequests.contains(bulkItemRequest.id())) {
                 continue;
             }
-            if (docWriteRequest instanceof IndexRequest indexRequest) {
-                indexRequest.initFragments(fragmentRequests);
-            }
 
             IndexAbstraction ia = null;
             try {
+                if (docWriteRequest instanceof IndexRequest indexRequest) {
+                    indexRequest.initFragments(fragmentRequests);
+                }
                 ia = concreteIndices.resolveIfAbsent(docWriteRequest);
                 indexOperationValidator.accept(ia, docWriteRequest);
 
@@ -374,6 +376,37 @@ final class BulkOperation extends ActionRunnable<BulkResponse> {
                     ? IndexDocFailureStoreStatus.FAILED
                     : IndexDocFailureStoreStatus.NOT_APPLICABLE_OR_UNKNOWN;
                 addFailureAndDiscardRequest(docWriteRequest, bulkItemRequest.id(), name, e, failureStoreStatus);
+            }
+        }
+
+        // Initialize results for any unused fragment requests
+        for (Map.Entry<String, BulkItemRequest> entry : fragmentRequests.entrySet()) {
+            String fragmentId = entry.getKey();
+            BulkItemRequest fragmentRequest = entry.getValue();
+
+            // Check if this fragment was used by any request
+            boolean fragmentUsed = false;
+            for (Set<String> processedFragments : fragmentsPerShard.values()) {
+                if (processedFragments.contains(fragmentId)) {
+                    fragmentUsed = true;
+                    break;
+                }
+            }
+
+            // If fragment wasn't used, initialize a successful response for it
+            if (fragmentUsed == false) {
+                DocWriteRequest<?> request = fragmentRequest.request();
+                BulkItemResponse failure = BulkItemResponse.failure(
+                    fragmentRequest.id(),
+                    DocWriteRequest.OpType.FRAGMENT,
+                    new BulkItemResponse.Failure(
+                        request.index(),
+                        request.id(),
+                        new IllegalArgumentException("fragment [" + fragmentId + "] was not used"),
+                        IndexDocFailureStoreStatus.NOT_APPLICABLE_OR_UNKNOWN
+                    )
+                );
+                responses.set(fragmentRequest.id(), failure);
             }
         }
 

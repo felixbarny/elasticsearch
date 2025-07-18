@@ -10,11 +10,13 @@
 package org.elasticsearch.action.fragment;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
+import org.elasticsearch.client.internal.Requests;
 import org.elasticsearch.cluster.routing.IndexRouting;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -24,10 +26,16 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.core.Nullable;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.plugins.internal.XContentMeteringParserDecorator;
+import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.elasticsearch.xcontent.XContentType;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
@@ -119,6 +127,37 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
      */
     public BytesReference source() {
         return source;
+    }
+
+    /**
+     * Index the Map in {@link Requests#INDEX_CONTENT_TYPE} format
+     *
+     * @param source The map to index
+     */
+    public FragmentRequest source(Map<String, ?> source) throws ElasticsearchGenerationException {
+        return source(source, Requests.INDEX_CONTENT_TYPE);
+    }
+
+    /**
+     * Index the Map as the provided content type.
+     *
+     * @param source The map to index
+     */
+    public FragmentRequest source(Map<String, ?> source, XContentType contentType) throws ElasticsearchGenerationException {
+        try {
+            XContentBuilder builder = XContentFactory.contentBuilder(contentType);
+            builder.map(source);
+            return source(builder);
+        } catch (IOException e) {
+            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
+        }
+    }
+
+    /**
+     * Sets the content source to index.
+     */
+    public FragmentRequest source(XContentBuilder sourceBuilder) {
+        return source(BytesReference.bytes(sourceBuilder), sourceBuilder.contentType());
     }
 
     /**
@@ -263,5 +302,23 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
             routingBuilder.sort();
         }
         return routingBuilder;
+    }
+
+    public SourceToParse getSourceToParse(
+        Map<String, String> dynamicTemplates,
+        boolean includeSourceOnError,
+        XContentMeteringParserDecorator meteringParserDecorator
+    ) {
+        return new SourceToParse(
+            id(),
+            source(),
+            getContentType(),
+            routing(),
+            dynamicTemplates,
+            includeSourceOnError,
+            meteringParserDecorator,
+            true,
+            List.of()
+        );
     }
 }
