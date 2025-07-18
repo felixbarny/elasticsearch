@@ -99,6 +99,8 @@ public final class DocumentParser {
                 context.id(source.id());
             }
             for (ParsedDocument fragment : source.getFragments()) {
+                // TODO what's the precedence of the fragments and the actual document?
+                //  should we combine them, creating multi-valued fields or overwrite?
                 context.rootDoc().addAll(fragment.rootDoc().getFields());
                 fragment.nonRootDocs().forEach(context::addDoc);
                 context.getRoutingFields().merge(fragment.getRoutingFields());
