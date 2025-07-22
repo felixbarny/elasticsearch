@@ -64,6 +64,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
@@ -174,9 +175,10 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
     @Test
     public void testIngestMetricDataViaMetricExporter() throws Exception {
         MetricData jvmMemoryMetricData = getDoubleGauge(
+            TEST_RESOURCE,
+            Attributes.empty(),
             "jvm.memory.total",
             Runtime.getRuntime().totalMemory(),
-            Attributes.empty(),
             "By",
             Clock.getDefault().now()
         );
@@ -201,8 +203,9 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
     @Test
     public void testGroupingSameGroup() throws Exception {
         long now = Clock.getDefault().now();
-        MetricData metric1 = getDoubleGauge("metric1", 42, Attributes.empty(), "By", now);
-        MetricData metric2 = getDoubleGauge("metric2", 42, Attributes.empty(), "By", now);
+        MetricData metric1 = getDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "By", now);
+        // uses an equal but not the same resource to test grouping across resourceMetrics
+        MetricData metric2 = getDoubleGauge(TEST_RESOURCE.toBuilder().build(), Attributes.empty(), "metric2", 42, "By", now);
 
         export(List.of(metric1, metric2));
 
@@ -218,10 +221,10 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         long now = Clock.getDefault().now();
         export(
             List.of(
-                getDoubleGauge("metric1", 42, Attributes.empty(), "By", now),
-                getDoubleGauge("metric1", 42, Attributes.empty(), "By", now + TimeUnit.MILLISECONDS.toNanos(1)),
-                getDoubleGauge("metric1", 42, Attributes.empty(), "", now),
-                getDoubleGauge("metric1", 42, Attributes.of(AttributeKey.stringKey("foo"), "bar"), "By", now)
+                getDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "By", now),
+                getDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "By", now + TimeUnit.MILLISECONDS.toNanos(1)),
+                getDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "", now),
+                getDoubleGauge(TEST_RESOURCE, Attributes.of(AttributeKey.stringKey("foo"), "bar"), "metric1", 42, "By", now)
             )
         );
 
@@ -231,13 +234,22 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
     private void export(List<MetricData> metrics) {
         var result = exporter.export(metrics).join(10, TimeUnit.SECONDS);
+        Throwable failure = result.getFailureThrowable();
+        assertThat(failure, nullValue());
         assertThat(result.isSuccess(), is(true));
         admin().indices().prepareRefresh().execute().actionGet();
     }
 
-    private static MetricData getDoubleGauge(String name, double value, Attributes attributes, String unit, long timeEpochNanos) {
+    private static MetricData getDoubleGauge(
+        Resource resource,
+        Attributes attributes,
+        String name,
+        double value,
+        String unit,
+        long timeEpochNanos
+    ) {
         return ImmutableMetricData.createDoubleGauge(
-            TEST_RESOURCE,
+            resource,
             TEST_SCOPE,
             name,
             "Your description could be here.",
