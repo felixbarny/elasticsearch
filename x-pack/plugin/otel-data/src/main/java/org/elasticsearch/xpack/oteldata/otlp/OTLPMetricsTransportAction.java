@@ -210,8 +210,17 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                         scope,
                         scopeSchemaUrl,
                         scopeHash.toString(),
+                        dataPointGroupHash.toString(),
+                        dataPoint.getAttributes(),
+                        dataPoint.getUnit(),
                         new ArrayList<>(),
-                        dataPointGroupHash.toString()
+                        IndexRouting.route(
+                            "metrics",
+                            dataPoint.getAttributes(),
+                            scope.getName(),
+                            scope.getAttributesList(),
+                            resource.getAttributesList()
+                        )
                     )
                 );
             dataPointGroup.dataPoints().add(dataPoint);
@@ -249,34 +258,47 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         XContentBuilder builder,
         DataPointGroup dataPointGroup
     ) throws IOException {
+        List<String> fragments = new ArrayList<>();
         List<DataPoint> dataPoints = dataPointGroup.dataPoints();
         builder.startObject();
         builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(dataPointGroup.getTimestampUnixNano()));
         if (dataPointGroup.getStartTimestampUnixNano() != 0) {
             builder.field("start_timestamp", TimeUnit.NANOSECONDS.toMillis(dataPointGroup.getStartTimestampUnixNano()));
         }
-        String dataPointDimensionsHash = HASHER_128.hashTo128Bits(
-            dataPoints.getFirst(),
-            DataPointDimensionsHashFunnel.get()
-        ).toString();
-        addFragmentIfMissing(
-            fragmentIds,
-            requestBuilder,
-            b -> buildResource(dataPointGroup.resource(), dataPointGroup.resourceSchemaUrl(), b),
-            dataPointGroup.resourceHash()
+        fragments.add(
+            addFragmentIfMissing(
+                fragmentIds,
+                requestBuilder,
+                b -> buildResource(dataPointGroup.resource(), dataPointGroup.resourceSchemaUrl(), b),
+                dataPointGroup.resourceHash()
+            )
         );
-        addFragmentIfMissing(fragmentIds, requestBuilder, this::buildDataStream, "datastream");
-        addFragmentIfMissing(
-            fragmentIds,
-            requestBuilder,
-            b -> buildScope(b, dataPointGroup.scopeSchemaUrl(), dataPointGroup.scope()),
-            dataPointGroup.scopeHash()
+        if (dataPointGroup.indexRouting().isDataStream()) {
+            fragments.add(
+                addFragmentIfMissing(
+                    fragmentIds,
+                    requestBuilder,
+                    b -> buildDataStream(b, dataPointGroup.indexRouting()),
+                    dataPointGroup.indexRouting().index()
+                )
+            );
+        }
+        fragments.add(
+            addFragmentIfMissing(
+                fragmentIds,
+                requestBuilder,
+                b -> buildScope(b, dataPointGroup.scopeSchemaUrl(), dataPointGroup.scope()),
+                dataPointGroup.scopeHash()
+            )
         );
-        addFragmentIfMissing(
-            fragmentIds,
-            requestBuilder,
-            b -> buildDataPointAttributes(b, dataPoints.getFirst()),
-            dataPointDimensionsHash
+        String dataPointDimensionsHash = HASHER_128.hashTo128Bits(dataPoints.getFirst(), DataPointDimensionsHashFunnel.get()).toString();
+        fragments.add(
+            addFragmentIfMissing(
+                fragmentIds,
+                requestBuilder,
+                b -> buildDataPointAttributes(b, dataPointGroup.dataPointAttributes(), dataPointGroup.unit()),
+                dataPointDimensionsHash
+            )
         );
         HashStream32 metricNamesHash = HASHER_32.hashStream();
         dataPoints.stream().map(DataPoint::getMetricName).forEach(metricNamesHash::putString);
@@ -291,7 +313,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         }
         builder.endObject();
         builder.endObject();
-        return List.of(dataPointGroup.resourceHash(), "datastream", dataPointGroup.scopeHash(), dataPointDimensionsHash);
+        return fragments;
     }
 
     private void buildResource(Resource resource, String schemaUrl, XContentBuilder builder) throws IOException {
@@ -326,27 +348,35 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         }
     }
 
-    private void buildDataPointAttributes(XContentBuilder builder, DataPoint dp) throws IOException {
+    private void buildDataPointAttributes(XContentBuilder builder, List<KeyValue> attributes, String unit) throws IOException {
         builder.startObject("attributes");
-        buildAttributes(builder, dp.getAttributes());
+        buildAttributes(builder, attributes);
         builder.endObject();
-        builder.field("unit", dp.getUnit());
+        builder.field("unit", unit);
     }
 
-    private void buildDataStream(XContentBuilder builder) throws IOException {
-        // TODO proper routing
+    private void buildDataStream(XContentBuilder builder, IndexRouting indexRouting) throws IOException {
+        if (indexRouting.isDataStream() == false) {
+            return;
+        }
         builder.startObject("data_stream");
-        builder.field("type", "metrics");
-        builder.field("dataset", "generic.otel-default");
-        builder.field("namespace", "default");
+        builder.field("type", indexRouting.type());
+        builder.field("dataset", indexRouting.dataset());
+        builder.field("namespace", indexRouting.namespace());
         builder.endObject();
     }
 
     private void buildAttributes(XContentBuilder builder, List<KeyValue> resourceAttributes) throws IOException {
         for (KeyValue attribute : resourceAttributes) {
-
-            builder.field(attribute.getKey());
-            attributeValue(builder, attribute.getValue());
+            switch (attribute.getKey()) {
+                case IndexRouting.ELASTICSEARCH_INDEX, IndexRouting.DATA_STREAM_DATASET, IndexRouting.DATA_STREAM_NAMESPACE -> {
+                    // ignore
+                }
+                default -> {
+                    builder.field(attribute.getKey());
+                    attributeValue(builder, attribute.getValue());
+                }
+            }
         }
     }
 
@@ -367,14 +397,14 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         }
     }
 
-    private void addFragmentIfMissing(
+    private String addFragmentIfMissing(
         Set<String> fragmentIds,
         BulkRequestBuilder bulkRequestBuilder,
         CheckedConsumer<XContentBuilder, IOException> sourceBuilder,
         String fragmentId
     ) throws IOException {
         if (fragmentIds.add(fragmentId) == false) {
-            return;
+            return fragmentId;
         }
         try (XContentBuilder fragmentBuilder = CborXContent.contentBuilder()) {
             fragmentBuilder.startObject();
@@ -383,6 +413,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
             bulkRequestBuilder.add(client.prepareFragment("metrics-generic.otel-default").setId(fragmentId).setSource(fragmentBuilder));
         }
+        return fragmentId;
     }
 
     public record DataPoint(NumberDataPoint dataPoint, Metric metric) {
@@ -415,8 +446,11 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         InstrumentationScope scope,
         String scopeSchemaUrl,
         String scopeHash,
+        String dataPointGroupHash,
+        List<KeyValue> dataPointAttributes,
+        String unit,
         List<DataPoint> dataPoints,
-        String dataPointGroupHash
+        IndexRouting indexRouting
     ) {
 
         public long getTimestampUnixNano() {

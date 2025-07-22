@@ -24,7 +24,6 @@ import io.opentelemetry.sdk.resources.Resource;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetComposableIndexTemplateAction;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.core.TimeValue;
@@ -57,6 +56,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertResponse;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.emptyArray;
@@ -209,11 +209,12 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
         export(List.of(metric1, metric2));
 
-        SearchResponse resp = client().prepareSearch("metrics-generic.otel-default").get();
-        assertThat(resp.getHits().getHits(), arrayWithSize(1));
-        Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
-        assertThat(sourceMap.get("metrics"), equalTo(Map.of("metric1", 42.0, "metric2", 42.0)));
-        assertThat(sourceMap.get("resource"), equalTo(Map.of("attributes", Map.of("service.name", "elasticsearch"))));
+        assertResponse(client().prepareSearch("metrics-generic.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
+            assertThat(sourceMap.get("metrics"), equalTo(Map.of("metric1", 42.0, "metric2", 42.0)));
+            assertThat(sourceMap.get("resource"), equalTo(Map.of("attributes", Map.of("service.name", "elasticsearch"))));
+        });
     }
 
     @Test
@@ -228,8 +229,10 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             )
         );
 
-        SearchResponse resp = client().prepareSearch("metrics-generic.otel-default").get();
-        assertThat(resp.getHits().getHits(), arrayWithSize(4));
+        assertResponse(
+            client().prepareSearch("metrics-generic.otel-default"),
+            resp -> assertThat(resp.getHits().getHits(), arrayWithSize(4))
+        );
     }
 
     private void export(List<MetricData> metrics) {
