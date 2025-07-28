@@ -9,12 +9,12 @@
 
 package org.elasticsearch.index.mapper;
 
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.core.Nullable;
 import org.elasticsearch.plugins.internal.XContentMeteringParserDecorator;
 import org.elasticsearch.xcontent.XContentType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,6 +39,53 @@ public class SourceToParse {
 
     private final List<ParsedDocument> fragments;
 
+    private BytesReference combinedSource;
+
+    public static SourceToParse ofFragment(
+        @Nullable String id,
+        BytesReference source,
+        XContentType xContentType,
+        @Nullable String routing,
+        Map<String, String> dynamicTemplates,
+        boolean includeSourceOnError,
+        XContentMeteringParserDecorator meteringParserDecorator
+    ) {
+        return new SourceToParse(
+            id,
+            source,
+            xContentType,
+            routing,
+            dynamicTemplates,
+            includeSourceOnError,
+            meteringParserDecorator,
+            true,
+            List.of()
+        );
+    }
+
+    public static SourceToParse withFragments(
+        @Nullable String id,
+        BytesReference source,
+        XContentType xContentType,
+        @Nullable String routing,
+        Map<String, String> dynamicTemplates,
+        boolean includeSourceOnError,
+        XContentMeteringParserDecorator meteringParserDecorator,
+        List<ParsedDocument> fragments
+    ) {
+        return new SourceToParse(
+            id,
+            source,
+            xContentType,
+            routing,
+            dynamicTemplates,
+            includeSourceOnError,
+            meteringParserDecorator,
+            false,
+            fragments
+        );
+    }
+
     public SourceToParse(
         @Nullable String id,
         BytesReference source,
@@ -51,7 +98,15 @@ public class SourceToParse {
         this(id, source, xContentType, routing, dynamicTemplates, includeSourceOnError, meteringParserDecorator, false, List.of());
     }
 
-    public SourceToParse(
+    public SourceToParse(String id, BytesReference source, XContentType xContentType) {
+        this(id, source, xContentType, null, Map.of(), true, XContentMeteringParserDecorator.NOOP);
+    }
+
+    public SourceToParse(String id, BytesReference source, XContentType xContentType, String routing) {
+        this(id, source, xContentType, routing, Map.of(), true, XContentMeteringParserDecorator.NOOP);
+    }
+
+    private SourceToParse(
         @Nullable String id,
         BytesReference source,
         XContentType xContentType,
@@ -67,24 +122,14 @@ public class SourceToParse {
         }
         Objects.requireNonNull(fragments, "fragments must not be null");
         this.id = id;
-        // we always convert back to byte array, since we store it and Field only supports bytes..
-        // so, we might as well do it here, and improve the performance of working with direct byte arrays
-        this.source = source.hasArray() ? source : new BytesArray(source.toBytesRef());
-        this.xContentType = Objects.requireNonNull(xContentType);
+        this.source = source;
+        this.xContentType = xContentType;
         this.routing = routing;
         this.dynamicTemplates = Objects.requireNonNull(dynamicTemplates);
         this.includeSourceOnError = includeSourceOnError;
         this.meteringParserDecorator = meteringParserDecorator;
         this.fragment = fragment;
         this.fragments = fragments;
-    }
-
-    public SourceToParse(String id, BytesReference source, XContentType xContentType) {
-        this(id, source, xContentType, null, Map.of(), true, XContentMeteringParserDecorator.NOOP);
-    }
-
-    public SourceToParse(String id, BytesReference source, XContentType xContentType, String routing) {
-        this(id, source, xContentType, routing, Map.of(), true, XContentMeteringParserDecorator.NOOP);
     }
 
     public SourceToParse(
@@ -99,6 +144,14 @@ public class SourceToParse {
 
     public BytesReference source() {
         return this.source;
+    }
+
+    public int estimateSourceSize() {
+        int length = this.source.length();
+        for (ParsedDocument fragment : fragments) {
+            length += fragment.mainSource().length();
+        }
+        return length;
     }
 
     /**
@@ -146,4 +199,30 @@ public class SourceToParse {
     public List<ParsedDocument> getFragments() {
         return fragments;
     }
+
+    /**
+     * Combines the main source with the sources from all fragments.
+     * If there are no fragments, returns the original source.
+     * When fields appear in both the main source and fragments, the main source values take precedence.
+     *
+     * @return A BytesReference containing the combined source
+     */
+    public BytesReference combinedSource() {
+        if (fragments.isEmpty()) {
+            return source;
+        } else if (combinedSource != null) {
+            return combinedSource;
+        }
+        List<BytesReference> sources = new ArrayList<>(fragments.size() + 1);
+        List<XContentType> xContentTypes = new ArrayList<>(fragments.size() + 1);
+        sources.add(source);
+        xContentTypes.add(xContentType);
+        for (ParsedDocument fragment : fragments) {
+            sources.addAll(fragment.source().getSources());
+            xContentTypes.addAll(fragment.source().getXContentTypes());
+        }
+        combinedSource = new CompoundSource(xContentType, xContentTypes, sources).combinedSource();
+        return combinedSource;
+    }
+
 }

@@ -40,7 +40,7 @@ public class BulkFragmentIT extends ESIntegTestCase {
             Settings.builder()
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 1)
-                .put("index.mapping.source.mode", "synthetic") // TODO make this work with stored source
+                .put("index.mapping.source.mode", randomFrom("synthetic", "stored"))
                 .build()
         );
 
@@ -51,6 +51,9 @@ public class BulkFragmentIT extends ESIntegTestCase {
 
         BulkResponse bulkResponse = internalCluster().coordOnlyNodeClient().bulk(bulkRequest).actionGet();
         assertThat(bulkResponse.hasFailures(), is(false));
+
+        // Wait for the index to be fully available with all replicas
+        ensureGreen("index");
 
         Set<String> nodes = internalCluster().nodesInclude("index");
         assertThat(nodes.size(), greaterThanOrEqualTo(2)); // minimum of 1 replica
@@ -138,7 +141,7 @@ public class BulkFragmentIT extends ESIntegTestCase {
         createIndex(
             "index",
             Settings.builder()
-                .put("index.mapping.source.mode", "synthetic") // TODO make this work with stored source
+                .put("index.mapping.source.mode", randomFrom("synthetic", "stored"))
                 .build()
         );
 

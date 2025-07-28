@@ -13,6 +13,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.Explicit;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.core.Nullable;
@@ -83,6 +84,11 @@ public final class DocumentParser {
         final RootDocumentParserContext context;
         final XContentType xContentType = source.getXContentType();
 
+        List<BytesReference> sources = new ArrayList<>(1 + source.getFragments().size());
+        List<XContentType> xContentTypes = new ArrayList<>(1 + source.getFragments().size());
+        sources.add(source.source());
+        xContentTypes.add(xContentType);
+
         long totalSize = 0;
         XContentMeteringParserDecorator meteringParserDecorator = source.getMeteringParserDecorator();
         try (
@@ -104,6 +110,8 @@ public final class DocumentParser {
                 context.rootDoc().addAll(fragment.rootDoc().getFields());
                 fragment.nonRootDocs().forEach(context::addDoc);
                 context.getRoutingFields().merge(fragment.getRoutingFields());
+                sources.add(fragment.mainSource());
+                xContentTypes.add(fragment.getXContentType());
 
                 long fragmentSize = fragment.getNormalizedSize();
                 if (fragmentSize > 0) {
@@ -131,8 +139,7 @@ public final class DocumentParser {
             context.id(),
             context.routing(),
             context.reorderParentAndGetDocs(),
-            context.sourceToParse().source(),
-            context.sourceToParse().getXContentType(),
+            new CompoundSource(xContentType, xContentTypes, sources),
             dynamicUpdate,
             totalSize,
             context.getRoutingFields()
@@ -191,6 +198,7 @@ public final class DocumentParser {
         if (indexTimeScriptMappers.isEmpty()) {
             return;
         }
+        // TODO: test fragments with index time scripts
         SearchLookup searchLookup = new SearchLookup(
             context.mappingLookup().indexTimeLookup()::get,
             (ft, lookup, fto) -> ft.fielddataBuilder(
@@ -202,7 +210,7 @@ public final class DocumentParser {
                     fto
                 )
             ).build(new IndexFieldDataCache.None(), new NoneCircuitBreakerService()),
-            (ctx, doc) -> Source.fromBytes(context.sourceToParse().source())
+            (ctx, doc) -> Source.fromBytes(context.sourceToParse().combinedSource())
         );
         // field scripts can be called both by the loop at the end of this method and via
         // the document reader, so to ensure that we don't run them multiple times we

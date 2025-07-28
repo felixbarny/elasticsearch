@@ -119,7 +119,7 @@ final class WatcherIndexingListener implements IndexingOperationListener, Cluste
                 Watch watch = parser.parseWithSecrets(
                     operation.id(),
                     true,
-                    operation.source(),
+                    operation.combinedSource(),
                     now,
                     XContentType.JSON,
                     operation.getIfSeqNo(),

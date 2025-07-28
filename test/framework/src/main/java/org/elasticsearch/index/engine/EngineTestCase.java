@@ -1112,7 +1112,7 @@ public abstract class EngineTestCase extends ESTestCase {
         );
         for (int i = 0; i < numOps; i++) {
             final String id = Integer.toString(randomInt(maxIdValue));
-            final Engine.Operation.TYPE opType = randomFrom(Engine.Operation.TYPE.values());
+            final Engine.Operation.TYPE opType = randomEngineOperation();
             final boolean isNestedDoc = includeNestedDocs && opType == Engine.Operation.TYPE.INDEX && randomBoolean();
             final int nestedValues = between(0, 3);
             final long startTime = threadPool.relativeTimeInNanos();
@@ -1164,6 +1164,11 @@ public abstract class EngineTestCase extends ESTestCase {
         }
         Randomness.shuffle(operations);
         return operations;
+    }
+
+    protected static Engine.Operation.TYPE randomEngineOperation() {
+        // fragment operations should not be executed by the engine
+        return randomFrom(Engine.Operation.TYPE.INDEX, Engine.Operation.TYPE.DELETE, Engine.Operation.TYPE.NO_OP);
     }
 
     public static void assertOpsOnReplica(

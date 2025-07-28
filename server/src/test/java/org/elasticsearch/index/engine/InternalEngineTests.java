@@ -1950,7 +1950,7 @@ public class InternalEngineTests extends EngineTestCase {
         BiFunction<Engine.Operation, Long, Engine.Operation> seqNoUpdater = (operation, newSeqNo) -> {
             if (operation instanceof Engine.Index index) {
                 LuceneDocument doc = testDocumentWithTextField(index.docs().get(0).get("value"));
-                ParsedDocument parsedDocument = testParsedDocument(index.id(), index.routing(), doc, index.source(), null);
+                ParsedDocument parsedDocument = testParsedDocument(index.id(), index.routing(), doc, index.combinedSource(), null);
                 return new Engine.Index(
                     index.uid(),
                     parsedDocument,
@@ -5119,7 +5119,7 @@ public class InternalEngineTests extends EngineTestCase {
         for (int i = 0; i < numOps; i++) {
             String id = Integer.toString(randomIntBetween(1, 10));
             ParsedDocument doc = createParsedDoc(id, null);
-            Engine.Operation.TYPE type = randomFrom(Engine.Operation.TYPE.values());
+            Engine.Operation.TYPE type = randomEngineOperation();
             switch (type) {
                 case INDEX -> {
                     Engine.IndexResult index = engine.index(replicaIndexForDoc(doc, between(1, 100), i, randomBoolean()));

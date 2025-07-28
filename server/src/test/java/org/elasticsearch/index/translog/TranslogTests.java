@@ -479,7 +479,7 @@ public class TranslogTests extends ESTestCase {
         Translog.Index operation = TranslogOperationsUtils.indexOp("1", 0, primaryTerm.get());
         translog.add(operation);
 
-        final int sourceLength = operation.source().length();
+        final int sourceLength = operation.source().length() + 1; // +1 for the additional sources vint
         {
             waitForPositiveAge();
             final TranslogStats stats = stats();

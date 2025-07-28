@@ -436,14 +436,16 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     public void preParse(DocumentParserContext context) throws IOException {
         XContentType contentType = context.sourceToParse().getXContentType();
 
-        // TODO make source fragment aware (merge source fragments from SourceToParse#getFragments)
-        final var originalSource = context.sourceToParse().source();
-        final var storedSource = stored() ? removeSyntheticVectorFields(context.mappingLookup(), originalSource, contentType) : null;
-        final var adaptedStoredSource = applyFilters(context.mappingLookup(), storedSource, contentType, false);
-
-        if (adaptedStoredSource != null) {
-            final BytesRef ref = adaptedStoredSource.toBytesRef();
-            context.doc().add(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));
+        BytesReference storedSource = null;
+        BytesReference adaptedStoredSource = null;
+        if (stored()) {
+            BytesReference originalSource = context.sourceToParse().combinedSource();
+            storedSource = removeSyntheticVectorFields(context.mappingLookup(), originalSource, contentType);
+            adaptedStoredSource = applyFilters(context.mappingLookup(), storedSource, contentType, false);
+            if (adaptedStoredSource != null) {
+                final BytesRef ref = adaptedStoredSource.toBytesRef();
+                context.doc().add(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));
+            }
         }
 
         if (context.indexSettings().isRecoverySourceEnabled() == false) {
@@ -457,11 +459,12 @@ public class SourceFieldMapper extends MetadataFieldMapper {
             // Instead, store only the size of the uncompressed original source.
             // This size is used by LuceneSyntheticSourceChangesSnapshot to manage memory usage
             // when loading batches of synthetic sources during recovery.
-            context.doc().add(new NumericDocValuesField(RECOVERY_SOURCE_SIZE_NAME, originalSource.length()));
+            context.doc().add(new NumericDocValuesField(RECOVERY_SOURCE_SIZE_NAME, context.sourceToParse().estimateSourceSize()));
         } else if (stored() == false || adaptedStoredSource != storedSource) {
             // If the source is missing (due to synthetic source or disabled mode)
             // or has been altered (via source filtering), store a reduced recovery source.
             // This includes the original source with synthetic vector fields removed for operation-based recovery.
+            BytesReference originalSource = context.sourceToParse().combinedSource();
             var recoverySource = removeSyntheticVectorFields(context.mappingLookup(), originalSource, contentType).toBytesRef();
             context.doc().add(new StoredField(RECOVERY_SOURCE_NAME, recoverySource.bytes, recoverySource.offset, recoverySource.length));
             context.doc().add(new NumericDocValuesField(RECOVERY_SOURCE_NAME, 1));

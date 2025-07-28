@@ -64,6 +64,7 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.FieldInfosWithUsages;
 import org.elasticsearch.index.codec.TrackingPostingsInMemoryBytesCodec;
 import org.elasticsearch.index.codec.vectors.reflect.OffHeapByteSizeUtils;
+import org.elasticsearch.index.mapper.CompoundSource;
 import org.elasticsearch.index.mapper.DocumentParser;
 import org.elasticsearch.index.mapper.LuceneDocument;
 import org.elasticsearch.index.mapper.Mapper;
@@ -1885,13 +1886,17 @@ public abstract class Engine implements Closeable {
             return this.doc.docs();
         }
 
-        public BytesReference source() {
+        public BytesReference combinedSource() {
+            return source().combinedSource();
+        }
+
+        public CompoundSource source() {
             return this.doc.source();
         }
 
         @Override
         public int estimatedSizeInBytes() {
-            return (id().length() * 2) + source().length() + 12;
+            return (id().length() * 2) + source().estimateSize() + 12;
         }
 
         /**

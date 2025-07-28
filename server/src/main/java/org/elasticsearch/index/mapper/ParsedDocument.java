@@ -39,8 +39,8 @@ public class ParsedDocument {
 
     private final RoutingFields routingFields;
 
-    private BytesReference source;
-    private XContentType xContentType;
+    private final CompoundSource source;
+
     private Mapping dynamicMappingsUpdate;
 
     /**
@@ -108,14 +108,37 @@ public class ParsedDocument {
         long normalizedSize,
         RoutingFields routingFields
     ) {
+        this(
+            version,
+            seqID,
+            id,
+            routing,
+            documents,
+            new CompoundSource(xContentType, source),
+            dynamicMappingsUpdate,
+            normalizedSize,
+            routingFields
+        );
+    }
+
+    public ParsedDocument(
+        Field version,
+        SeqNoFieldMapper.SequenceIDFields seqID,
+        String id,
+        String routing,
+        List<LuceneDocument> documents,
+        CompoundSource compoundSource,
+        Mapping dynamicMappingsUpdate,
+        long normalizedSize,
+        RoutingFields routingFields
+    ) {
         this.version = version;
         this.seqID = seqID;
         this.id = id;
         this.routing = routing;
         this.documents = documents;
-        this.source = source;
+        this.source = compoundSource;
         this.dynamicMappingsUpdate = dynamicMappingsUpdate;
-        this.xContentType = xContentType;
         this.normalizedSize = normalizedSize;
         this.routingFields = routingFields;
     }
@@ -155,17 +178,16 @@ public class ParsedDocument {
         return documents.subList(0, documents.size() - 1);
     }
 
-    public BytesReference source() {
+    public CompoundSource source() {
         return this.source;
     }
 
-    public XContentType getXContentType() {
-        return this.xContentType;
+    public BytesReference mainSource() {
+        return this.source.getMainSource();
     }
 
-    public void setSource(BytesReference source, XContentType xContentType) {
-        this.source = source;
-        this.xContentType = xContentType;
+    public XContentType getXContentType() {
+        return this.source.getXContentType();
     }
 
     /**

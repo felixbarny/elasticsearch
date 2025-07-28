@@ -34,7 +34,6 @@ import org.elasticsearch.xcontent.XContentFactory;
 import org.elasticsearch.xcontent.XContentType;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -309,16 +308,14 @@ public class FragmentRequest extends ReplicatedWriteRequest<FragmentRequest> imp
         boolean includeSourceOnError,
         XContentMeteringParserDecorator meteringParserDecorator
     ) {
-        return new SourceToParse(
+        return SourceToParse.ofFragment(
             id(),
             source(),
             getContentType(),
             routing(),
             dynamicTemplates,
             includeSourceOnError,
-            meteringParserDecorator,
-            true,
-            List.of()
+            meteringParserDecorator
         );
     }
 }

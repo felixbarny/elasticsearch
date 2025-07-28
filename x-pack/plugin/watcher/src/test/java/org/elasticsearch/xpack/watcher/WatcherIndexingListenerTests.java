@@ -122,7 +122,7 @@ public class WatcherIndexingListenerTests extends ESTestCase {
 
     public void testPostIndex() throws Exception {
         when(operation.id()).thenReturn(randomAlphaOfLength(10));
-        when(operation.source()).thenReturn(BytesArray.EMPTY);
+        when(operation.combinedSource()).thenReturn(BytesArray.EMPTY);
         when(shardId.getIndexName()).thenReturn(Watch.INDEX);
         List<Engine.Result.Type> types = new ArrayList<>(List.of(Engine.Result.Type.values()));
         types.remove(Engine.Result.Type.FAILURE);
@@ -152,7 +152,7 @@ public class WatcherIndexingListenerTests extends ESTestCase {
         map.put(shardId, new ShardAllocationConfiguration(0, 1, Collections.singletonList("foo")));
         listener.setConfiguration(new Configuration(Watch.INDEX, map));
         when(operation.id()).thenReturn(randomAlphaOfLength(10));
-        when(operation.source()).thenReturn(BytesArray.EMPTY);
+        when(operation.combinedSource()).thenReturn(BytesArray.EMPTY);
         when(shardId.getIndexName()).thenReturn(Watch.INDEX);
         List<Engine.Result.Type> types = new ArrayList<>(List.of(Engine.Result.Type.values()));
         types.remove(Engine.Result.Type.FAILURE);
@@ -222,7 +222,7 @@ public class WatcherIndexingListenerTests extends ESTestCase {
     public void testPostIndexCheckParsingException() throws Exception {
         String id = randomAlphaOfLength(10);
         when(operation.id()).thenReturn(id);
-        when(operation.source()).thenReturn(BytesArray.EMPTY);
+        when(operation.combinedSource()).thenReturn(BytesArray.EMPTY);
         when(shardId.getIndexName()).thenReturn(Watch.INDEX);
         when(parser.parseWithSecrets(any(), eq(true), any(), any(), any(), anyLong(), anyLong())).thenThrow(new IOException("self thrown"));
         when(result.getResultType()).thenReturn(Engine.Result.Type.SUCCESS);

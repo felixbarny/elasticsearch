@@ -437,7 +437,7 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
             final IndexRequest request = context.getRequestToExecute();
 
             XContentMeteringParserDecorator meteringParserDecorator = documentParsingProvider.newMeteringParserDecorator(request);
-            final SourceToParse sourceToParse = new SourceToParse(
+            final SourceToParse sourceToParse = SourceToParse.withFragments(
                 request.id(),
                 request.source(),
                 request.getContentType(),
@@ -445,7 +445,6 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                 request.getDynamicTemplates(),
                 request.getIncludeSourceOnError(),
                 meteringParserDecorator,
-                false,
                 context.getFragments(request.fragmentIds())
             );
             result = primary.applyIndexOperationOnPrimary(
@@ -801,7 +800,7 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
             }
             case CREATE, INDEX -> {
                 final IndexRequest indexRequest = (IndexRequest) docWriteRequest;
-                final SourceToParse sourceToParse = new SourceToParse(
+                final SourceToParse sourceToParse = SourceToParse.withFragments(
                     indexRequest.id(),
                     indexRequest.source(),
                     indexRequest.getContentType(),
@@ -809,7 +808,6 @@ public class TransportShardBulkAction extends TransportWriteAction<BulkShardRequ
                     Map.of(),
                     true,
                     XContentMeteringParserDecorator.NOOP,
-                    false,
                     context.getFragments(indexRequest.fragmentIds())
                 );
                 result = replica.applyIndexOperationOnReplica(
