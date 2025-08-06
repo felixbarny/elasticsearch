@@ -1,0 +1,149 @@
+/*
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. Licensed under the Elastic License
+ * 2.0; you may not use this file except in compliance with the Elastic License
+ * 2.0.
+ */
+
+package org.elasticsearch.xpack.oteldata.otlp;
+
+import io.opentelemetry.proto.common.v1.AnyValue;
+import io.opentelemetry.proto.common.v1.InstrumentationScope;
+import io.opentelemetry.proto.common.v1.KeyValue;
+import io.opentelemetry.proto.resource.v1.Resource;
+
+import com.google.protobuf.ByteString;
+
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.xcontent.XContentBuilder;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+public class MetricDocumentBuilder {
+
+    public HashMap<String, String> buildMetricDocument(XContentBuilder builder, DataPointGroupingContext.DataPointGroup dataPointGroup)
+        throws IOException {
+        HashMap<String, String> dynamicTemplates = new HashMap<>();
+        List<DataPointGroupingContext.DataPoint> dataPoints = dataPointGroup.dataPoints();
+        builder.startObject();
+        builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(dataPointGroup.getTimestampUnixNano()));
+        if (dataPointGroup.getStartTimestampUnixNano() != 0) {
+            builder.field("start_timestamp", TimeUnit.NANOSECONDS.toMillis(dataPointGroup.getStartTimestampUnixNano()));
+        }
+        buildResource(dataPointGroup.resource(), dataPointGroup.resourceSchemaUrl(), builder);
+        if (dataPointGroup.targetIndex().isDataStream()) {
+            buildDataStream(builder, dataPointGroup.targetIndex());
+        }
+        buildScope(builder, dataPointGroup.scopeSchemaUrl(), dataPointGroup.scope());
+        buildDataPointAttributes(builder, dataPointGroup.dataPointAttributes(), dataPointGroup.unit());
+        builder.field("_metric_names_hash", dataPointGroup.getMetricNamesHash());
+        builder.startObject("metrics");
+        for (DataPointGroupingContext.DataPoint dataPoint : dataPoints) {
+            builder.field(dataPoint.getMetricName());
+            dataPoint.buildMetricValue(builder);
+            String dynamicTemplate = dataPoint.getDynamicTemplate();
+            if (dynamicTemplate != null) {
+                dynamicTemplates.put("metrics." + dataPoint.getMetricName(), dynamicTemplate);
+            }
+        }
+        builder.endObject();
+        builder.endObject();
+        return dynamicTemplates;
+    }
+
+    private void buildResource(Resource resource, String schemaUrl, XContentBuilder builder) throws IOException {
+        builder.startObject("resource");
+        addFieldIfNotEmpty(builder, "schema_url", schemaUrl);
+        if (resource.getDroppedAttributesCount() > 0) {
+            builder.field("dropped_attributes_count", resource.getDroppedAttributesCount());
+        }
+        builder.startObject("attributes");
+        buildAttributes(builder, resource.getAttributesList());
+        builder.endObject();
+        builder.endObject();
+    }
+
+    private void buildScope(XContentBuilder builder, String schemaUrl, InstrumentationScope scope) throws IOException {
+        builder.startObject("scope");
+        addFieldIfNotEmpty(builder, "schema_url", schemaUrl);
+        if (scope.getDroppedAttributesCount() > 0) {
+            builder.field("dropped_attributes_count", scope.getDroppedAttributesCount());
+        }
+        addFieldIfNotEmpty(builder, "name", scope.getNameBytes());
+        addFieldIfNotEmpty(builder, "version", scope.getVersionBytes());
+        builder.startObject("attributes");
+        buildAttributes(builder, scope.getAttributesList());
+        builder.endObject();
+        builder.endObject();
+    }
+
+    private static void addFieldIfNotEmpty(XContentBuilder builder, String name, String value) throws IOException {
+        if (Strings.isNullOrEmpty(value) == false) {
+            builder.field(name, value);
+        }
+    }
+
+    private static void addFieldIfNotEmpty(XContentBuilder builder, String name, ByteString value) throws IOException {
+        if (value != null && value.isEmpty() == false) {
+            builder.field(name);
+            builder.utf8Value(value.toByteArray(), 0, value.size());
+        }
+    }
+
+    private void buildDataPointAttributes(XContentBuilder builder, List<KeyValue> attributes, String unit) throws IOException {
+        builder.startObject("attributes");
+        buildAttributes(builder, attributes);
+        builder.endObject();
+        builder.field("unit", unit);
+    }
+
+    private void buildDataStream(XContentBuilder builder, TargetIndex targetIndex) throws IOException {
+        if (targetIndex.isDataStream() == false) {
+            return;
+        }
+        builder.startObject("data_stream");
+        builder.field("type", targetIndex.type());
+        builder.field("dataset", targetIndex.dataset());
+        builder.field("namespace", targetIndex.namespace());
+        builder.endObject();
+    }
+
+    private void buildAttributes(XContentBuilder builder, List<KeyValue> attributes) throws IOException {
+        for (int i = 0, size = attributes.size(); i < size; i++) {
+            KeyValue attribute = attributes.get(i);
+            switch (attribute.getKey()) {
+                case TargetIndex.ELASTICSEARCH_INDEX, TargetIndex.DATA_STREAM_DATASET, TargetIndex.DATA_STREAM_NAMESPACE -> {
+                    // ignore
+                }
+                default -> {
+                    builder.field(attribute.getKey());
+                    attributeValue(builder, attribute.getValue());
+                }
+            }
+        }
+    }
+
+    private void attributeValue(XContentBuilder builder, AnyValue value) throws IOException {
+        switch (value.getValueCase()) {
+            case STRING_VALUE -> {
+                byte[] bytes = value.getStringValueBytes().toByteArray();
+                builder.utf8Value(bytes, 0, bytes.length);
+            }
+            case BOOL_VALUE -> builder.value(value.getBoolValue());
+            case INT_VALUE -> builder.value(value.getIntValue());
+            case DOUBLE_VALUE -> builder.value(value.getDoubleValue());
+            case ARRAY_VALUE -> {
+                builder.startArray();
+                for (AnyValue arrayValue : value.getArrayValue().getValuesList()) {
+                    attributeValue(builder, arrayValue);
+                }
+                builder.endArray();
+            }
+            default -> throw new IllegalArgumentException("Unsupported attribute value type: " + value.getValueCase());
+        }
+    }
+
+}
