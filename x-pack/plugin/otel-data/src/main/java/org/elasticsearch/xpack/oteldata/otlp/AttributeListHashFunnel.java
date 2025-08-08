@@ -42,7 +42,7 @@ public class AttributeListHashFunnel implements HashFunnel<List<KeyValue>> {
     private void hashValue(HashSink hashSink, AnyValue value) {
         hashSink.putInt(value.getValueCase().getNumber());
         switch (value.getValueCase()) {
-            case STRING_VALUE -> hashSink.putString(value.getStringValue());
+            case STRING_VALUE -> hashSink.putBytes(value.getStringValueBytes().toByteArray());
             case BOOL_VALUE -> hashSink.putBoolean(value.getBoolValue());
             case BYTES_VALUE -> hashSink.putBytes(value.getBytesValue().toByteArray());
             case DOUBLE_VALUE -> hashSink.putDouble(value.getDoubleValue());
