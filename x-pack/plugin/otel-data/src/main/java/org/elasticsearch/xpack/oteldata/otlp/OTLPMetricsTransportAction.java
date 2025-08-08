@@ -7,6 +7,7 @@
 
 package org.elasticsearch.xpack.oteldata.otlp;
 
+import com.google.protobuf.ByteString;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
 import io.opentelemetry.proto.common.v1.AnyValue;
@@ -334,8 +335,8 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         if (scope.getDroppedAttributesCount() > 0) {
             builder.field("dropped_attributes_count", scope.getDroppedAttributesCount());
         }
-        addFieldIfNotEmpty(builder, "name", scope.getName());
-        addFieldIfNotEmpty(builder, "version", scope.getVersion());
+        addFieldIfNotEmpty(builder, "name", scope.getNameBytes());
+        addFieldIfNotEmpty(builder, "version", scope.getVersionBytes());
         builder.startObject("attributes");
         buildAttributes(builder, scope.getAttributesList());
         builder.endObject();
@@ -345,6 +346,13 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
     private static void addFieldIfNotEmpty(XContentBuilder builder, String name, String value) throws IOException {
         if (Strings.isNullOrEmpty(value) == false) {
             builder.field(name, value);
+        }
+    }
+
+    private static void addFieldIfNotEmpty(XContentBuilder builder, String name, ByteString value) throws IOException {
+        if (value != null && value.isEmpty() == false) {
+            builder.field(name);
+            builder.utf8Value(value.toByteArray(), 0, value.size());
         }
     }
 
@@ -382,7 +390,10 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
     private void attributeValue(XContentBuilder builder, AnyValue value) throws IOException {
         switch (value.getValueCase()) {
-            case STRING_VALUE -> builder.value(value.getStringValue());
+            case STRING_VALUE -> {
+                byte[] bytes = value.getStringValueBytes().toByteArray();
+                builder.utf8Value(bytes, 0 , bytes.length);
+            }
             case BOOL_VALUE -> builder.value(value.getBoolValue());
             case INT_VALUE -> builder.value(value.getIntValue());
             case DOUBLE_VALUE -> builder.value(value.getDoubleValue());

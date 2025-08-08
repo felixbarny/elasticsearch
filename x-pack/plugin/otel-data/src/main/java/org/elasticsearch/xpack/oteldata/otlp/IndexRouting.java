@@ -12,12 +12,8 @@ import io.opentelemetry.proto.common.v1.KeyValue;
 import org.elasticsearch.cluster.metadata.DataStream;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 final class IndexRouting {
-
-    private static final Pattern RECEIVER_PATTERN = Pattern.compile("/receiver/(\\w*receiver)");
 
     static final String ELASTICSEARCH_INDEX = "elasticsearch.index";
     static final String DATA_STREAM_DATASET = "data_stream.dataset";
@@ -47,10 +43,11 @@ final class IndexRouting {
         if (indexRouting.index == null) {
             indexRouting.type = type;
             indexRouting.dataset = DataStream.sanitizeDataset(indexRouting.dataset);
-            if (indexRouting.dataset == null) {
-                Matcher matcher = RECEIVER_PATTERN.matcher(scopeName);
-                if (matcher.find()) {
-                    indexRouting.dataset = matcher.group(1);
+            if (indexRouting.dataset == null && scopeName != null) {
+                int indexOfReceiver = scopeName.indexOf("/receiver/");
+                if (indexOfReceiver >= 0) {
+                    int beginIndex = indexOfReceiver + 10;
+                    indexRouting.dataset = scopeName.substring(beginIndex, scopeName.indexOf('/', beginIndex));
                 }
             }
             if (indexRouting.dataset == null) {
@@ -72,7 +69,8 @@ final class IndexRouting {
         if (isPopulated()) {
             return;
         }
-        for (KeyValue attr : attributes) {
+        for (int i = 0, size = attributes.size(); i < size; i++) {
+            KeyValue attr = attributes.get(i);
             if (attr.getKey().equals(ELASTICSEARCH_INDEX)) {
                 index = attr.getValue().getStringValue();
             }
