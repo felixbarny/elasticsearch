@@ -20,7 +20,7 @@ public class ScopeTsidFunnel implements TsidFunnel<ScopeMetrics> {
     private static final ScopeTsidFunnel INSTANCE = new ScopeTsidFunnel();
 
     public static TsidBuilder forScope(ScopeMetrics scopeMetrics) {
-        TsidBuilder tsidBuilder = new TsidBuilder();
+        TsidBuilder tsidBuilder = new TsidBuilder(scopeMetrics.getScope().getAttributesCount() + 3);
         INSTANCE.add(scopeMetrics, tsidBuilder);
         return tsidBuilder;
     }

@@ -20,7 +20,7 @@ public class ResourceTsidFunnel implements TsidFunnel<ResourceMetrics> {
     private static final ResourceTsidFunnel INSTANCE = new ResourceTsidFunnel();
 
     public static TsidBuilder forResource(ResourceMetrics resourceMetrics) {
-        TsidBuilder tsidBuilder = new TsidBuilder();
+        TsidBuilder tsidBuilder = new TsidBuilder(resourceMetrics.getResource().getAttributesCount() + 1);
         INSTANCE.add(resourceMetrics, tsidBuilder);
         return tsidBuilder;
     }

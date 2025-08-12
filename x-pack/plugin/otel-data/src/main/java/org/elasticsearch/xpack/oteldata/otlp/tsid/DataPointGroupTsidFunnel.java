@@ -15,7 +15,9 @@ public class DataPointGroupTsidFunnel implements TsidBuilder.TsidFunnel<DataPoin
     private static final DataPointGroupTsidFunnel INSTANCE = new DataPointGroupTsidFunnel();
 
     public static TsidBuilder forDataPointGroup(DataPointGroupingContext.DataPointGroup value) {
-        TsidBuilder tsidBuilder = new TsidBuilder();
+        TsidBuilder tsidBuilder = new TsidBuilder(
+            1 + value.dataPointGroupTsidBuilder().size() + value.resourceTsidBuilder().size() + value.scopeTsidBuilder().size()
+        );
         INSTANCE.add(value, tsidBuilder);
         return tsidBuilder;
     }
