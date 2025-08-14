@@ -7,6 +7,7 @@
 
 package org.elasticsearch.xpack.oteldata.otlp;
 
+import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsPartialSuccess;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
 
@@ -29,6 +30,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.injection.guice.Inject;
+import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -69,29 +71,52 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             DataPointGroupingContext context = new DataPointGroupingContext();
             context.groupDataPoints(metricsServiceRequest);
             context.forEach(dataPointGroup -> addIndexRequest(bulkRequestBuilder, dataPointGroup));
+            if (bulkRequestBuilder.numberOfActions() == 0) {
+                if (context.totalDataPoints() == 0) {
+                    // No data points to process, return an empty response
+                    listener.onResponse(new MetricsResponse(RestStatus.OK, ExportMetricsServiceResponse.newBuilder().build()));
+                } else {
+                    // All data points were ignored, return a partial success response
+                    listener.onResponse(
+                        new MetricsResponse(
+                            RestStatus.OK,
+                            responseWithRejectedDataPoints(context.totalDataPoints(), context.getIgnoredDataPointsMessage())
+                        )
+                    );
+                }
+                return;
+            }
 
-            bulkRequestBuilder.execute(new ActionListener<BulkResponse>() {
+            bulkRequestBuilder.execute(new ActionListener<>() {
                 @Override
                 public void onResponse(BulkResponse bulkItemResponses) {
                     MessageLite response;
-                    if (bulkItemResponses.hasFailures()) {
-                        long failures = Arrays.stream(bulkItemResponses.getItems()).filter(BulkItemResponse::isFailed).count();
-                        response = ExportMetricsServiceResponse.newBuilder()
-                            .getPartialSuccessBuilder()
-                            .setRejectedDataPoints(failures)
-                            .setErrorMessage(bulkItemResponses.buildFailureMessage())
-                            .build();
+                    RestStatus status = RestStatus.OK;
+                    if (bulkItemResponses.hasFailures() || context.getIgnoredDataPoints() > 0) {
+                        int failures = (int) Arrays.stream(bulkItemResponses.getItems()).filter(BulkItemResponse::isFailed).count();
+                        if (failures == bulkItemResponses.getItems().length) {
+                            status = RestStatus.INTERNAL_SERVER_ERROR;
+                        }
+                        response = responseWithRejectedDataPoints(
+                            failures + context.getIgnoredDataPoints(),
+                            bulkItemResponses.buildFailureMessage() + context.getIgnoredDataPointsMessage()
+                        );
                         logger.warn("OTLP request completed with failures {}", bulkItemResponses.buildFailureMessage());
                     } else {
                         response = ExportMetricsServiceResponse.newBuilder().build();
                     }
-                    listener.onResponse(new MetricsResponse(response));
+                    listener.onResponse(new MetricsResponse(status, response));
                 }
 
                 @Override
                 public void onFailure(Exception e) {
                     logger.debug(e.getMessage(), e);
-                    listener.onFailure(e);
+                    listener.onResponse(
+                        new MetricsResponse(
+                            RestStatus.INTERNAL_SERVER_ERROR,
+                            responseWithRejectedDataPoints(context.totalDataPoints(), e.getMessage())
+                        )
+                    );
                 }
             });
 
@@ -99,6 +124,14 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             logger.error(e.getMessage(), e);
             listener.onFailure(e);
         }
+    }
+
+    private static ExportMetricsPartialSuccess responseWithRejectedDataPoints(int rejectedDataPoints, String message) {
+        return ExportMetricsServiceResponse.newBuilder()
+            .getPartialSuccessBuilder()
+            .setRejectedDataPoints(rejectedDataPoints)
+            .setErrorMessage(message)
+            .build();
     }
 
     private void addIndexRequest(BulkRequestBuilder bulkRequestBuilder, DataPointGroupingContext.DataPointGroup dataPointGroup)
@@ -136,9 +169,11 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
     public static class MetricsResponse extends ActionResponse {
         private final MessageLite response;
+        private final RestStatus status;
 
-        public MetricsResponse(MessageLite response) {
+        public MetricsResponse(RestStatus status, MessageLite response) {
             this.response = response;
+            this.status = status;
         }
 
         @Override
@@ -148,6 +183,10 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
         public MessageLite getResponse() {
             return response;
+        }
+
+        public RestStatus getStatus() {
+            return status;
         }
     }
 }

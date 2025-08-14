@@ -54,20 +54,20 @@ public class OTLPMetricsRestAction extends BaseRestHandler {
                 ActionListener.releaseBefore(request.content(), new RestResponseListener<>(channel) {
                     @Override
                     public RestResponse buildResponse(OTLPMetricsTransportAction.MetricsResponse r) throws Exception {
-                        return successResponse(r.getResponse());
+                        return successResponse(r.getStatus(), r.getResponse());
                     }
                 })
             );
         }
 
         // according to spec empty requests are successful
-        return channel -> channel.sendResponse(successResponse(ExportMetricsServiceResponse.newBuilder().build()));
+        return channel -> channel.sendResponse(successResponse(RestStatus.OK, ExportMetricsServiceResponse.newBuilder().build()));
     }
 
-    private RestResponse successResponse(MessageLite response) throws IOException {
+    private RestResponse successResponse(RestStatus restStatus, MessageLite response) throws IOException {
         var responseBytes = ByteBuffer.allocate(response.getSerializedSize());
         response.writeTo(CodedOutputStream.newInstance(responseBytes));
 
-        return new RestResponse(RestStatus.OK, "application/x-protobuf", BytesReference.fromByteBuffer(responseBytes));
+        return new RestResponse(restStatus, "application/x-protobuf", BytesReference.fromByteBuffer(responseBytes));
     }
 }

@@ -15,9 +15,12 @@ import io.opentelemetry.sdk.common.Clock;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
+import io.opentelemetry.sdk.metrics.data.ExponentialHistogramBuckets;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableDoublePointData;
+import io.opentelemetry.sdk.metrics.internal.data.ImmutableExponentialHistogramData;
+import io.opentelemetry.sdk.metrics.internal.data.ImmutableExponentialHistogramPointData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableGaugeData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableLongPointData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableMetricData;
@@ -40,6 +43,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.script.field.WriteField;
 import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
+import org.elasticsearch.xpack.analytics.AnalyticsPlugin;
 import org.elasticsearch.xpack.constantkeyword.ConstantKeywordMapperPlugin;
 import org.elasticsearch.xpack.core.XPackPlugin;
 import org.elasticsearch.xpack.countedkeyword.CountedKeywordMapperPlugin;
@@ -55,6 +59,7 @@ import org.junit.Test;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +100,8 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             IndexLifecycle.class,
             IngestCommonPlugin.class,
             XPackPlugin.class,
-            PainlessPlugin.class
+            PainlessPlugin.class,
+            AnalyticsPlugin.class
         );
     }
 
@@ -254,14 +260,67 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             Map<String, Object> mapping = mappings.values().iterator().next().getSourceAsMap();
             assertThat(mapping, not(anEmptyMap()));
             // check that the time_series_metric is present for the created metrics and set correctly
-            assertThat(new WriteField("properties.metrics.properties.counter.type", () -> mapping).get(null), equalTo("long"));
-            assertThat(
-                new WriteField("properties.metrics.properties.counter.time_series_metric", () -> mapping).get(null),
-                equalTo("counter")
-            );
-            assertThat(new WriteField("properties.metrics.properties.gauge.type", () -> mapping).get(null), equalTo("double"));
-            assertThat(new WriteField("properties.metrics.properties.gauge.time_series_metric", () -> mapping).get(null), equalTo("gauge"));
+            assertThat(evaluate(mapping, "properties.metrics.properties.counter.type"), equalTo("long"));
+            assertThat(evaluate(mapping, "properties.metrics.properties.counter.time_series_metric"), equalTo("counter"));
+            assertThat(evaluate(mapping, "properties.metrics.properties.gauge.type"), equalTo("double"));
+            assertThat(evaluate(mapping, "properties.metrics.properties.gauge.time_series_metric"), equalTo("gauge"));
         });
+    }
+
+    public void testExponentialHistograms() throws Exception {
+        long now = Clock.getDefault().now();
+        MetricData metric1 = ImmutableMetricData.createExponentialHistogram(
+            TEST_RESOURCE,
+            TEST_SCOPE,
+            "exponential_histogram",
+            "Exponential Histogram Test",
+            "ms",
+            ImmutableExponentialHistogramData.create(
+                AggregationTemporality.DELTA,
+                List.of(
+                    ImmutableExponentialHistogramPointData.create(
+                        0,
+                        -1,
+                        10,
+                        false,
+                        0,
+                        false,
+                        0,
+                        ExponentialHistogramBuckets.create(0, 0, List.of(1L, 2L, 3L)),
+                        ExponentialHistogramBuckets.create(0, 0, List.of(1L, 2L, 3L)),
+                        now,
+                        now,
+                        Attributes.empty(),
+                        List.of()
+                    )
+                )
+            )
+        );
+        export(List.of(metric1));
+
+        assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
+            Map<String, MappingMetadata> mappings = resp.getMappings();
+            assertThat(mappings, aMapWithSize(1));
+            Map<String, Object> mapping = mappings.values().iterator().next().getSourceAsMap();
+            assertThat(mapping, not(anEmptyMap()));
+            // check that the exponential_histogram is present for the created metrics and set correctly
+            assertThat(evaluate(mapping, "properties.metrics.properties.exponential_histogram.type"), equalTo("histogram"));
+        });
+        // get document and check values/counts array
+        assertResponse(client().prepareSearch("metrics-generic.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
+            assertThat(evaluate(sourceMap, "metrics.exponential_histogram.counts"), equalTo(List.of(3, 2, 1, 10, 1, 2, 3)));
+            List<Double> values = evaluate(sourceMap, "metrics.exponential_histogram.values");
+            ArrayList<Double> sortedValues = new ArrayList<>(values);
+            sortedValues.sort(Double::compareTo);
+            assertThat(values, equalTo(sortedValues));
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T evaluate(Map<String, Object> map, String path) {
+        return (T) new WriteField(path, () -> map).get(null);
     }
 
     private void export(List<MetricData> metrics) {

@@ -10,6 +10,8 @@ package org.elasticsearch.xpack.oteldata.otlp;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.common.v1.InstrumentationScope;
 import io.opentelemetry.proto.common.v1.KeyValue;
+import io.opentelemetry.proto.metrics.v1.AggregationTemporality;
+import io.opentelemetry.proto.metrics.v1.ExponentialHistogramDataPoint;
 import io.opentelemetry.proto.metrics.v1.Metric;
 import io.opentelemetry.proto.metrics.v1.NumberDataPoint;
 import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
@@ -31,8 +33,10 @@ import org.elasticsearch.xpack.oteldata.otlp.tsid.ScopeTsidFunnel;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 public class DataPointGroupingContext {
@@ -40,6 +44,10 @@ public class DataPointGroupingContext {
 
     // <resourceHash, <scopeHash, <dataPointDimensionsHash, List<DataPoint>>>
     private final Map<HashValue128, Map<HashValue128, Map<HashValue128, DataPointGroup>>> dataPoints = new HashMap<>();
+
+    private int totalDataPoints = 0;
+    private int ignoredDataPoints = 0;
+    private final Set<String> ignoredDataPointMessages = new HashSet<>();
 
     public void groupDataPoints(ExportMetricsServiceRequest exportMetricsServiceRequest) {
         List<ResourceMetrics> resourceMetricsList = exportMetricsServiceRequest.getResourceMetricsList();
@@ -88,7 +96,45 @@ public class DataPointGroupingContext {
                                 dp -> new DataPoint.Number(dp, metric)
                             );
                         }
-                        default -> throw new IllegalArgumentException("Unsupported metric type [" + metric.getDataCase() + "]");
+                        case EXPONENTIAL_HISTOGRAM -> {
+                            List<ExponentialHistogramDataPoint> expoHistos = metric.getExponentialHistogram().getDataPointsList();
+                            addDataPoints(
+                                resourceHash,
+                                resourceMetrics.getResource(),
+                                resourceMetrics.getSchemaUrl(),
+                                resourceTsidBuilder,
+                                scopeHash,
+                                scopeTsidBuilder,
+                                scope,
+                                scopeMetrics.getSchemaUrl(),
+                                expoHistos,
+                                dp -> {
+                                    if (metric.getExponentialHistogram()
+                                        .getAggregationTemporality() == AggregationTemporality.AGGREGATION_TEMPORALITY_CUMULATIVE) {
+                                        ignoredDataPoints++;
+                                        ignoredDataPointMessages.add(
+                                            "cumulative exponential histogram metrics are not supported, ignoring " + metric.getName()
+                                        );
+                                        return null;
+                                    }
+                                    return new DataPoint.ExponentialHistogram(dp, metric);
+                                }
+                            );
+                        }
+                        case HISTOGRAM -> {
+                            totalDataPoints += metric.getHistogram().getDataPointsCount();
+                            ignoredDataPoints += metric.getHistogram().getDataPointsCount();
+                            ignoredDataPointMessages.add("histogram metrics are not supported, ignoring " + metric.getName());
+                        }
+                        case SUMMARY -> {
+                            totalDataPoints += metric.getSummary().getDataPointsCount();
+                            ignoredDataPoints += metric.getSummary().getDataPointsCount();
+                            ignoredDataPointMessages.add("summary metrics are not supported, ignoring " + metric.getName());
+                        }
+                        default -> {
+                            ignoredDataPoints++;
+                            ignoredDataPointMessages.add("unknown metric type " + metric.getDataCase());
+                        }
                     }
                 }
             }
@@ -121,6 +167,7 @@ public class DataPointGroupingContext {
                 dataPointConverter.apply(dataPoint)
             );
         }
+        totalDataPoints += dataPoints.size();
     }
 
     public void addDataPoint(
@@ -134,6 +181,9 @@ public class DataPointGroupingContext {
         String scopeSchemaUrl,
         DataPoint dataPoint
     ) {
+        if (dataPoint == null) {
+            return;
+        }
         TsidBuilder dataPointGroupTsidBuilder = DataPointTsidFunnel.forDataPoint(dataPoint);
         HashValue128 dataPointGroupHash = dataPointGroupTsidBuilder.hash();
         DataPointGroup dataPointGroup = dataPoints.computeIfAbsent(resourceHash, k -> new HashMap<>())
@@ -174,6 +224,18 @@ public class DataPointGroupingContext {
                 }
             }
         }
+    }
+
+    public int totalDataPoints() {
+        return totalDataPoints;
+    }
+
+    public int getIgnoredDataPoints() {
+        return ignoredDataPoints;
+    }
+
+    public String getIgnoredDataPointsMessage() {
+        return ignoredDataPointMessages.isEmpty() ? "" : String.join("\n", ignoredDataPointMessages);
     }
 
     public interface DataPoint {
@@ -234,6 +296,51 @@ public class DataPointGroupingContext {
                     case AS_DOUBLE -> prefix + "double";
                     case VALUE_NOT_SET -> null;
                 };
+            }
+        }
+
+        record ExponentialHistogram(ExponentialHistogramDataPoint dataPoint, Metric metric) implements DataPoint {
+
+            @Override
+            public long getTimestampUnixNano() {
+                return dataPoint.getTimeUnixNano();
+            }
+
+            @Override
+            public List<KeyValue> getAttributes() {
+                return dataPoint().getAttributesList();
+            }
+
+            @Override
+            public long getStartTimestampUnixNano() {
+                return dataPoint.getStartTimeUnixNano();
+            }
+
+            @Override
+            public String getUnit() {
+                return metric().getUnit();
+            }
+
+            @Override
+            public String getMetricName() {
+                return metric.getName();
+            }
+
+            @Override
+            public void buildMetricValue(XContentBuilder builder) throws IOException {
+                builder.startObject();
+                builder.startArray("counts");
+                ExponentialHistogramConverter.counts(dataPoint, builder::value);
+                builder.endArray();
+                builder.startArray("values");
+                ExponentialHistogramConverter.centroidValues(dataPoint, builder::value);
+                builder.endArray();
+                builder.endObject();
+            }
+
+            @Override
+            public String getDynamicTemplate() {
+                return "histogram";
             }
         }
     }

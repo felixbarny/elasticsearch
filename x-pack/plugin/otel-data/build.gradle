@@ -20,6 +20,7 @@ esplugin {
 
 def protobufVersion = "4.31.1"
 dependencies {
+  api project(":libs:exponential-histogram")
   compileOnly project(path: xpackModule('core'))
   testImplementation project(path: ':x-pack:plugin:stack')
   testImplementation(testArtifact(project(xpackModule('core'))))
