@@ -103,6 +103,19 @@ def unzipProtoArchive = tasks.register("unzipProtoArchive", Copy) {
   into layout.buildDirectory.dir("protos")
 }
 
+// Avoid unnecessary String allocations in the generated AnyValue class
+// We always need the ByteString (UTF-8) representation of string attributes
+def adjustAnyValueBuilder = tasks.register("adjustAnyValueBuilder") {
+  doLast {
+    ant.replace(
+      file: 'build/generated/sources/proto/main/java/io/opentelemetry/proto/common/v1/AnyValue.java',
+      token: 'java.lang.String s = input.readStringRequireUtf8();',
+      value: 'com.google.protobuf.ByteString s = input.readBytes();',
+      encoding: 'UTF-8'
+    )
+  }
+}
+
 sourceSets {
   main {
     proto {
@@ -114,12 +127,13 @@ sourceSets {
 afterEvaluate {
   tasks.named("generateProto") {
     dependsOn(unzipProtoArchive)
+    finalizedBy(adjustAnyValueBuilder)
   }
 }
 
 idea {
   module {
-    sourceDirs += layout.buildDirectory.dir("generated/source/proto/main/java")
+    sourceDirs += layout.buildDirectory.dir("generated/sources/proto/main/java").get().asFile
   }
 }
 
