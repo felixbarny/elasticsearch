@@ -4,9 +4,12 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-apply plugin: 'elasticsearch.internal-es-plugin'
-apply plugin: 'elasticsearch.internal-yaml-rest-test'
-apply plugin: 'elasticsearch.internal-cluster-test'
+plugins {
+  id 'elasticsearch.internal-es-plugin'
+  id 'elasticsearch.internal-yaml-rest-test'
+  id 'elasticsearch.internal-cluster-test'
+  id('com.google.protobuf') version '0.9.5'
+}
 
 esplugin {
   name = 'x-pack-otel-data'
@@ -15,6 +18,7 @@ esplugin {
   extendedPlugins = ['x-pack-core']
 }
 
+def protobufVersion = "4.31.1"
 dependencies {
   compileOnly project(path: xpackModule('core'))
   testImplementation project(path: ':x-pack:plugin:stack')
@@ -43,8 +47,6 @@ dependencies {
   implementation "io.opentelemetry:opentelemetry-api:$otelVersion"
   implementation "io.opentelemetry:opentelemetry-common:${otelVersion}"
   implementation "io.opentelemetry:opentelemetry-context:$otelVersion"
-  // TODO this is explicitly marked as "not for production" but it's good for now
-  implementation "io.opentelemetry.proto:opentelemetry-proto:1.7.0-alpha"
   testImplementation("io.opentelemetry:opentelemetry-sdk:$otelVersion")
   testImplementation("io.opentelemetry:opentelemetry-sdk-common:$otelVersion")
   testImplementation("io.opentelemetry:opentelemetry-sdk-metrics:$otelVersion")
@@ -55,7 +57,70 @@ dependencies {
   testImplementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:$otelVersion")
   testImplementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:$otelVersion")
 
-  implementation "com.google.protobuf:protobuf-java:4.31.0"
+  implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
+}
+
+protobuf {
+  protoc {
+    // The artifact spec for the Protobuf Compiler
+    artifact = "com.google.protobuf:protoc:${protobufVersion}"
+  }
+}
+
+def otlpProtoVersion = "1.7.0" // Version of the OpenTelemetry proto files to use
+
+// To generate the checksum, download the file and run "shasum -a 256 ~/path/to/vfoo.zip"
+def protoChecksum = "ddb80357ff146f5e3bda584907185b1f635412a4b31edf6f96b102a18b8e05dc"
+def protoArchivePath = layout.buildDirectory.file("archives/opentelemetry-proto-${otlpProtoVersion}.zip")
+
+def downloadProtoArchive = tasks.register("downloadProtoArchive") {
+  outputs.file(protoArchivePath)
+  onlyIf { !protoArchivePath.get().asFile.exists() }
+  doLast {
+    protoArchivePath.get().asFile.parentFile.mkdirs()
+    "https://github.com/open-telemetry/opentelemetry-proto/archive/v${otlpProtoVersion}.zip".toURL()
+      .withInputStream { i ->
+        protoArchivePath.get().asFile.withOutputStream { it << i }
+      }
+  }
+}
+
+def verifyProtoArchive = tasks.register("verifyProtoArchive") {
+  dependsOn(downloadProtoArchive)
+  doLast {
+    protoArchivePath.get().asFile.withInputStream { inputStream ->
+      def sha256 = inputStream.readAllBytes().digest("SHA-256")
+      if (sha256 != protoChecksum) {
+        throw new GradleException("Checksum verification failed for $protoArchivePath: expected $protoChecksum, got $sha256")
+      }
+    }
+  }
+}
+
+def unzipProtoArchive = tasks.register("unzipProtoArchive", Copy) {
+  dependsOn(verifyProtoArchive)
+  from zipTree(protoArchivePath)
+  into layout.buildDirectory.dir("protos")
+}
+
+sourceSets {
+  main {
+    proto {
+      srcDir layout.buildDirectory.dir("protos/opentelemetry-proto-${otlpProtoVersion}")
+    }
+  }
+}
+
+afterEvaluate {
+  tasks.named("generateProto") {
+    dependsOn(unzipProtoArchive)
+  }
+}
+
+idea {
+  module {
+    sourceDirs += layout.buildDirectory.dir("generated/source/proto/main/java")
+  }
 }
 
 tasks.named("dependencyLicenses").configure {
