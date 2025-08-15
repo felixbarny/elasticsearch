@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 public interface DataPoint {
+
     long getTimestampUnixNano();
 
     List<KeyValue> getAttributes();
@@ -32,13 +33,13 @@ public interface DataPoint {
 
     String getMetricName();
 
-    void buildMetricValue(XContentBuilder builder) throws IOException;
+    void buildMetricValue(MappingHints mappingHints, XContentBuilder builder) throws IOException;
 
-    String getDynamicTemplate();
+    String getDynamicTemplate(MappingHints mappingHints);
 
     boolean isValid(Set<String> messages);
 
-    // TODO add docCount
+    long getDocCount();
 
     record Number(NumberDataPoint dataPoint, Metric metric) implements DataPoint {
 
@@ -68,7 +69,7 @@ public interface DataPoint {
         }
 
         @Override
-        public void buildMetricValue(XContentBuilder builder) throws IOException {
+        public void buildMetricValue(MappingHints mappingHints, XContentBuilder builder) throws IOException {
             switch (dataPoint.getValueCase()) {
                 case AS_DOUBLE -> builder.value(dataPoint.getAsDouble());
                 case AS_INT -> builder.value(dataPoint.getAsInt());
@@ -76,7 +77,12 @@ public interface DataPoint {
         }
 
         @Override
-        public String getDynamicTemplate() {
+        public long getDocCount() {
+            return 1;
+        }
+
+        @Override
+        public String getDynamicTemplate(MappingHints mappingHints) {
             String prefix = metric.getDataCase() == Metric.DataCase.SUM ? "counter_" : "gauge_";
             return switch (dataPoint.getValueCase()) {
                 case AS_INT -> prefix + "long";
@@ -119,26 +125,42 @@ public interface DataPoint {
         }
 
         @Override
-        public void buildMetricValue(XContentBuilder builder) throws IOException {
-            builder.startObject();
-            builder.startArray("counts");
-            HistogramConverter.counts(dataPoint, builder::value);
-            builder.endArray();
-            builder.startArray("values");
-            HistogramConverter.centroidValues(dataPoint, builder::value);
-            builder.endArray();
-            builder.endObject();
+        public void buildMetricValue(MappingHints mappingHints, XContentBuilder builder) throws IOException {
+            if (mappingHints.aggregateMetricDouble()) {
+                builder.startObject();
+                builder.field("sum", dataPoint.getSum());
+                builder.field("value_count", dataPoint.getCount());
+                builder.endObject();
+            } else {
+                builder.startObject();
+                builder.startArray("counts");
+                HistogramConverter.counts(dataPoint, builder::value);
+                builder.endArray();
+                builder.startArray("values");
+                HistogramConverter.centroidValues(dataPoint, builder::value);
+                builder.endArray();
+                builder.endObject();
+            }
         }
 
         @Override
-        public String getDynamicTemplate() {
-            return "histogram";
+        public long getDocCount() {
+            return dataPoint.getCount();
+        }
+
+        @Override
+        public String getDynamicTemplate(MappingHints mappingHints) {
+            if (mappingHints.aggregateMetricDouble()) {
+                return "summary";
+            } else {
+                return "histogram";
+            }
         }
 
         @Override
         public boolean isValid(Set<String> messages) {
             boolean valid = metric.getExponentialHistogram()
-                                .getAggregationTemporality() == AggregationTemporality.AGGREGATION_TEMPORALITY_DELTA;
+                .getAggregationTemporality() == AggregationTemporality.AGGREGATION_TEMPORALITY_DELTA;
             if (valid == false) {
                 messages.add("cumulative exponential histogram metrics are not supported, ignoring " + metric.getName());
             }
@@ -173,20 +195,36 @@ public interface DataPoint {
         }
 
         @Override
-        public void buildMetricValue(XContentBuilder builder) throws IOException {
-            builder.startObject();
-            builder.startArray("counts");
-            HistogramConverter.counts(dataPoint, builder::value);
-            builder.endArray();
-            builder.startArray("values");
-            HistogramConverter.centroidValues(dataPoint, builder::value);
-            builder.endArray();
-            builder.endObject();
+        public void buildMetricValue(MappingHints mappingHints, XContentBuilder builder) throws IOException {
+            if (mappingHints.aggregateMetricDouble()) {
+                builder.startObject();
+                builder.field("sum", dataPoint.getSum());
+                builder.field("value_count", dataPoint.getCount());
+                builder.endObject();
+            } else {
+                builder.startObject();
+                builder.startArray("counts");
+                HistogramConverter.counts(dataPoint, builder::value);
+                builder.endArray();
+                builder.startArray("values");
+                HistogramConverter.centroidValues(dataPoint, builder::value);
+                builder.endArray();
+                builder.endObject();
+            }
         }
 
         @Override
-        public String getDynamicTemplate() {
-            return "histogram";
+        public long getDocCount() {
+            return dataPoint.getCount();
+        }
+
+        @Override
+        public String getDynamicTemplate(MappingHints mappingHints) {
+            if (mappingHints.aggregateMetricDouble()) {
+                return "summary";
+            } else {
+                return "histogram";
+            }
         }
 
         @Override
@@ -227,7 +265,7 @@ public interface DataPoint {
         }
 
         @Override
-        public void buildMetricValue(XContentBuilder builder) throws IOException {
+        public void buildMetricValue(MappingHints mappingHints, XContentBuilder builder) throws IOException {
             // TODO: Add support for quantiles
             builder.startObject();
             builder.field("sum", dataPoint.getSum());
@@ -236,7 +274,12 @@ public interface DataPoint {
         }
 
         @Override
-        public String getDynamicTemplate() {
+        public long getDocCount() {
+            return dataPoint.getCount();
+        }
+
+        @Override
+        public String getDynamicTemplate(MappingHints mappingHints) {
             return "summary";
         }
 

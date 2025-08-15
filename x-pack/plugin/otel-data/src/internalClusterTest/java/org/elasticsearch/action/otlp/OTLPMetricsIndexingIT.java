@@ -273,7 +273,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
     public void testExponentialHistograms() throws Exception {
         long now = Clock.getDefault().now();
-        export(List.of(createExponentialHistogram(now, "exponential_histogram", AggregationTemporality.DELTA)));
+        export(List.of(createExponentialHistogram(now, "exponential_histogram", AggregationTemporality.DELTA, Attributes.empty())));
 
         assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
             Map<String, MappingMetadata> mappings = resp.getMappings();
@@ -295,9 +295,44 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         });
     }
 
+    public void testExponentialHistogramsAsAggregateMetricDouble() throws Exception {
+        long now = Clock.getDefault().now();
+        export(
+            List.of(
+                createExponentialHistogram(
+                    now,
+                    "exponential_histogram_summary",
+                    AggregationTemporality.DELTA,
+                    Attributes.of(
+                        AttributeKey.stringArrayKey("elasticsearch.mapping.hints"),
+                        List.of("aggregate_metric_double", "_doc_count")
+                    )
+                )
+            )
+        );
+
+        assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
+            Map<String, MappingMetadata> mappings = resp.getMappings();
+            assertThat(mappings, aMapWithSize(1));
+            Map<String, Object> mapping = mappings.values().iterator().next().getSourceAsMap();
+            assertThat(mapping, not(anEmptyMap()));
+            assertThat(
+                evaluate(mapping, "properties.metrics.properties.exponential_histogram_summary.type"),
+                equalTo("aggregate_metric_double")
+            );
+        });
+        assertResponse(client().prepareSearch("metrics-generic.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
+            assertThat(evaluate(sourceMap, "_doc_count"), equalTo(22));
+            assertThat(evaluate(sourceMap, "metrics.exponential_histogram_summary.value_count"), equalTo(22));
+            assertThat(evaluate(sourceMap, "metrics.exponential_histogram_summary.sum"), equalTo(10.0));
+        });
+    }
+
     public void testHistogram() throws Exception {
         long now = Clock.getDefault().now();
-        export(List.of(createHistogram(now, "histogram", AggregationTemporality.DELTA)));
+        export(List.of(createHistogram(now, "histogram", AggregationTemporality.DELTA, Attributes.empty())));
 
         assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
             Map<String, MappingMetadata> mappings = resp.getMappings();
@@ -317,14 +352,46 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         });
     }
 
+    public void testHistogramAsAggregateMetricDouble() throws Exception {
+        long now = Clock.getDefault().now();
+        export(
+            List.of(
+                createHistogram(
+                    now,
+                    "histogram_summary",
+                    AggregationTemporality.DELTA,
+                    Attributes.of(
+                        AttributeKey.stringArrayKey("elasticsearch.mapping.hints"),
+                        List.of("aggregate_metric_double", "_doc_count")
+                    )
+                )
+            )
+        );
+
+        assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
+            Map<String, MappingMetadata> mappings = resp.getMappings();
+            assertThat(mappings, aMapWithSize(1));
+            Map<String, Object> mapping = mappings.values().iterator().next().getSourceAsMap();
+            assertThat(mapping, not(anEmptyMap()));
+            assertThat(evaluate(mapping, "properties.metrics.properties.histogram_summary.type"), equalTo("aggregate_metric_double"));
+        });
+        assertResponse(client().prepareSearch("metrics-generic.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
+            assertThat(evaluate(sourceMap, "_doc_count"), equalTo(21));
+            assertThat(evaluate(sourceMap, "metrics.histogram_summary.value_count"), equalTo(21));
+            assertThat(evaluate(sourceMap, "metrics.histogram_summary.sum"), equalTo(10.0));
+        });
+    }
+
     public void testCumulativeHistograms() {
         long now = Clock.getDefault().now();
         RuntimeException exception = assertThrows(
             RuntimeException.class,
             () -> export(
                 List.of(
-                    createExponentialHistogram(now, "exponential_histogram", AggregationTemporality.CUMULATIVE),
-                    createHistogram(now, "histogram", AggregationTemporality.CUMULATIVE)
+                    createExponentialHistogram(now, "exponential_histogram", AggregationTemporality.CUMULATIVE, Attributes.empty()),
+                    createHistogram(now, "histogram", AggregationTemporality.CUMULATIVE, Attributes.empty())
                 )
             )
         );
@@ -348,9 +415,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             "summary",
             "Summary Test",
             "ms",
-            ImmutableSummaryData.create(
-                List.of(ImmutableSummaryPointData.create(now, now, Attributes.empty(), 1, 2.0, List.of()))
-            )
+            ImmutableSummaryData.create(List.of(ImmutableSummaryPointData.create(now, now, Attributes.empty(), 1, 2.0, List.of())))
         );
         export(List.of(summaryMetric));
 
@@ -428,7 +493,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         );
     }
 
-    private static MetricData createHistogram(long timeEpochNanos, String name, AggregationTemporality temporality) {
+    private static MetricData createHistogram(long timeEpochNanos, String name, AggregationTemporality temporality, Attributes attributes) {
         return ImmutableMetricData.createDoubleHistogram(
             TEST_RESOURCE,
             TEST_SCOPE,
@@ -441,8 +506,8 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
                     HistogramPointData.create(
                         timeEpochNanos,
                         timeEpochNanos,
-                        Attributes.empty(),
-                        -1,
+                        attributes,
+                        10,
                         false,
                         0,
                         false,
@@ -455,7 +520,12 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         );
     }
 
-    private static MetricData createExponentialHistogram(long timeEpochNanos, String name, AggregationTemporality temporality) {
+    private static MetricData createExponentialHistogram(
+        long timeEpochNanos,
+        String name,
+        AggregationTemporality temporality,
+        Attributes attributes
+    ) {
         return ImmutableMetricData.createExponentialHistogram(
             TEST_RESOURCE,
             TEST_SCOPE,
@@ -467,7 +537,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
                 List.of(
                     ImmutableExponentialHistogramPointData.create(
                         0,
-                        -1,
+                        10,
                         10,
                         false,
                         0,
@@ -477,7 +547,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
                         ExponentialHistogramBuckets.create(0, 0, List.of(1L, 2L, 3L)),
                         timeEpochNanos,
                         timeEpochNanos,
-                        Attributes.empty(),
+                        attributes,
                         List.of()
                     )
                 )

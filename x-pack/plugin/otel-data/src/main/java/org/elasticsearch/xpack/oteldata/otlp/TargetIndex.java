@@ -13,11 +13,11 @@ import org.elasticsearch.cluster.metadata.DataStream;
 
 import java.util.List;
 
-final class TargetIndex {
+public final class TargetIndex {
 
-    static final String ELASTICSEARCH_INDEX = "elasticsearch.index";
-    static final String DATA_STREAM_DATASET = "data_stream.dataset";
-    static final String DATA_STREAM_NAMESPACE = "data_stream.namespace";
+    public static final String ELASTICSEARCH_INDEX = "elasticsearch.index";
+    public static final String DATA_STREAM_DATASET = "data_stream.dataset";
+    public static final String DATA_STREAM_NAMESPACE = "data_stream.namespace";
 
     private String index;
     private String type;

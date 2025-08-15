@@ -40,16 +40,25 @@ public class MetricDocumentBuilder {
         buildScope(builder, dataPointGroup.scopeSchemaUrl(), dataPointGroup.scope());
         buildDataPointAttributes(builder, dataPointGroup.dataPointAttributes(), dataPointGroup.unit());
         builder.field("_metric_names_hash", dataPointGroup.getMetricNamesHash());
+
+        long docCount = 0;
         builder.startObject("metrics");
         for (DataPoint dataPoint : dataPoints) {
             builder.field(dataPoint.getMetricName());
-            dataPoint.buildMetricValue(builder);
-            String dynamicTemplate = dataPoint.getDynamicTemplate();
+            MappingHints mappingHints = MappingHints.fromAttributes(dataPoint.getAttributes());
+            dataPoint.buildMetricValue(mappingHints, builder);
+            String dynamicTemplate = dataPoint.getDynamicTemplate(mappingHints);
             if (dynamicTemplate != null) {
                 dynamicTemplates.put("metrics." + dataPoint.getMetricName(), dynamicTemplate);
             }
+            if (mappingHints.docCount()) {
+                docCount = dataPoint.getDocCount();
+            }
         }
         builder.endObject();
+        if (docCount > 0) {
+            builder.field("_doc_count", docCount);
+        }
         builder.endObject();
         return dynamicTemplates;
     }
@@ -114,15 +123,16 @@ public class MetricDocumentBuilder {
     private void buildAttributes(XContentBuilder builder, List<KeyValue> attributes) throws IOException {
         for (int i = 0, size = attributes.size(); i < size; i++) {
             KeyValue attribute = attributes.get(i);
-            switch (attribute.getKey()) {
-                case TargetIndex.ELASTICSEARCH_INDEX, TargetIndex.DATA_STREAM_DATASET, TargetIndex.DATA_STREAM_NAMESPACE -> {
-                    // ignore
-                }
-                default -> {
-                    builder.field(attribute.getKey());
-                    attributeValue(builder, attribute.getValue());
-                }
+            String key = attribute.getKey();
+            if (key.equals(TargetIndex.ELASTICSEARCH_INDEX)
+                || key.equals(TargetIndex.DATA_STREAM_DATASET)
+                || key.equals(TargetIndex.DATA_STREAM_NAMESPACE)
+                || key.equals(MappingHints.MAPPING_HINTS)) {
+                // ignore
+                continue;
             }
+            builder.field(attribute.getKey());
+            attributeValue(builder, attribute.getValue());
         }
     }
 
