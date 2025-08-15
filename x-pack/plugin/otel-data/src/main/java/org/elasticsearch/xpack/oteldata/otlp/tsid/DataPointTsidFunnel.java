@@ -9,22 +9,22 @@ package org.elasticsearch.xpack.oteldata.otlp.tsid;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
-import org.elasticsearch.xpack.oteldata.otlp.DataPointGroupingContext;
+import org.elasticsearch.xpack.oteldata.otlp.DataPoint;
 
-public class DataPointTsidFunnel implements TsidFunnel<DataPointGroupingContext.DataPoint> {
+public class DataPointTsidFunnel implements TsidFunnel<DataPoint> {
 
     private static final DataPointTsidFunnel INSTANCE = new DataPointTsidFunnel();
 
     private DataPointTsidFunnel() {}
 
-    public static TsidBuilder forDataPoint(DataPointGroupingContext.DataPoint dataPoint) {
+    public static TsidBuilder forDataPoint(DataPoint dataPoint) {
         TsidBuilder tsidBuilder = new TsidBuilder(dataPoint.getAttributes().size() + 3);
         INSTANCE.add(dataPoint, tsidBuilder);
         return tsidBuilder;
     }
 
     @Override
-    public void add(DataPointGroupingContext.DataPoint dataPoint, TsidBuilder tsidBuilder) {
+    public void add(DataPoint dataPoint, TsidBuilder tsidBuilder) {
         tsidBuilder.addLongDimension("@timestamp", dataPoint.getTimestampUnixNano());
         tsidBuilder.add(dataPoint, DataPointDimensionsTsidFunnel.get());
         tsidBuilder.addLongDimension("start_timestamp", dataPoint.getStartTimestampUnixNano());

@@ -27,7 +27,7 @@ public class MetricDocumentBuilder {
     public HashMap<String, String> buildMetricDocument(XContentBuilder builder, DataPointGroupingContext.DataPointGroup dataPointGroup)
         throws IOException {
         HashMap<String, String> dynamicTemplates = new HashMap<>();
-        List<DataPointGroupingContext.DataPoint> dataPoints = dataPointGroup.dataPoints();
+        List<DataPoint> dataPoints = dataPointGroup.dataPoints();
         builder.startObject();
         builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(dataPointGroup.getTimestampUnixNano()));
         if (dataPointGroup.getStartTimestampUnixNano() != 0) {
@@ -41,7 +41,7 @@ public class MetricDocumentBuilder {
         buildDataPointAttributes(builder, dataPointGroup.dataPointAttributes(), dataPointGroup.unit());
         builder.field("_metric_names_hash", dataPointGroup.getMetricNamesHash());
         builder.startObject("metrics");
-        for (DataPointGroupingContext.DataPoint dataPoint : dataPoints) {
+        for (DataPoint dataPoint : dataPoints) {
             builder.field(dataPoint.getMetricName());
             dataPoint.buildMetricValue(builder);
             String dynamicTemplate = dataPoint.getDynamicTemplate();

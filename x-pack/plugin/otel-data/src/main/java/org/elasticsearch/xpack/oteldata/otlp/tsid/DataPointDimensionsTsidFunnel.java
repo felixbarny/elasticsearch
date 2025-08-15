@@ -9,9 +9,9 @@ package org.elasticsearch.xpack.oteldata.otlp.tsid;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
-import org.elasticsearch.xpack.oteldata.otlp.DataPointGroupingContext;
+import org.elasticsearch.xpack.oteldata.otlp.DataPoint;
 
-class DataPointDimensionsTsidFunnel implements TsidFunnel<DataPointGroupingContext.DataPoint> {
+class DataPointDimensionsTsidFunnel implements TsidFunnel<DataPoint> {
 
     private static final DataPointDimensionsTsidFunnel INSTANCE = new DataPointDimensionsTsidFunnel();
 
@@ -22,7 +22,7 @@ class DataPointDimensionsTsidFunnel implements TsidFunnel<DataPointGroupingConte
     }
 
     @Override
-    public void add(DataPointGroupingContext.DataPoint dataPoint, TsidBuilder tsidBuilder) {
+    public void add(DataPoint dataPoint, TsidBuilder tsidBuilder) {
         tsidBuilder.add(dataPoint.getAttributes(), AttributeListTsidFunnel.get("attributes."));
         tsidBuilder.addStringDimension("unit", dataPoint.getUnit());
     }

@@ -29,6 +29,8 @@ import io.opentelemetry.sdk.metrics.internal.data.ImmutableGaugeData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableLongPointData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableMetricData;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableSumData;
+import io.opentelemetry.sdk.metrics.internal.data.ImmutableSummaryData;
+import io.opentelemetry.sdk.metrics.internal.data.ImmutableSummaryPointData;
 import io.opentelemetry.sdk.resources.Resource;
 
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -48,6 +50,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.script.field.WriteField;
 import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
+import org.elasticsearch.xpack.aggregatemetric.AggregateMetricMapperPlugin;
 import org.elasticsearch.xpack.analytics.AnalyticsPlugin;
 import org.elasticsearch.xpack.constantkeyword.ConstantKeywordMapperPlugin;
 import org.elasticsearch.xpack.core.XPackPlugin;
@@ -60,7 +63,6 @@ import org.elasticsearch.xpack.oteldata.OTelPlugin;
 import org.elasticsearch.xpack.stack.StackPlugin;
 import org.elasticsearch.xpack.versionfield.VersionFieldPlugin;
 import org.elasticsearch.xpack.wildcard.Wildcard;
-import org.junit.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -107,7 +109,8 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             IngestCommonPlugin.class,
             XPackPlugin.class,
             PainlessPlugin.class,
-            AnalyticsPlugin.class
+            AnalyticsPlugin.class,
+            AggregateMetricMapperPlugin.class
         );
     }
 
@@ -161,7 +164,6 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         super.tearDown();
     }
 
-    @Test
     public void testIngestMetricViaMeterProvider() throws Exception {
         Meter sampleMeter = meterProvider.get("io.opentelemetry.example.metrics");
 
@@ -190,7 +192,6 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         }
     }
 
-    @Test
     public void testIngestMetricDataViaMetricExporter() throws Exception {
         MetricData jvmMemoryMetricData = createDoubleGauge(
             TEST_RESOURCE,
@@ -218,7 +219,6 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         }
     }
 
-    @Test
     public void testGroupingSameGroup() throws Exception {
         long now = Clock.getDefault().now();
         MetricData metric1 = createDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "By", now);
@@ -235,7 +235,6 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         });
     }
 
-    @Test
     public void testGroupingDifferentGroup() throws Exception {
         long now = Clock.getDefault().now();
         export(
@@ -253,7 +252,6 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         );
     }
 
-    @Test
     public void testTimeSeriesMetrics() throws Exception {
         long now = Clock.getDefault().now();
         MetricData metric1 = createCounter(TEST_RESOURCE, Attributes.empty(), "counter", 42, "By", now);
@@ -340,6 +338,37 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
             IndexNotFoundException.class,
             () -> client().admin().indices().prepareGetIndex(TEST_REQUEST_TIMEOUT).setIndices("metrics-generic.otel-default").get()
         );
+    }
+
+    public void testSummary() throws Exception {
+        long now = Clock.getDefault().now();
+        MetricData summaryMetric = ImmutableMetricData.createDoubleSummary(
+            TEST_RESOURCE,
+            TEST_SCOPE,
+            "summary",
+            "Summary Test",
+            "ms",
+            ImmutableSummaryData.create(
+                List.of(ImmutableSummaryPointData.create(now, now, Attributes.empty(), 1, 2.0, List.of()))
+            )
+        );
+        export(List.of(summaryMetric));
+
+        assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
+            Map<String, MappingMetadata> mappings = resp.getMappings();
+            assertThat(mappings, aMapWithSize(1));
+            Map<String, Object> mapping = mappings.values().iterator().next().getSourceAsMap();
+            assertThat(mapping, not(anEmptyMap()));
+            // check that the summary is present for the created metrics and set correctly
+            assertThat(evaluate(mapping, "properties.metrics.properties.summary.type"), equalTo("aggregate_metric_double"));
+        });
+        // get document and check sum/value_count
+        assertResponse(client().prepareSearch("metrics-generic.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
+            assertThat(evaluate(sourceMap, "metrics.summary.sum"), equalTo(2.0));
+            assertThat(evaluate(sourceMap, "metrics.summary.value_count"), equalTo(1));
+        });
     }
 
     @SuppressWarnings("unchecked")

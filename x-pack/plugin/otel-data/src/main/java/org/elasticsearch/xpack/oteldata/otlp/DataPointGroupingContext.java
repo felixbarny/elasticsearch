@@ -10,11 +10,7 @@ package org.elasticsearch.xpack.oteldata.otlp;
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.common.v1.InstrumentationScope;
 import io.opentelemetry.proto.common.v1.KeyValue;
-import io.opentelemetry.proto.metrics.v1.AggregationTemporality;
-import io.opentelemetry.proto.metrics.v1.ExponentialHistogramDataPoint;
-import io.opentelemetry.proto.metrics.v1.HistogramDataPoint;
 import io.opentelemetry.proto.metrics.v1.Metric;
-import io.opentelemetry.proto.metrics.v1.NumberDataPoint;
 import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
 import io.opentelemetry.proto.metrics.v1.ScopeMetrics;
 import io.opentelemetry.proto.resource.v1.Resource;
@@ -26,12 +22,10 @@ import com.dynatrace.hash4j.hashing.Hashing;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.core.CheckedConsumer;
-import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.DataPointTsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.ResourceTsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.ScopeTsidFunnel;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -65,7 +59,6 @@ public class DataPointGroupingContext {
                 List<Metric> metricsList = scopeMetrics.getMetricsList();
                 for (int k = 0; k < metricsList.size(); k++) {
                     var metric = metricsList.get(k);
-                    // TODO: add support for other metric types
                     switch (metric.getDataCase()) {
                         case SUM -> addDataPoints(
                             resourceHash,
@@ -115,14 +108,21 @@ public class DataPointGroupingContext {
                             metric, metric.getHistogram().getDataPointsList(),
                             DataPoint.Histogram::new
                         );
-                        case SUMMARY -> {
-                            totalDataPoints += metric.getSummary().getDataPointsCount();
-                            ignoredDataPoints += metric.getSummary().getDataPointsCount();
-                            ignoredDataPointMessages.add("summary metrics are not supported, ignoring " + metric.getName());
-                        }
+                        case SUMMARY -> addDataPoints(
+                            resourceHash,
+                            resourceMetrics.getResource(),
+                            resourceMetrics.getSchemaUrl(),
+                            resourceTsidBuilder,
+                            scopeHash,
+                            scopeTsidBuilder,
+                            scope,
+                            scopeMetrics.getSchemaUrl(),
+                            metric, metric.getSummary().getDataPointsList(),
+                            DataPoint.Summary::new
+                        );
                         default -> {
                             ignoredDataPoints++;
-                            ignoredDataPointMessages.add("unknown metric type " + metric.getDataCase());
+                            ignoredDataPointMessages.add("unsupported metric type " + metric.getDataCase());
                         }
                     }
                 }
@@ -156,7 +156,6 @@ public class DataPointGroupingContext {
                 dataPointConverter.apply(dataPoint, metric)
             );
         }
-        totalDataPoints += dataPoints.size();
     }
 
     public void addDataPoint(
@@ -170,6 +169,7 @@ public class DataPointGroupingContext {
         String scopeSchemaUrl,
         DataPoint dataPoint
     ) {
+        totalDataPoints++;
         if (dataPoint.isValid(ignoredDataPointMessages) == false) {
             ignoredDataPoints++;
             return;
@@ -183,13 +183,10 @@ public class DataPointGroupingContext {
                 k -> new DataPointGroup(
                     resource,
                     resourceSchemaUrl,
-                    resourceHash.toString(),
                     resourceTsidBuilder,
                     scope,
                     scopeSchemaUrl,
-                    scopeHash.toString(),
                     scopeTsidBuilder,
-                    dataPointGroupHash.toString(),
                     dataPointGroupTsidBuilder,
                     dataPoint.getAttributes(),
                     dataPoint.getUnit(),
@@ -228,193 +225,13 @@ public class DataPointGroupingContext {
         return ignoredDataPointMessages.isEmpty() ? "" : String.join("\n", ignoredDataPointMessages);
     }
 
-    public interface DataPoint {
-        long getTimestampUnixNano();
-
-        List<KeyValue> getAttributes();
-
-        long getStartTimestampUnixNano();
-
-        String getUnit();
-
-        String getMetricName();
-
-        void buildMetricValue(XContentBuilder builder) throws IOException;
-
-        String getDynamicTemplate();
-
-        boolean isValid(Set<String> messages);
-
-        record Number(NumberDataPoint dataPoint, Metric metric) implements DataPoint {
-
-            @Override
-            public long getTimestampUnixNano() {
-                return dataPoint.getTimeUnixNano();
-            }
-
-            @Override
-            public List<KeyValue> getAttributes() {
-                return dataPoint().getAttributesList();
-            }
-
-            @Override
-            public long getStartTimestampUnixNano() {
-                return dataPoint.getStartTimeUnixNano();
-            }
-
-            @Override
-            public String getUnit() {
-                return metric().getUnit();
-            }
-
-            @Override
-            public String getMetricName() {
-                return metric.getName();
-            }
-
-            @Override
-            public void buildMetricValue(XContentBuilder builder) throws IOException {
-                switch (dataPoint.getValueCase()) {
-                    case AS_DOUBLE -> builder.value(dataPoint.getAsDouble());
-                    case AS_INT -> builder.value(dataPoint.getAsInt());
-                }
-            }
-
-            @Override
-            public String getDynamicTemplate() {
-                String prefix = metric.getDataCase() == Metric.DataCase.SUM ? "counter_" : "gauge_";
-                return switch (dataPoint.getValueCase()) {
-                    case AS_INT -> prefix + "long";
-                    case AS_DOUBLE -> prefix + "double";
-                    case VALUE_NOT_SET -> null;
-                };
-            }
-
-            @Override
-            public boolean isValid(Set<String> messages) {
-                return true;
-            }
-        }
-
-        record ExponentialHistogram(ExponentialHistogramDataPoint dataPoint, Metric metric) implements DataPoint {
-
-            @Override
-            public long getTimestampUnixNano() {
-                return dataPoint.getTimeUnixNano();
-            }
-
-            @Override
-            public List<KeyValue> getAttributes() {
-                return dataPoint().getAttributesList();
-            }
-
-            @Override
-            public long getStartTimestampUnixNano() {
-                return dataPoint.getStartTimeUnixNano();
-            }
-
-            @Override
-            public String getUnit() {
-                return metric().getUnit();
-            }
-
-            @Override
-            public String getMetricName() {
-                return metric.getName();
-            }
-
-            @Override
-            public void buildMetricValue(XContentBuilder builder) throws IOException {
-                builder.startObject();
-                builder.startArray("counts");
-                HistogramConverter.counts(dataPoint, builder::value);
-                builder.endArray();
-                builder.startArray("values");
-                HistogramConverter.centroidValues(dataPoint, builder::value);
-                builder.endArray();
-                builder.endObject();
-            }
-
-            @Override
-            public String getDynamicTemplate() {
-                return "histogram";
-            }
-
-            @Override
-            public boolean isValid(Set<String> messages) {
-                boolean valid = metric.getExponentialHistogram()
-                    .getAggregationTemporality() == AggregationTemporality.AGGREGATION_TEMPORALITY_DELTA;
-                if (valid == false) {
-                    messages.add("cumulative exponential histogram metrics are not supported, ignoring " + metric.getName());
-                }
-                return valid;
-            }
-        }
-
-        record Histogram(HistogramDataPoint dataPoint, Metric metric) implements DataPoint {
-            @Override
-            public long getTimestampUnixNano() {
-                return dataPoint.getTimeUnixNano();
-            }
-
-            @Override
-            public List<KeyValue> getAttributes() {
-                return dataPoint().getAttributesList();
-            }
-
-            @Override
-            public long getStartTimestampUnixNano() {
-                return dataPoint.getStartTimeUnixNano();
-            }
-
-            @Override
-            public String getUnit() {
-                return metric().getUnit();
-            }
-
-            @Override
-            public String getMetricName() {
-                return metric.getName();
-            }
-
-            @Override
-            public void buildMetricValue(XContentBuilder builder) throws IOException {
-                builder.startObject();
-                builder.startArray("counts");
-                HistogramConverter.counts(dataPoint, builder::value);
-                builder.endArray();
-                builder.startArray("values");
-                HistogramConverter.centroidValues(dataPoint, builder::value);
-                builder.endArray();
-                builder.endObject();
-            }
-
-            @Override
-            public String getDynamicTemplate() {
-                return "histogram";
-            }
-
-            @Override
-            public boolean isValid(Set<String> messages) {
-                boolean valid = metric.getHistogram().getAggregationTemporality() == AggregationTemporality.AGGREGATION_TEMPORALITY_DELTA;
-                if (valid == false) {
-                    messages.add("cumulative histogram metrics are not supported, ignoring " + metric.getName());
-                }
-                return valid;
-            }
-        }
-    }
-
     public record DataPointGroup(
         Resource resource,
         String resourceSchemaUrl,
-        String resourceHash,
         TsidBuilder resourceTsidBuilder,
         InstrumentationScope scope,
         String scopeSchemaUrl,
-        String scopeHash,
         TsidBuilder scopeTsidBuilder,
-        String dataPointGroupHash,
         TsidBuilder dataPointGroupTsidBuilder,
         List<KeyValue> dataPointAttributes,
         String unit,
