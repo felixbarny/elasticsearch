@@ -19,6 +19,7 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsFilter;
+import org.elasticsearch.common.util.FeatureFlag;
 import org.elasticsearch.features.NodeFeature;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
@@ -29,12 +30,14 @@ import org.elasticsearch.xpack.oteldata.otlp.OTLPMetricsRestAction;
 import org.elasticsearch.xpack.oteldata.otlp.OTLPMetricsTransportAction;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class OTelPlugin extends Plugin implements ActionPlugin {
+
+    private static final boolean OTLP_METRICS_ENABLED = new FeatureFlag("otlp_metrics").isEnabled();
+
     // OTEL_DATA_REGISTRY_ENABLED controls enabling the index template registry.
     //
     // This setting will be ignored if the plugin is disabled.
@@ -64,7 +67,11 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
         Supplier<DiscoveryNodes> nodesInCluster,
         Predicate<NodeFeature> clusterSupportsFeature
     ) {
-        return List.of(new OTLPMetricsRestAction());
+        if (OTLP_METRICS_ENABLED) {
+            return List.of(new OTLPMetricsRestAction());
+        } else {
+            return List.of();
+        }
     }
 
     @Override
@@ -80,7 +87,7 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
             registryInstance.setEnabled(OTEL_DATA_REGISTRY_ENABLED.get(settings));
             registryInstance.initialize();
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override
@@ -95,6 +102,10 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<ActionHandler> getActions() {
-        return List.of(new ActionHandler(OTLPMetricsTransportAction.TYPE, OTLPMetricsTransportAction.class));
+        if (OTLP_METRICS_ENABLED) {
+            return List.of(new ActionHandler(OTLPMetricsTransportAction.TYPE, OTLPMetricsTransportAction.class));
+        } else {
+            return List.of();
+        }
     }
 }
