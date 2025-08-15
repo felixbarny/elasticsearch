@@ -73,13 +73,19 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             context.forEach(dataPointGroup -> addIndexRequest(bulkRequestBuilder, dataPointGroup));
             if (bulkRequestBuilder.numberOfActions() == 0) {
                 if (context.totalDataPoints() == 0) {
-                    // No data points to process, return an empty response
+                    // https://opentelemetry.io/docs/specs/otlp/#full-success-1
+                    // If the server receives an empty request
+                    // (a request that does not carry any telemetry data)
+                    // the server SHOULD respond with success.
                     listener.onResponse(new MetricsResponse(RestStatus.OK, ExportMetricsServiceResponse.newBuilder().build()));
                 } else {
-                    // All data points were ignored, return a partial success response
+                    // https://opentelemetry.io/docs/specs/otlp/#bad-data
+                    // If the processing of the request fails because the request contains data that cannot be decoded
+                    // or is otherwise invalid and such failure is permanent,
+                    // then the server MUST respond with HTTP 400 Bad Request.
                     listener.onResponse(
                         new MetricsResponse(
-                            RestStatus.OK,
+                            RestStatus.BAD_REQUEST,
                             responseWithRejectedDataPoints(context.totalDataPoints(), context.getIgnoredDataPointsMessage())
                         )
                     );
@@ -91,10 +97,17 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                 @Override
                 public void onResponse(BulkResponse bulkItemResponses) {
                     MessageLite response;
+                    // https://opentelemetry.io/docs/specs/otlp/#partial-success-1
+                    // If the request is only partially accepted
+                    // (i.e. when the server accepts only parts of the data and rejects the rest),
+                    // the server MUST respond with HTTP 200 OK.
                     RestStatus status = RestStatus.OK;
                     if (bulkItemResponses.hasFailures() || context.getIgnoredDataPoints() > 0) {
                         int failures = (int) Arrays.stream(bulkItemResponses.getItems()).filter(BulkItemResponse::isFailed).count();
                         if (failures == bulkItemResponses.getItems().length) {
+                            // https://opentelemetry.io/docs/specs/otlp/#failures-1
+                            // If the processing of the request fails,
+                            // the server MUST respond with appropriate HTTP 4xx or HTTP 5xx status code.
                             status = RestStatus.INTERNAL_SERVER_ERROR;
                         }
                         response = responseWithRejectedDataPoints(
@@ -112,6 +125,9 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                 public void onFailure(Exception e) {
                     logger.debug(e.getMessage(), e);
                     listener.onResponse(
+                        // https://opentelemetry.io/docs/specs/otlp/#failures-1
+                        // If the processing of the request fails,
+                        // the server MUST respond with appropriate HTTP 4xx or HTTP 5xx status code.
                         new MetricsResponse(
                             RestStatus.INTERNAL_SERVER_ERROR,
                             responseWithRejectedDataPoints(context.totalDataPoints(), e.getMessage())

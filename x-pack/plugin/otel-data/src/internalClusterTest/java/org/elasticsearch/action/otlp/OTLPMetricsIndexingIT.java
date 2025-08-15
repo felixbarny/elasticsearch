@@ -10,12 +10,16 @@ package org.elasticsearch.action.otlp;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.exporter.internal.FailedExportException;
+import io.opentelemetry.exporter.internal.grpc.GrpcExporterUtil;
 import io.opentelemetry.exporter.otlp.http.metrics.OtlpHttpMetricExporter;
 import io.opentelemetry.sdk.common.Clock;
 import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.ExponentialHistogramBuckets;
+import io.opentelemetry.sdk.metrics.data.HistogramData;
+import io.opentelemetry.sdk.metrics.data.HistogramPointData;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.metrics.internal.data.ImmutableDoublePointData;
@@ -36,6 +40,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.datastreams.DataStreamsPlugin;
 import org.elasticsearch.http.HttpInfo;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.mapper.extras.MapperExtrasPlugin;
 import org.elasticsearch.ingest.common.IngestCommonPlugin;
 import org.elasticsearch.painless.PainlessPlugin;
@@ -57,6 +62,7 @@ import org.elasticsearch.xpack.versionfield.VersionFieldPlugin;
 import org.elasticsearch.xpack.wildcard.Wildcard;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -70,12 +76,12 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertResp
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.arrayWithSize;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 
 public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
@@ -269,34 +275,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
     public void testExponentialHistograms() throws Exception {
         long now = Clock.getDefault().now();
-        MetricData metric1 = ImmutableMetricData.createExponentialHistogram(
-            TEST_RESOURCE,
-            TEST_SCOPE,
-            "exponential_histogram",
-            "Exponential Histogram Test",
-            "ms",
-            ImmutableExponentialHistogramData.create(
-                AggregationTemporality.DELTA,
-                List.of(
-                    ImmutableExponentialHistogramPointData.create(
-                        0,
-                        -1,
-                        10,
-                        false,
-                        0,
-                        false,
-                        0,
-                        ExponentialHistogramBuckets.create(0, 0, List.of(1L, 2L, 3L)),
-                        ExponentialHistogramBuckets.create(0, 0, List.of(1L, 2L, 3L)),
-                        now,
-                        now,
-                        Attributes.empty(),
-                        List.of()
-                    )
-                )
-            )
-        );
-        export(List.of(metric1));
+        export(List.of(createExponentialHistogram(now, "exponential_histogram", AggregationTemporality.DELTA)));
 
         assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
             Map<String, MappingMetadata> mappings = resp.getMappings();
@@ -318,15 +297,64 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         });
     }
 
+    public void testHistogram() throws Exception {
+        long now = Clock.getDefault().now();
+        export(List.of(createHistogram(now, "histogram", AggregationTemporality.DELTA)));
+
+        assertResponse(client().admin().indices().prepareGetMappings(TEST_REQUEST_TIMEOUT, "metrics-generic.otel-default"), resp -> {
+            Map<String, MappingMetadata> mappings = resp.getMappings();
+            assertThat(mappings, aMapWithSize(1));
+            Map<String, Object> mapping = mappings.values().iterator().next().getSourceAsMap();
+            assertThat(mapping, not(anEmptyMap()));
+            // check that the histogram is present for the created metrics and set correctly
+            assertThat(evaluate(mapping, "properties.metrics.properties.histogram.type"), equalTo("histogram"));
+        });
+        // get document and check values/counts array
+        assertResponse(client().prepareSearch("metrics-generic.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            Map<String, Object> sourceMap = resp.getHits().getAt(0).getSourceAsMap();
+            assertThat(evaluate(sourceMap, "metrics.histogram.counts"), equalTo(List.of(1, 2, 3, 4, 5, 6)));
+            List<Double> values = evaluate(sourceMap, "metrics.histogram.values");
+            assertThat(values, equalTo(List.of(1.0, 3.0, 5.0, 7.0, 9.0, 10.0)));
+        });
+    }
+
+    public void testCumulativeHistograms() {
+        long now = Clock.getDefault().now();
+        RuntimeException exception = assertThrows(
+            RuntimeException.class,
+            () -> export(
+                List.of(
+                    createExponentialHistogram(now, "exponential_histogram", AggregationTemporality.CUMULATIVE),
+                    createHistogram(now, "histogram", AggregationTemporality.CUMULATIVE)
+                )
+            )
+        );
+        assertThat(
+            exception.getMessage(),
+            containsString("cumulative exponential histogram metrics are not supported, ignoring exponential_histogram")
+        );
+        assertThat(exception.getMessage(), containsString("cumulative histogram metrics are not supported, ignoring histogram"));
+
+        assertThrows(
+            IndexNotFoundException.class,
+            () -> client().admin().indices().prepareGetIndex(TEST_REQUEST_TIMEOUT).setIndices("metrics-generic.otel-default").get()
+        );
+    }
+
     @SuppressWarnings("unchecked")
     private static <T> T evaluate(Map<String, Object> map, String path) {
         return (T) new WriteField(path, () -> map).get(null);
     }
 
-    private void export(List<MetricData> metrics) {
+    private void export(List<MetricData> metrics) throws IOException {
         var result = exporter.export(metrics).join(10, TimeUnit.SECONDS);
         Throwable failure = result.getFailureThrowable();
-        assertThat(failure, nullValue());
+        if (failure instanceof FailedExportException.HttpExportException httpExportException) {
+            throw new RuntimeException(GrpcExporterUtil.getStatusMessage(httpExportException.getResponse().responseBody()));
+        } else if (failure != null) {
+            throw new RuntimeException("Failed to export metrics", failure);
+        }
         assertThat(result.isSuccess(), is(true));
         admin().indices().prepareRefresh().execute().actionGet();
     }
@@ -367,6 +395,63 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
                 true,
                 AggregationTemporality.CUMULATIVE,
                 List.of(ImmutableLongPointData.create(timeEpochNanos, timeEpochNanos, attributes, value))
+            )
+        );
+    }
+
+    private static MetricData createHistogram(long timeEpochNanos, String name, AggregationTemporality temporality) {
+        return ImmutableMetricData.createDoubleHistogram(
+            TEST_RESOURCE,
+            TEST_SCOPE,
+            name,
+            "Histogram Test",
+            "ms",
+            HistogramData.create(
+                temporality,
+                List.of(
+                    HistogramPointData.create(
+                        timeEpochNanos,
+                        timeEpochNanos,
+                        Attributes.empty(),
+                        -1,
+                        false,
+                        0,
+                        false,
+                        0,
+                        List.of(2.0, 4.0, 6.0, 8.0, 10.0),
+                        List.of(1L, 2L, 3L, 4L, 5L, 6L)
+                    )
+                )
+            )
+        );
+    }
+
+    private static MetricData createExponentialHistogram(long timeEpochNanos, String name, AggregationTemporality temporality) {
+        return ImmutableMetricData.createExponentialHistogram(
+            TEST_RESOURCE,
+            TEST_SCOPE,
+            name,
+            "Exponential Histogram Test",
+            "ms",
+            ImmutableExponentialHistogramData.create(
+                temporality,
+                List.of(
+                    ImmutableExponentialHistogramPointData.create(
+                        0,
+                        -1,
+                        10,
+                        false,
+                        0,
+                        false,
+                        0,
+                        ExponentialHistogramBuckets.create(0, 0, List.of(1L, 2L, 3L)),
+                        ExponentialHistogramBuckets.create(0, 0, List.of(1L, 2L, 3L)),
+                        timeEpochNanos,
+                        timeEpochNanos,
+                        Attributes.empty(),
+                        List.of()
+                    )
+                )
             )
         );
     }
