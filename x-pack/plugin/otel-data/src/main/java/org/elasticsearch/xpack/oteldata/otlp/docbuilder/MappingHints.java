@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.oteldata.otlp;
+package org.elasticsearch.xpack.oteldata.otlp.docbuilder;
 
 import io.opentelemetry.proto.common.v1.AnyValue;
 import io.opentelemetry.proto.common.v1.KeyValue;

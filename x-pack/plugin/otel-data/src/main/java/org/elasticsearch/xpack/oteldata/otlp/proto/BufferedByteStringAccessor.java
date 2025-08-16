@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.oteldata.otlp;
+package org.elasticsearch.xpack.oteldata.otlp.proto;
 
 import com.google.protobuf.ByteString;
 

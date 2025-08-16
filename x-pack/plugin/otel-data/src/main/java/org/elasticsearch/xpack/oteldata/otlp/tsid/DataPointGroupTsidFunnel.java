@@ -8,7 +8,7 @@
 package org.elasticsearch.xpack.oteldata.otlp.tsid;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
-import org.elasticsearch.xpack.oteldata.otlp.DataPointGroupingContext;
+import org.elasticsearch.xpack.oteldata.otlp.datapoint.DataPointGroupingContext;
 
 public class DataPointGroupTsidFunnel implements TsidBuilder.TsidFunnel<DataPointGroupingContext.DataPointGroup> {
 

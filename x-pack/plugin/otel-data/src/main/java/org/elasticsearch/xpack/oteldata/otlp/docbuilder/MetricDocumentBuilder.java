@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.oteldata.otlp;
+package org.elasticsearch.xpack.oteldata.otlp.docbuilder;
 
 import io.opentelemetry.proto.common.v1.AnyValue;
 import io.opentelemetry.proto.common.v1.InstrumentationScope;
@@ -15,6 +15,10 @@ import io.opentelemetry.proto.resource.v1.Resource;
 import com.google.protobuf.ByteString;
 
 import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
+import org.elasticsearch.xpack.oteldata.otlp.datapoint.TargetIndex;
+import org.elasticsearch.xpack.oteldata.otlp.datapoint.DataPoint;
+import org.elasticsearch.xpack.oteldata.otlp.datapoint.DataPointGroupingContext;
 
 import java.io.IOException;
 import java.util.HashMap;

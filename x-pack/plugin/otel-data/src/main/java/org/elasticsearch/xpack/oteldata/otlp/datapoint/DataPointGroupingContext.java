@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.oteldata.otlp;
+package org.elasticsearch.xpack.oteldata.otlp.datapoint;
 
 import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.common.v1.InstrumentationScope;
@@ -23,6 +23,7 @@ import com.google.protobuf.ByteString;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.core.CheckedConsumer;
+import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.DataPointTsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.ResourceTsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.ScopeTsidFunnel;

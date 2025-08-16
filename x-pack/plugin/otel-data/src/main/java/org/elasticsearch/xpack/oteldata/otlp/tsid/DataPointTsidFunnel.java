@@ -9,8 +9,8 @@ package org.elasticsearch.xpack.oteldata.otlp.tsid;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
-import org.elasticsearch.xpack.oteldata.otlp.DataPoint;
-import org.elasticsearch.xpack.oteldata.otlp.BufferedByteStringAccessor;
+import org.elasticsearch.xpack.oteldata.otlp.datapoint.DataPoint;
+import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 
 public class DataPointTsidFunnel implements TsidFunnel<DataPoint> {
 

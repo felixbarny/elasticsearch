@@ -39,6 +39,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xcontent.XContentFactory;
+import org.elasticsearch.xpack.oteldata.otlp.datapoint.DataPointGroupingContext;
+import org.elasticsearch.xpack.oteldata.otlp.docbuilder.MetricDocumentBuilder;
+import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.DataPointGroupTsidFunnel;
 
 import java.io.IOException;

@@ -5,13 +5,14 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.oteldata.otlp;
+package org.elasticsearch.xpack.oteldata.otlp.datapoint;
 
 import io.opentelemetry.proto.common.v1.AnyValue;
 import io.opentelemetry.proto.common.v1.ArrayValue;
 import io.opentelemetry.proto.common.v1.KeyValue;
 
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.xpack.oteldata.otlp.docbuilder.MappingHints;
 
 import java.util.List;
 

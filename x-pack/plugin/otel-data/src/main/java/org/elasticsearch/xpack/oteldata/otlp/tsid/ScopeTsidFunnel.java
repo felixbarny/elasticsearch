@@ -12,7 +12,7 @@ import io.opentelemetry.proto.metrics.v1.ScopeMetrics;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
-import org.elasticsearch.xpack.oteldata.otlp.BufferedByteStringAccessor;
+import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 
 import java.util.List;
 

@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.oteldata.otlp;
+package org.elasticsearch.xpack.oteldata.otlp.datapoint;
 
 import io.opentelemetry.proto.common.v1.KeyValue;
 import io.opentelemetry.proto.metrics.v1.AggregationTemporality;
@@ -16,6 +16,7 @@ import io.opentelemetry.proto.metrics.v1.NumberDataPoint;
 import io.opentelemetry.proto.metrics.v1.SummaryDataPoint;
 
 import org.elasticsearch.xcontent.XContentBuilder;
+import org.elasticsearch.xpack.oteldata.otlp.docbuilder.MappingHints;
 
 import java.io.IOException;
 import java.util.List;
