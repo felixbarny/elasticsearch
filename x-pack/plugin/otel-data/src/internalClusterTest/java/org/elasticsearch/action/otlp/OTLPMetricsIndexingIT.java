@@ -74,6 +74,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static io.opentelemetry.api.common.AttributeKey.stringKey;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertResponse;
 import static org.hamcrest.Matchers.aMapWithSize;
 import static org.hamcrest.Matchers.anEmptyMap;
@@ -87,7 +88,7 @@ import static org.hamcrest.Matchers.not;
 
 public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
 
-    private static final Resource TEST_RESOURCE = Resource.create(Attributes.of(AttributeKey.stringKey("service.name"), "elasticsearch"));
+    private static final Resource TEST_RESOURCE = Resource.create(Attributes.of(stringKey("service.name"), "elasticsearch"));
     private static final InstrumentationScopeInfo TEST_SCOPE = InstrumentationScopeInfo.create("io.opentelemetry.example.metrics");
     private OtlpHttpMetricExporter exporter;
     private SdkMeterProvider meterProvider;
@@ -235,6 +236,37 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
         });
     }
 
+    public void testRoutingSameTimeSeriesDifferentIndex() throws Exception {
+        long now = Clock.getDefault().now();
+        MetricData metric1 = createDoubleGauge(
+            TEST_RESOURCE,
+            Attributes.of(stringKey("data_stream.dataset"), "foo"),
+            "metric",
+            42,
+            "By",
+            now
+        );
+        MetricData metric2 = createDoubleGauge(
+            TEST_RESOURCE,
+            Attributes.of(stringKey("data_stream.dataset"), "bar"),
+            "metric",
+            42,
+            "By",
+            now
+        );
+
+        export(List.of(metric1, metric2));
+
+        assertResponse(client().prepareSearch("metrics-foo.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            assertThat(evaluate(resp.getHits().getAt(0).getSourceAsMap(), "metrics.metric"), equalTo(42.0));
+        });
+        assertResponse(client().prepareSearch("metrics-bar.otel-default"), resp -> {
+            assertThat(resp.getHits().getHits(), arrayWithSize(1));
+            assertThat(evaluate(resp.getHits().getAt(0).getSourceAsMap(), "metrics.metric"), equalTo(42.0));
+        });
+    }
+
     public void testGroupingDifferentGroup() throws Exception {
         long now = Clock.getDefault().now();
         export(
@@ -242,7 +274,7 @@ public class OTLPMetricsIndexingIT extends ESSingleNodeTestCase {
                 createDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "By", now),
                 createDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "By", now + TimeUnit.MILLISECONDS.toNanos(1)),
                 createDoubleGauge(TEST_RESOURCE, Attributes.empty(), "metric1", 42, "", now),
-                createDoubleGauge(TEST_RESOURCE, Attributes.of(AttributeKey.stringKey("foo"), "bar"), "metric1", 42, "By", now)
+                createDoubleGauge(TEST_RESOURCE, Attributes.of(stringKey("foo"), "bar"), "metric1", 42, "By", now)
             )
         );
 

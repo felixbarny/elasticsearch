@@ -80,8 +80,8 @@ def downloadProtoArchive = tasks.register("downloadProtoArchive") {
   doLast {
     protoArchivePath.get().asFile.parentFile.mkdirs()
     "https://github.com/open-telemetry/opentelemetry-proto/archive/v${otlpProtoVersion}.zip".toURL()
-      .withInputStream { i ->
-        protoArchivePath.get().asFile.withOutputStream { it << i }
+      .withInputStream { is ->
+        protoArchivePath.get().asFile.withOutputStream {os -> os << is }
       }
   }
 }

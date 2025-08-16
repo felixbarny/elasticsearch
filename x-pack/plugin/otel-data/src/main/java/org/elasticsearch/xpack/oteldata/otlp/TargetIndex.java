@@ -111,6 +111,11 @@ public final class TargetIndex {
     }
 
     @Override
+    public String toString() {
+        return index;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
 
