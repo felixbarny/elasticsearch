@@ -109,4 +109,17 @@ public final class TargetIndex {
     public String namespace() {
         return namespace;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TargetIndex that = (TargetIndex) o;
+        return index.equals(that.index);
+    }
+
+    @Override
+    public int hashCode() {
+        return index.hashCode();
+    }
 }

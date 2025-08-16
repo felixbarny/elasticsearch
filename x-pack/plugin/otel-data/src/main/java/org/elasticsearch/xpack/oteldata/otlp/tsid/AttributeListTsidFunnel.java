@@ -50,20 +50,30 @@ class AttributeListTsidFunnel implements TsidFunnel<List<KeyValue>> {
 
     private void hashValue(TsidBuilder tsidBuilder, String key, AnyValue value) {
         switch (value.getValueCase()) {
-            case STRING_VALUE -> byteStringAccessor.addStringDimension(tsidBuilder, key, value.getStringValueBytes());
-            case BOOL_VALUE -> tsidBuilder.addBooleanDimension(key, value.getBoolValue());
-            case DOUBLE_VALUE -> tsidBuilder.addDoubleDimension(key, value.getDoubleValue());
-            case INT_VALUE -> tsidBuilder.addLongDimension(key, value.getIntValue());
-            case KVLIST_VALUE -> tsidBuilder.add(
-                value.getKvlistValue().getValuesList(),
-                AttributeListTsidFunnel.get(byteStringAccessor, key + ".")
-            );
-            case ARRAY_VALUE -> {
+            case STRING_VALUE:
+                byteStringAccessor.addStringDimension(tsidBuilder, key, value.getStringValueBytes());
+                break;
+            case BOOL_VALUE:
+                tsidBuilder.addBooleanDimension(key, value.getBoolValue());
+                break;
+            case DOUBLE_VALUE:
+                tsidBuilder.addDoubleDimension(key, value.getDoubleValue());
+                break;
+            case INT_VALUE:
+                tsidBuilder.addLongDimension(key, value.getIntValue());
+                break;
+            case KVLIST_VALUE:
+                tsidBuilder.add(
+                    value.getKvlistValue().getValuesList(),
+                    AttributeListTsidFunnel.get(byteStringAccessor, key + ".")
+                );
+                break;
+            case ARRAY_VALUE:
                 List<AnyValue> valuesList = value.getArrayValue().getValuesList();
                 for (int i = 0; i < valuesList.size(); i++) {
                     hashValue(tsidBuilder, key, valuesList.get(i));
                 }
-            }
+                break;
         }
     }
 }

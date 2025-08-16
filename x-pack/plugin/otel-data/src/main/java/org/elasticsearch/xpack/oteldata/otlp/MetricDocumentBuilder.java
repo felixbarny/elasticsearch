@@ -14,7 +14,6 @@ import io.opentelemetry.proto.resource.v1.Resource;
 
 import com.google.protobuf.ByteString;
 
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.xcontent.XContentBuilder;
 
 import java.io.IOException;
@@ -70,7 +69,7 @@ public class MetricDocumentBuilder {
         return dynamicTemplates;
     }
 
-    private void buildResource(Resource resource, String schemaUrl, XContentBuilder builder) throws IOException {
+    private void buildResource(Resource resource, ByteString schemaUrl, XContentBuilder builder) throws IOException {
         builder.startObject("resource");
         addFieldIfNotEmpty(builder, "schema_url", schemaUrl);
         if (resource.getDroppedAttributesCount() > 0) {
@@ -82,7 +81,7 @@ public class MetricDocumentBuilder {
         builder.endObject();
     }
 
-    private void buildScope(XContentBuilder builder, String schemaUrl, InstrumentationScope scope) throws IOException {
+    private void buildScope(XContentBuilder builder, ByteString schemaUrl, InstrumentationScope scope) throws IOException {
         builder.startObject("scope");
         addFieldIfNotEmpty(builder, "schema_url", schemaUrl);
         if (scope.getDroppedAttributesCount() > 0) {
@@ -94,12 +93,6 @@ public class MetricDocumentBuilder {
         buildAttributes(builder, scope.getAttributesList());
         builder.endObject();
         builder.endObject();
-    }
-
-    private static void addFieldIfNotEmpty(XContentBuilder builder, String name, String value) throws IOException {
-        if (Strings.isNullOrEmpty(value) == false) {
-            builder.field(name, value);
-        }
     }
 
     private void addFieldIfNotEmpty(XContentBuilder builder, String name, ByteString value) throws IOException {
