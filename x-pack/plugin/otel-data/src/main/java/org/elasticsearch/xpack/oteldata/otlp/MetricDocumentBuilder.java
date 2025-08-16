@@ -24,6 +24,12 @@ import java.util.concurrent.TimeUnit;
 
 public class MetricDocumentBuilder {
 
+    private final ByteStringAccessor byteStringAccessor;
+
+    public MetricDocumentBuilder(ByteStringAccessor byteStringAccessor) {
+        this.byteStringAccessor = byteStringAccessor;
+    }
+
     public HashMap<String, String> buildMetricDocument(XContentBuilder builder, DataPointGroupingContext.DataPointGroup dataPointGroup)
         throws IOException {
         HashMap<String, String> dynamicTemplates = new HashMap<>();
@@ -43,7 +49,8 @@ public class MetricDocumentBuilder {
 
         long docCount = 0;
         builder.startObject("metrics");
-        for (DataPoint dataPoint : dataPoints) {
+        for (int i = 0, dataPointsSize = dataPoints.size(); i < dataPointsSize; i++) {
+            DataPoint dataPoint = dataPoints.get(i);
             builder.field(dataPoint.getMetricName());
             MappingHints mappingHints = MappingHints.fromAttributes(dataPoint.getAttributes());
             dataPoint.buildMetricValue(mappingHints, builder);
@@ -95,10 +102,10 @@ public class MetricDocumentBuilder {
         }
     }
 
-    private static void addFieldIfNotEmpty(XContentBuilder builder, String name, ByteString value) throws IOException {
+    private void addFieldIfNotEmpty(XContentBuilder builder, String name, ByteString value) throws IOException {
         if (value != null && value.isEmpty() == false) {
             builder.field(name);
-            builder.utf8Value(value.toByteArray(), 0, value.size());
+            byteStringAccessor.utf8Value(builder, value);
         }
     }
 
@@ -138,16 +145,15 @@ public class MetricDocumentBuilder {
 
     private void attributeValue(XContentBuilder builder, AnyValue value) throws IOException {
         switch (value.getValueCase()) {
-            case STRING_VALUE -> {
-                byte[] bytes = value.getStringValueBytes().toByteArray();
-                builder.utf8Value(bytes, 0, bytes.length);
-            }
+            case STRING_VALUE -> byteStringAccessor.utf8Value(builder, value.getStringValueBytes());
             case BOOL_VALUE -> builder.value(value.getBoolValue());
             case INT_VALUE -> builder.value(value.getIntValue());
             case DOUBLE_VALUE -> builder.value(value.getDoubleValue());
             case ARRAY_VALUE -> {
                 builder.startArray();
-                for (AnyValue arrayValue : value.getArrayValue().getValuesList()) {
+                List<AnyValue> valuesList = value.getArrayValue().getValuesList();
+                for (int i = 0, valuesListSize = valuesList.size(); i < valuesListSize; i++) {
+                    AnyValue arrayValue = valuesList.get(i);
                     attributeValue(builder, arrayValue);
                 }
                 builder.endArray();

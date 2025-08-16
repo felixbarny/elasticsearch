@@ -12,25 +12,30 @@ import io.opentelemetry.proto.metrics.v1.ScopeMetrics;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
+import org.elasticsearch.xpack.oteldata.otlp.ByteStringAccessor;
 
 import java.util.List;
 
 public class ScopeTsidFunnel implements TsidFunnel<ScopeMetrics> {
 
-    private static final ScopeTsidFunnel INSTANCE = new ScopeTsidFunnel();
+    private final ByteStringAccessor byteStringAccessor;
 
-    public static TsidBuilder forScope(ScopeMetrics scopeMetrics) {
+    public ScopeTsidFunnel(ByteStringAccessor byteStringAccessor) {
+        this.byteStringAccessor = byteStringAccessor;
+    }
+
+    public static TsidBuilder forScope(ScopeMetrics scopeMetrics, ByteStringAccessor byteStringAccessor) {
         TsidBuilder tsidBuilder = new TsidBuilder(scopeMetrics.getScope().getAttributesCount() + 3);
-        INSTANCE.add(scopeMetrics, tsidBuilder);
+        new ScopeTsidFunnel(byteStringAccessor).add(scopeMetrics, tsidBuilder);
         return tsidBuilder;
     }
 
     @Override
     public void add(ScopeMetrics scopeMetrics, TsidBuilder tsidBuilder) {
         List<KeyValue> resourceAttributes = scopeMetrics.getScope().getAttributesList();
-        tsidBuilder.addStringDimension("name", scopeMetrics.getScope().getNameBytes().toByteArray());
-        tsidBuilder.addStringDimension("schema_url", scopeMetrics.getSchemaUrlBytes().toByteArray());
-        tsidBuilder.add(resourceAttributes, AttributeListTsidFunnel.get("scope.attributes."));
-        tsidBuilder.addStringDimension("version", scopeMetrics.getScope().getVersionBytes().toByteArray());
+        byteStringAccessor.addStringDimension(tsidBuilder, "name", scopeMetrics.getScope().getNameBytes());
+        byteStringAccessor.addStringDimension(tsidBuilder, "schema_url", scopeMetrics.getSchemaUrlBytes());
+        tsidBuilder.add(resourceAttributes, AttributeListTsidFunnel.get(byteStringAccessor, "scope.attributes."));
+        byteStringAccessor.addStringDimension(tsidBuilder, "version", scopeMetrics.getScope().getVersionBytes());
     }
 }

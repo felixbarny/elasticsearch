@@ -10,20 +10,23 @@ package org.elasticsearch.xpack.oteldata.otlp.tsid;
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.DataPoint;
+import org.elasticsearch.xpack.oteldata.otlp.ByteStringAccessor;
 
 class DataPointDimensionsTsidFunnel implements TsidFunnel<DataPoint> {
 
-    private static final DataPointDimensionsTsidFunnel INSTANCE = new DataPointDimensionsTsidFunnel();
+    private final ByteStringAccessor byteStringAccessor;
 
-    private DataPointDimensionsTsidFunnel() {}
+    private DataPointDimensionsTsidFunnel(ByteStringAccessor byteStringAccessor) {
+        this.byteStringAccessor = byteStringAccessor;
+    }
 
-    static DataPointDimensionsTsidFunnel get() {
-        return INSTANCE;
+    static DataPointDimensionsTsidFunnel get(ByteStringAccessor byteStringAccessor) {
+        return new DataPointDimensionsTsidFunnel(byteStringAccessor);
     }
 
     @Override
     public void add(DataPoint dataPoint, TsidBuilder tsidBuilder) {
-        tsidBuilder.add(dataPoint.getAttributes(), AttributeListTsidFunnel.get("attributes."));
+        tsidBuilder.add(dataPoint.getAttributes(), AttributeListTsidFunnel.get(byteStringAccessor, "attributes."));
         tsidBuilder.addStringDimension("unit", dataPoint.getUnit());
     }
 }

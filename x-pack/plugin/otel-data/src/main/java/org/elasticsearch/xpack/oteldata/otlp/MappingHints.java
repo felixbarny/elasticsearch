@@ -22,10 +22,13 @@ public record MappingHints(boolean aggregateMetricDouble, boolean docCount) {
     public static MappingHints fromAttributes(List<KeyValue> attributes) {
         boolean aggregateMetricDouble = false;
         boolean docCount = false;
-        for (KeyValue attribute : attributes) {
+        for (int i = 0, attributesSize = attributes.size(); i < attributesSize; i++) {
+            KeyValue attribute = attributes.get(i);
             if (attribute.getKey().equals(MAPPING_HINTS)) {
                 if (attribute.getValue().hasArrayValue()) {
-                    for (AnyValue hint : attribute.getValue().getArrayValue().getValuesList()) {
+                    List<AnyValue> valuesList = attribute.getValue().getArrayValue().getValuesList();
+                    for (int j = 0, valuesListSize = valuesList.size(); j < valuesListSize; j++) {
+                        AnyValue hint = valuesList.get(j);
                         if (hint.hasStringValue()) {
                             switch (hint.getStringValue()) {
                                 case AGGREGATE_METRIC_DOUBLE -> aggregateMetricDouble = true;

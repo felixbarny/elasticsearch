@@ -13,6 +13,7 @@ import io.opentelemetry.proto.common.v1.KeyValue;
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.MappingHints;
+import org.elasticsearch.xpack.oteldata.otlp.ByteStringAccessor;
 import org.elasticsearch.xpack.oteldata.otlp.TargetIndex;
 
 import java.util.List;
@@ -20,13 +21,15 @@ import java.util.List;
 class AttributeListTsidFunnel implements TsidFunnel<List<KeyValue>> {
 
     private final String prefix;
+    private final ByteStringAccessor byteStringAccessor;
 
-    private AttributeListTsidFunnel(String prefix) {
+    private AttributeListTsidFunnel(ByteStringAccessor byteStringAccessor, String prefix) {
         this.prefix = prefix;
+        this.byteStringAccessor = byteStringAccessor;
     }
 
-    static AttributeListTsidFunnel get(String prefix) {
-        return new AttributeListTsidFunnel(prefix);
+    static AttributeListTsidFunnel get(ByteStringAccessor byteStringAccessor, String prefix) {
+        return new AttributeListTsidFunnel(byteStringAccessor, prefix);
     }
 
     @Override
@@ -47,12 +50,14 @@ class AttributeListTsidFunnel implements TsidFunnel<List<KeyValue>> {
 
     private void hashValue(TsidBuilder tsidBuilder, String key, AnyValue value) {
         switch (value.getValueCase()) {
-            case STRING_VALUE -> tsidBuilder.addStringDimension(key, value.getStringValueBytes().toByteArray());
+            case STRING_VALUE -> byteStringAccessor.addStringDimension(tsidBuilder, key, value.getStringValueBytes());
             case BOOL_VALUE -> tsidBuilder.addBooleanDimension(key, value.getBoolValue());
-            case BYTES_VALUE -> tsidBuilder.addBytesDimension(key, value.getBytesValue().toByteArray());
             case DOUBLE_VALUE -> tsidBuilder.addDoubleDimension(key, value.getDoubleValue());
             case INT_VALUE -> tsidBuilder.addLongDimension(key, value.getIntValue());
-            case KVLIST_VALUE -> tsidBuilder.add(value.getKvlistValue().getValuesList(), AttributeListTsidFunnel.get(key + "."));
+            case KVLIST_VALUE -> tsidBuilder.add(
+                value.getKvlistValue().getValuesList(),
+                AttributeListTsidFunnel.get(byteStringAccessor, key + ".")
+            );
             case ARRAY_VALUE -> {
                 List<AnyValue> valuesList = value.getArrayValue().getValuesList();
                 for (int i = 0; i < valuesList.size(); i++) {

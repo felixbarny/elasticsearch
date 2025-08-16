@@ -27,6 +27,7 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.client.internal.Client;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.injection.guice.Inject;
@@ -35,7 +36,7 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.xcontent.XContentBuilder;
-import org.elasticsearch.xcontent.cbor.CborXContent;
+import org.elasticsearch.xcontent.XContentFactory;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.DataPointGroupTsidFunnel;
 
 import java.io.IOException;
@@ -50,7 +51,6 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
     private static final Logger logger = LogManager.getLogger(OTLPMetricsTransportAction.class);
     private final Client client;
-    private final MetricDocumentBuilder metricDocumentBuilder = new MetricDocumentBuilder();
 
     @Inject
     public OTLPMetricsTransportAction(
@@ -68,9 +68,11 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         try {
             var metricsServiceRequest = ExportMetricsServiceRequest.parseFrom(request.exportMetricsServiceRequest.streamInput());
             BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
-            DataPointGroupingContext context = new DataPointGroupingContext();
+            ByteStringAccessor byteStringAccessor = new ByteStringAccessor();
+            DataPointGroupingContext context = new DataPointGroupingContext(byteStringAccessor);
             context.groupDataPoints(metricsServiceRequest);
-            context.forEach(dataPointGroup -> addIndexRequest(bulkRequestBuilder, dataPointGroup));
+            MetricDocumentBuilder metricDocumentBuilder = new MetricDocumentBuilder(byteStringAccessor);
+            context.forEach(dataPointGroup -> addIndexRequest(bulkRequestBuilder, metricDocumentBuilder, dataPointGroup));
             if (bulkRequestBuilder.numberOfActions() == 0) {
                 if (context.totalDataPoints() == 0) {
                     // https://opentelemetry.io/docs/specs/otlp/#full-success-1
@@ -150,9 +152,12 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             .build();
     }
 
-    private void addIndexRequest(BulkRequestBuilder bulkRequestBuilder, DataPointGroupingContext.DataPointGroup dataPointGroup)
-        throws IOException {
-        try (XContentBuilder xContentBuilder = CborXContent.contentBuilder()) {
+    private void addIndexRequest(
+        BulkRequestBuilder bulkRequestBuilder,
+        MetricDocumentBuilder metricDocumentBuilder,
+        DataPointGroupingContext.DataPointGroup dataPointGroup
+    ) throws IOException {
+        try (XContentBuilder xContentBuilder = XContentFactory.cborBuilder(new BytesStreamOutput())) {
             var dynamicTemplates = metricDocumentBuilder.buildMetricDocument(xContentBuilder, dataPointGroup);
             bulkRequestBuilder.add(
                 client.prepareIndex(dataPointGroup.targetIndex().index())

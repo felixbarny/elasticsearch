@@ -10,23 +10,26 @@ package org.elasticsearch.xpack.oteldata.otlp.tsid;
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.DataPoint;
+import org.elasticsearch.xpack.oteldata.otlp.ByteStringAccessor;
 
 public class DataPointTsidFunnel implements TsidFunnel<DataPoint> {
 
-    private static final DataPointTsidFunnel INSTANCE = new DataPointTsidFunnel();
+    private final ByteStringAccessor byteStringAccessor;
 
-    private DataPointTsidFunnel() {}
+    private DataPointTsidFunnel(ByteStringAccessor byteStringAccessor) {
+        this.byteStringAccessor = byteStringAccessor;
+    }
 
-    public static TsidBuilder forDataPoint(DataPoint dataPoint) {
+    public static TsidBuilder forDataPoint(DataPoint dataPoint, ByteStringAccessor byteStringAccessor) {
         TsidBuilder tsidBuilder = new TsidBuilder(dataPoint.getAttributes().size() + 3);
-        INSTANCE.add(dataPoint, tsidBuilder);
+        new DataPointTsidFunnel(byteStringAccessor).add(dataPoint, tsidBuilder);
         return tsidBuilder;
     }
 
     @Override
     public void add(DataPoint dataPoint, TsidBuilder tsidBuilder) {
         tsidBuilder.addLongDimension("@timestamp", dataPoint.getTimestampUnixNano());
-        tsidBuilder.add(dataPoint, DataPointDimensionsTsidFunnel.get());
+        tsidBuilder.add(dataPoint, DataPointDimensionsTsidFunnel.get(byteStringAccessor));
         tsidBuilder.addLongDimension("start_timestamp", dataPoint.getStartTimestampUnixNano());
     }
 }

@@ -39,22 +39,27 @@ public class DataPointGroupingContext {
 
     // <resourceHash, <scopeHash, <dataPointDimensionsHash, List<DataPoint>>>
     private final Map<HashValue128, Map<HashValue128, Map<HashValue128, DataPointGroup>>> dataPoints = new HashMap<>();
+    private final ByteStringAccessor byteStringAccessor;
 
     private int totalDataPoints = 0;
     private int ignoredDataPoints = 0;
     private final Set<String> ignoredDataPointMessages = new HashSet<>();
 
+    public DataPointGroupingContext(ByteStringAccessor byteStringAccessor) {
+        this.byteStringAccessor = byteStringAccessor;
+    }
+
     public void groupDataPoints(ExportMetricsServiceRequest exportMetricsServiceRequest) {
         List<ResourceMetrics> resourceMetricsList = exportMetricsServiceRequest.getResourceMetricsList();
         for (int i = 0; i < resourceMetricsList.size(); i++) {
             ResourceMetrics resourceMetrics = resourceMetricsList.get(i);
-            TsidBuilder resourceTsidBuilder = ResourceTsidFunnel.forResource(resourceMetrics);
+            TsidBuilder resourceTsidBuilder = ResourceTsidFunnel.forResource(resourceMetrics, byteStringAccessor);
             HashValue128 resourceHash = resourceTsidBuilder.hash();
             List<ScopeMetrics> scopeMetricsList = resourceMetrics.getScopeMetricsList();
             for (int j = 0; j < scopeMetricsList.size(); j++) {
                 ScopeMetrics scopeMetrics = scopeMetricsList.get(j);
                 InstrumentationScope scope = scopeMetrics.getScope();
-                TsidBuilder scopeTsidBuilder = ScopeTsidFunnel.forScope(scopeMetrics);
+                TsidBuilder scopeTsidBuilder = ScopeTsidFunnel.forScope(scopeMetrics, byteStringAccessor);
                 HashValue128 scopeHash = scopeTsidBuilder.hash();
                 List<Metric> metricsList = scopeMetrics.getMetricsList();
                 for (int k = 0; k < metricsList.size(); k++) {
@@ -180,7 +185,7 @@ public class DataPointGroupingContext {
             ignoredDataPoints++;
             return;
         }
-        TsidBuilder dataPointGroupTsidBuilder = DataPointTsidFunnel.forDataPoint(dataPoint);
+        TsidBuilder dataPointGroupTsidBuilder = DataPointTsidFunnel.forDataPoint(dataPoint, byteStringAccessor);
         HashValue128 dataPointGroupHash = dataPointGroupTsidBuilder.hash();
         DataPointGroup dataPointGroup = dataPoints.computeIfAbsent(resourceHash, k -> new HashMap<>())
             .computeIfAbsent(scopeHash, k -> new HashMap<>())

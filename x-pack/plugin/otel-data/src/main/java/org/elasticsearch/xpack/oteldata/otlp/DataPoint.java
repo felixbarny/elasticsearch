@@ -84,11 +84,13 @@ public interface DataPoint {
         @Override
         public String getDynamicTemplate(MappingHints mappingHints) {
             String prefix = metric.getDataCase() == Metric.DataCase.SUM ? "counter_" : "gauge_";
-            return switch (dataPoint.getValueCase()) {
-                case AS_INT -> prefix + "long";
-                case AS_DOUBLE -> prefix + "double";
-                case VALUE_NOT_SET -> null;
-            };
+            if (dataPoint.getValueCase() == NumberDataPoint.ValueCase.AS_INT) {
+                return prefix + "long";
+            } else if (dataPoint.getValueCase() == NumberDataPoint.ValueCase.AS_DOUBLE) {
+                return prefix + "double";
+            } else {
+                return null;
+            }
         }
 
         @Override
