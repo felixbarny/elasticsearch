@@ -30,7 +30,7 @@ import static org.elasticsearch.rest.RestRequest.Method.POST;
 public class OTLPMetricsRestAction extends BaseRestHandler {
     @Override
     public String getName() {
-        return "metrics_action";
+        return "otlp_metrics_action";
     }
 
     @Override
@@ -60,7 +60,10 @@ public class OTLPMetricsRestAction extends BaseRestHandler {
             );
         }
 
-        // according to spec empty requests are successful
+        // If the server receives an empty request
+        // (a request that does not carry any telemetry data)
+        // the server SHOULD respond with success.
+        // https://opentelemetry.io/docs/specs/otlp/#full-success-1
         return channel -> channel.sendResponse(successResponse(RestStatus.OK, ExportMetricsServiceResponse.newBuilder().build()));
     }
 

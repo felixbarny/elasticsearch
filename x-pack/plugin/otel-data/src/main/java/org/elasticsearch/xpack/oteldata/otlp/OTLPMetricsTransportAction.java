@@ -70,7 +70,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         try {
             var metricsServiceRequest = ExportMetricsServiceRequest.parseFrom(request.exportMetricsServiceRequest.streamInput());
             BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
-            ByteStringAccessor byteStringAccessor = new ByteStringAccessor();
+            BufferedByteStringAccessor byteStringAccessor = new BufferedByteStringAccessor();
             DataPointGroupingContext context = new DataPointGroupingContext(byteStringAccessor);
             context.groupDataPoints(metricsServiceRequest);
             MetricDocumentBuilder metricDocumentBuilder = new MetricDocumentBuilder(byteStringAccessor);

@@ -12,19 +12,19 @@ import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
 
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
-import org.elasticsearch.xpack.oteldata.otlp.ByteStringAccessor;
+import org.elasticsearch.xpack.oteldata.otlp.BufferedByteStringAccessor;
 
 import java.util.List;
 
 public class ResourceTsidFunnel implements TsidFunnel<ResourceMetrics> {
 
-    private final ByteStringAccessor byteStringAccessor;
+    private final BufferedByteStringAccessor byteStringAccessor;
 
-    public ResourceTsidFunnel(ByteStringAccessor byteStringAccessor) {
+    public ResourceTsidFunnel(BufferedByteStringAccessor byteStringAccessor) {
         this.byteStringAccessor = byteStringAccessor;
     }
 
-    public static TsidBuilder forResource(ResourceMetrics resourceMetrics, ByteStringAccessor byteStringAccessor) {
+    public static TsidBuilder forResource(BufferedByteStringAccessor byteStringAccessor, ResourceMetrics resourceMetrics) {
         TsidBuilder tsidBuilder = new TsidBuilder(resourceMetrics.getResource().getAttributesCount() + 1);
         new ResourceTsidFunnel(byteStringAccessor).add(resourceMetrics, tsidBuilder);
         return tsidBuilder;

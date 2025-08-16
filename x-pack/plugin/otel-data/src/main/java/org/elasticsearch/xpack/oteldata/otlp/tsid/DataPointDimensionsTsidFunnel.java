@@ -10,17 +10,17 @@ package org.elasticsearch.xpack.oteldata.otlp.tsid;
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.DataPoint;
-import org.elasticsearch.xpack.oteldata.otlp.ByteStringAccessor;
+import org.elasticsearch.xpack.oteldata.otlp.BufferedByteStringAccessor;
 
 class DataPointDimensionsTsidFunnel implements TsidFunnel<DataPoint> {
 
-    private final ByteStringAccessor byteStringAccessor;
+    private final BufferedByteStringAccessor byteStringAccessor;
 
-    private DataPointDimensionsTsidFunnel(ByteStringAccessor byteStringAccessor) {
+    private DataPointDimensionsTsidFunnel(BufferedByteStringAccessor byteStringAccessor) {
         this.byteStringAccessor = byteStringAccessor;
     }
 
-    static DataPointDimensionsTsidFunnel get(ByteStringAccessor byteStringAccessor) {
+    static DataPointDimensionsTsidFunnel get(BufferedByteStringAccessor byteStringAccessor) {
         return new DataPointDimensionsTsidFunnel(byteStringAccessor);
     }
 

@@ -13,7 +13,7 @@ import io.opentelemetry.proto.common.v1.KeyValue;
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder.TsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.MappingHints;
-import org.elasticsearch.xpack.oteldata.otlp.ByteStringAccessor;
+import org.elasticsearch.xpack.oteldata.otlp.BufferedByteStringAccessor;
 import org.elasticsearch.xpack.oteldata.otlp.TargetIndex;
 
 import java.util.List;
@@ -21,14 +21,14 @@ import java.util.List;
 class AttributeListTsidFunnel implements TsidFunnel<List<KeyValue>> {
 
     private final String prefix;
-    private final ByteStringAccessor byteStringAccessor;
+    private final BufferedByteStringAccessor byteStringAccessor;
 
-    private AttributeListTsidFunnel(ByteStringAccessor byteStringAccessor, String prefix) {
+    private AttributeListTsidFunnel(BufferedByteStringAccessor byteStringAccessor, String prefix) {
         this.prefix = prefix;
         this.byteStringAccessor = byteStringAccessor;
     }
 
-    static AttributeListTsidFunnel get(ByteStringAccessor byteStringAccessor, String prefix) {
+    static AttributeListTsidFunnel get(BufferedByteStringAccessor byteStringAccessor, String prefix) {
         return new AttributeListTsidFunnel(byteStringAccessor, prefix);
     }
 

@@ -17,11 +17,11 @@ import java.io.IOException;
 /**
  * A utility class that allows uses a shared {@code byte[]} buffer to convert {@link ByteString} values to byte arrays.
  * This class is designed to be used in scenarios where multiple {@link ByteString} values need to be processed,
- * such as when building TSIDs (Time Series Identifiers) or writing UTF-8 encoded values to an {@link XContentBuilder}.
- * This avoids frequent allocations of byte arrays, improving performance.
- * Note that due to the shared buffer, this class is not thread-safe.
+ * such as when building TSIDs or writing UTF-8 encoded values to an {@link XContentBuilder}.
+ * This avoids frequent allocations of byte arrays in {@link ByteString#toByteArray()}.
+ * Note that due to the use of a shared buffer, this class is not thread-safe.
  */
-public class ByteStringAccessor {
+public class BufferedByteStringAccessor {
 
     private static final int DEFAULT_INITIAL_SIZE = 128;
 

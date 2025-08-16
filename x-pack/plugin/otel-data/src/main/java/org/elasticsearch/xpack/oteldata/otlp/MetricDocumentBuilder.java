@@ -24,9 +24,9 @@ import java.util.concurrent.TimeUnit;
 
 public class MetricDocumentBuilder {
 
-    private final ByteStringAccessor byteStringAccessor;
+    private final BufferedByteStringAccessor byteStringAccessor;
 
-    public MetricDocumentBuilder(ByteStringAccessor byteStringAccessor) {
+    public MetricDocumentBuilder(BufferedByteStringAccessor byteStringAccessor) {
         this.byteStringAccessor = byteStringAccessor;
     }
 

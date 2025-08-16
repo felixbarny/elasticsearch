@@ -12,6 +12,20 @@ import io.opentelemetry.proto.common.v1.KeyValue;
 
 import java.util.List;
 
+/**
+ * Represents mapping hints that can be used to influence how data is indexed in Elasticsearch.
+ * These hints are provided as data point attributes in the OTLP data.
+ *
+ * @param aggregateMetricDouble Indicates that the metric should be mapped as an aggregate_metric_double.
+ *                              This hint is available for histogram and exponential histogram metrics.
+ * @param docCount              Indicates that the metric should be mapped with a _doc_count field.
+ *                              This hint is available for all metric types.
+ *                              When used for a histogram, exponential histogram, or summary metric,
+ *                              the _doc_count field will be populated with the number of total counts.
+ *                              It is not recommended to use this hint for metrics that are grouped together
+ *                              into the same document.
+ *                              In these cases, the behavior is undefined but does not lead to data loss.
+ */
 public record MappingHints(boolean aggregateMetricDouble, boolean docCount) {
     public static final String MAPPING_HINTS = "elasticsearch.mapping.hints";
 

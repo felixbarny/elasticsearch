@@ -23,6 +23,7 @@ import org.elasticsearch.xcontent.XContentString;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class TsidBuilder {
 
@@ -31,7 +32,7 @@ public class TsidBuilder {
     private static final Hasher32 HASHER_32 = Hashing.murmur3_32();
     private final HashStream128 hashStream = HASHER_128.hashStream();
 
-    private final ArrayList<Dimension> dimensions;
+    private final List<Dimension> dimensions;
 
     public TsidBuilder() {
         dimensions = new ArrayList<>();
