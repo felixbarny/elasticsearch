@@ -69,7 +69,8 @@ public class DataPointGroupingContext {
                             scopeTsidBuilder,
                             scope,
                             scopeMetrics.getSchemaUrl(),
-                            metric, metric.getSum().getDataPointsList(),
+                            metric,
+                            metric.getSum().getDataPointsList(),
                             DataPoint.Number::new
                         );
                         case GAUGE -> addDataPoints(
@@ -81,7 +82,8 @@ public class DataPointGroupingContext {
                             scopeTsidBuilder,
                             scope,
                             scopeMetrics.getSchemaUrl(),
-                            metric, metric.getGauge().getDataPointsList(),
+                            metric,
+                            metric.getGauge().getDataPointsList(),
                             DataPoint.Number::new
                         );
                         case EXPONENTIAL_HISTOGRAM -> addDataPoints(
@@ -93,7 +95,8 @@ public class DataPointGroupingContext {
                             scopeTsidBuilder,
                             scope,
                             scopeMetrics.getSchemaUrl(),
-                            metric, metric.getExponentialHistogram().getDataPointsList(),
+                            metric,
+                            metric.getExponentialHistogram().getDataPointsList(),
                             DataPoint.ExponentialHistogram::new
                         );
                         case HISTOGRAM -> addDataPoints(
@@ -105,7 +108,8 @@ public class DataPointGroupingContext {
                             scopeTsidBuilder,
                             scope,
                             scopeMetrics.getSchemaUrl(),
-                            metric, metric.getHistogram().getDataPointsList(),
+                            metric,
+                            metric.getHistogram().getDataPointsList(),
                             DataPoint.Histogram::new
                         );
                         case SUMMARY -> addDataPoints(
@@ -117,7 +121,8 @@ public class DataPointGroupingContext {
                             scopeTsidBuilder,
                             scope,
                             scopeMetrics.getSchemaUrl(),
-                            metric, metric.getSummary().getDataPointsList(),
+                            metric,
+                            metric.getSummary().getDataPointsList(),
                             DataPoint.Summary::new
                         );
                         default -> {
@@ -139,7 +144,8 @@ public class DataPointGroupingContext {
         TsidBuilder scopeTsidBuilder,
         InstrumentationScope scope,
         String scopeSchemaUrl,
-        Metric metric, List<T> dataPoints,
+        Metric metric,
+        List<T> dataPoints,
         BiFunction<T, Metric, DataPoint> dataPointConverter
     ) {
         for (int i = 0; i < dataPoints.size(); i++) {
