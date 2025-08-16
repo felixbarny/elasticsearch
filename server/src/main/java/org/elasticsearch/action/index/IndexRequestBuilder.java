@@ -52,7 +52,6 @@ public class IndexRequestBuilder extends ReplicationRequestBuilder<IndexRequest,
     private Long version;
     private VersionType versionType;
     private BytesRef tsid;
-    private Map<String, String> dynamicTemplates;
 
     public IndexRequestBuilder(ElasticsearchClient client) {
         this(client, null);
@@ -278,11 +277,6 @@ public class IndexRequestBuilder extends ReplicationRequestBuilder<IndexRequest,
         return this;
     }
 
-    public IndexRequestBuilder setDynamicTemplates(Map<String, String> dynamicTemplates) {
-        this.dynamicTemplates = dynamicTemplates;
-        return this;
-    }
-
     @Override
     public IndexRequest request() {
         IndexRequest request = new IndexRequest();
@@ -329,9 +323,6 @@ public class IndexRequestBuilder extends ReplicationRequestBuilder<IndexRequest,
         }
         if (tsid != null) {
             request.tsid(tsid);
-        }
-        if (dynamicTemplates != null) {
-            request.setDynamicTemplates(dynamicTemplates);
         }
         return request;
     }

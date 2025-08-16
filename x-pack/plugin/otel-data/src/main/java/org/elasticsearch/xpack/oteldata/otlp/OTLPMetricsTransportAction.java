@@ -20,9 +20,11 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.HandledTransportAction;
 import org.elasticsearch.client.internal.Client;
@@ -160,11 +162,11 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         try (XContentBuilder xContentBuilder = XContentFactory.cborBuilder(new BytesStreamOutput())) {
             var dynamicTemplates = metricDocumentBuilder.buildMetricDocument(xContentBuilder, dataPointGroup);
             bulkRequestBuilder.add(
-                client.prepareIndex(dataPointGroup.targetIndex().index())
-                    .setCreate(true)
+                new IndexRequest(dataPointGroup.targetIndex().index())
+                    .opType(DocWriteRequest.OpType.CREATE)
                     .setRequireDataStream(true)
-                    .setSource(xContentBuilder)
-                    .setTsid(DataPointGroupTsidFunnel.forDataPointGroup(dataPointGroup).buildTsid())
+                    .source(xContentBuilder)
+                    .tsid(DataPointGroupTsidFunnel.forDataPointGroup(dataPointGroup).buildTsid())
                     .setDynamicTemplates(dynamicTemplates)
             );
         }
