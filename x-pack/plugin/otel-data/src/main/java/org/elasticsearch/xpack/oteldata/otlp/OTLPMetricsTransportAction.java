@@ -47,6 +47,15 @@ import org.elasticsearch.xpack.oteldata.otlp.tsid.DataPointGroupTsidFunnel;
 import java.io.IOException;
 import java.util.Arrays;
 
+/**
+ * Transport action for handling OpenTelemetry Protocol (OTLP) Metrics requests.
+ * This action processes the incoming metrics data, groups data points, and invokes the
+ * appropriate Elasticsearch bulk indexing operations to store the metrics.
+ * It also handles the response according to the OpenTelemetry Protocol specifications,
+ * including success and partial success responses, as well as error handling for invalid data.
+ *
+ * @see <a href="https://opentelemetry.io/docs/specs/otlp">OTLP Specification</a>
+ */
 public class OTLPMetricsTransportAction extends HandledTransportAction<
     OTLPMetricsTransportAction.MetricsRequest,
     OTLPMetricsTransportAction.MetricsResponse> {
@@ -72,10 +81,9 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
     protected void doExecute(Task task, MetricsRequest request, ActionListener<MetricsResponse> listener) {
         try {
             var metricsServiceRequest = ExportMetricsServiceRequest.parseFrom(request.exportMetricsServiceRequest.streamInput());
-            BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
             BufferedByteStringAccessor byteStringAccessor = new BufferedByteStringAccessor();
-            DataPointGroupingContext context = new DataPointGroupingContext(byteStringAccessor);
-            context.groupDataPoints(metricsServiceRequest);
+            DataPointGroupingContext context = DataPointGroupingContext.groupDataPoints(metricsServiceRequest, byteStringAccessor);
+            BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
             MetricDocumentBuilder metricDocumentBuilder = new MetricDocumentBuilder(byteStringAccessor);
             context.forEach(dataPointGroup -> addIndexRequest(bulkRequestBuilder, metricDocumentBuilder, dataPointGroup));
             if (bulkRequestBuilder.numberOfActions() == 0) {
@@ -121,7 +129,6 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
                             failures + context.getIgnoredDataPoints(),
                             bulkItemResponses.buildFailureMessage() + context.getIgnoredDataPointsMessage()
                         );
-                        logger.warn("OTLP request completed with failures {}", bulkItemResponses.buildFailureMessage());
                     } else {
                         response = ExportMetricsServiceResponse.newBuilder().build();
                     }
@@ -130,7 +137,6 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
 
                 @Override
                 public void onFailure(Exception e) {
-                    logger.debug(e.getMessage(), e);
                     listener.onResponse(
                         // https://opentelemetry.io/docs/specs/otlp/#failures-1
                         // If the processing of the request fails,
@@ -144,8 +150,8 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             });
 
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            listener.onFailure(e);
+            logger.error("failed to execute otlp metrics request", e);
+            new MetricsResponse(RestStatus.INTERNAL_SERVER_ERROR, responseWithRejectedDataPoints(-1, e.getMessage()));
         }
     }
 
@@ -165,8 +171,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
         try (XContentBuilder xContentBuilder = XContentFactory.cborBuilder(new BytesStreamOutput())) {
             var dynamicTemplates = metricDocumentBuilder.buildMetricDocument(xContentBuilder, dataPointGroup);
             bulkRequestBuilder.add(
-                new IndexRequest(dataPointGroup.targetIndex().index())
-                    .opType(DocWriteRequest.OpType.CREATE)
+                new IndexRequest(dataPointGroup.targetIndex().index()).opType(DocWriteRequest.OpType.CREATE)
                     .setRequireDataStream(true)
                     .source(xContentBuilder)
                     .tsid(DataPointGroupTsidFunnel.forDataPointGroup(dataPointGroup).buildTsid())

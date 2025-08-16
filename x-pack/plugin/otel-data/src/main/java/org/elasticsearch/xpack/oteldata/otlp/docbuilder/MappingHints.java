@@ -44,9 +44,11 @@ public record MappingHints(boolean aggregateMetricDouble, boolean docCount) {
                     for (int j = 0, valuesListSize = valuesList.size(); j < valuesListSize; j++) {
                         AnyValue hint = valuesList.get(j);
                         if (hint.hasStringValue()) {
-                            switch (hint.getStringValue()) {
-                                case AGGREGATE_METRIC_DOUBLE -> aggregateMetricDouble = true;
-                                case DOC_COUNT -> docCount = true;
+                            String value = hint.getStringValue();
+                            if (value.equals(AGGREGATE_METRIC_DOUBLE)) {
+                                aggregateMetricDouble = true;
+                            } else if (value.equals(DOC_COUNT)) {
+                                docCount = true;
                             }
                         }
                     }

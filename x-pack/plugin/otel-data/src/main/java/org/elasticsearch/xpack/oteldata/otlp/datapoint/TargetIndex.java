@@ -13,6 +13,10 @@ import org.elasticsearch.cluster.metadata.DataStream;
 
 import java.util.List;
 
+/**
+ * Represents the target index for a data point, which can be either a specific index or a data stream.
+ * The index is determined based on attributes, scope name, and default values.
+ */
 public final class TargetIndex {
 
     public static final String ELASTICSEARCH_INDEX = "elasticsearch.index";
@@ -24,6 +28,17 @@ public final class TargetIndex {
     private String dataset;
     private String namespace;
 
+    /**
+     * Determines the target index for a data point.
+     *
+     * @param type The data stream type (e.g., "metrics", "logs").
+     * @param attributes The attributes associated with the data point.
+     * @param scopeName The name of the scope, which may influence the dataset (receiver-based routing).
+     *                  If the scope name contains "/receiver/", the dataset is derived from it.
+     * @param scopeAttributes Attributes associated with the scope.
+     * @param resourceAttributes Attributes associated with the resource.
+     * @return A TargetIndex instance representing the target index for the data point.
+     */
     public static TargetIndex route(
         String type,
         List<KeyValue> attributes,

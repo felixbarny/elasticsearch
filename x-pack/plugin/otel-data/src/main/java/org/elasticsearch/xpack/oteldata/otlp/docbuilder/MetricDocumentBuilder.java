@@ -25,6 +25,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Utility class to build a metric document from a data point group.
+ * This class constructs an Elasticsearch document representation of a metric data point group,
+ * including resource, scope, attributes, and metric values.
+ * It also handles dynamic templates for metrics based on their attributes.
+ */
 public class MetricDocumentBuilder {
 
     private final BufferedByteStringAccessor byteStringAccessor;

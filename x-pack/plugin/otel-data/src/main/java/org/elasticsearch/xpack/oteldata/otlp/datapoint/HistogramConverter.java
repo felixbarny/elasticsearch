@@ -19,12 +19,12 @@ import org.elasticsearch.exponentialhistogram.ExponentialScaleUtils;
  * {@link ExponentialHistogramDataPoint} and {@link HistogramDataPoint}.
  * The algorithm is ported over from the OpenTelemetry collector's Elasticsearch exporter.
  * @see <a href="https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.132.0/exporter/elasticsearchexporter">
- * Elasticsearch exporter
+ * Elasticsearch exporter on GitHub
  * </a>
  */
 class HistogramConverter {
 
-    public static <E extends Exception> void counts(ExponentialHistogramDataPoint dp, CheckedLongConsumer<E> counts) throws E {
+    static <E extends Exception> void counts(ExponentialHistogramDataPoint dp, CheckedLongConsumer<E> counts) throws E {
         ExponentialHistogramDataPoint.Buckets negative = dp.getNegative();
 
         for (int i = negative.getBucketCountsCount() - 1; i >= 0; i--) {
@@ -56,7 +56,7 @@ class HistogramConverter {
      * <code>ToTDigest</code> function
      * </a>
      */
-    public static <E extends Exception> void centroidValues(ExponentialHistogramDataPoint dp, CheckedDoubleConsumer<E> values) throws E {
+    static <E extends Exception> void centroidValues(ExponentialHistogramDataPoint dp, CheckedDoubleConsumer<E> values) throws E {
         int scale = dp.getScale();
         ExponentialHistogramDataPoint.Buckets negative = dp.getNegative();
 
@@ -89,7 +89,7 @@ class HistogramConverter {
         }
     }
 
-    public static <E extends Exception> void counts(HistogramDataPoint dp, CheckedLongConsumer<E> counts) throws E {
+    static <E extends Exception> void counts(HistogramDataPoint dp, CheckedLongConsumer<E> counts) throws E {
         for (int i = 0; i < dp.getBucketCountsCount(); i++) {
             long count = dp.getBucketCounts(i);
             if (count == 0) {
@@ -105,7 +105,7 @@ class HistogramConverter {
      * <code>histogramToValue</code> function
      * </a>
      */
-    public static <E extends Exception> void centroidValues(HistogramDataPoint dp, CheckedDoubleConsumer<E> values) throws E {
+    static <E extends Exception> void centroidValues(HistogramDataPoint dp, CheckedDoubleConsumer<E> values) throws E {
         int size = dp.getBucketCountsCount();
         for (int i = 0; i < size; i++) {
             long count = dp.getBucketCounts(i);

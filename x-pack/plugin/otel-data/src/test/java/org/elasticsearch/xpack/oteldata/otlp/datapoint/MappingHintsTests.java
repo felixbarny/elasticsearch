@@ -103,12 +103,12 @@ public class MappingHintsTests extends ESTestCase {
     private KeyValue createMappingHint(String... hintValues) {
         ArrayValue.Builder arrayBuilder = ArrayValue.newBuilder();
         for (String hint : hintValues) {
-            arrayBuilder.addValues(AnyValue.newBuilder().setStringValue(hint).build());
+            arrayBuilder.addValues(AnyValue.newBuilder().setStringValue(hint));
         }
 
         return KeyValue.newBuilder()
             .setKey("elasticsearch.mapping.hints")
-            .setValue(AnyValue.newBuilder().setArrayValue(arrayBuilder).build())
+            .setValue(AnyValue.newBuilder().setArrayValue(arrayBuilder))
             .build();
     }
 }
