@@ -18,7 +18,8 @@ esplugin {
   extendedPlugins = ['x-pack-core']
 }
 
-def protobufVersion = "4.31.1"
+// manually update verification-metadata.xml via dev-tools/protoc_exe_sha256.sh when updating the protobuf version
+def protobufVersion = "4.32.0"
 dependencies {
   api project(":libs:exponential-histogram")
   compileOnly project(path: xpackModule('core'))
@@ -44,19 +45,19 @@ dependencies {
   testImplementation project(xpackModule('wildcard'))
   testImplementation project(xpackModule('mapper-version'))
 
-  def otelVersion = "1.52.0"
-  implementation "io.opentelemetry:opentelemetry-api:$otelVersion"
-  implementation "io.opentelemetry:opentelemetry-common:${otelVersion}"
-  implementation "io.opentelemetry:opentelemetry-context:$otelVersion"
-  testImplementation("io.opentelemetry:opentelemetry-sdk:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-sdk-common:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-sdk-metrics:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-exporter-common:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-exporter-otlp:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-exporter-otlp-common:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-exporter-sender-jdk:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:$otelVersion")
-  testImplementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:$otelVersion")
+  def otelVersion = "1.53.0"
+  testImplementation "io.opentelemetry:opentelemetry-api:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-common:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-context:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-sdk:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-sdk-common:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-sdk-metrics:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-exporter-common:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-exporter-otlp:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-exporter-otlp-common:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-exporter-sender-jdk:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:$otelVersion"
+  testImplementation "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi:$otelVersion"
 
   implementation "com.google.protobuf:protobuf-java:${protobufVersion}"
 }
