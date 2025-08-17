@@ -70,10 +70,6 @@ public class TsidBuilder {
         addStringDimension(path, value.bytes(), value.offset(), value.length());
     }
 
-    public void addStringDimension(String path, byte[] value) {
-        addStringDimension(path, value, 0, value.length);
-    }
-
     public void addStringDimension(String path, byte[] bytes, int offset, int length) {
         hashStream.reset();
         hashStream.putBytes(bytes, offset, length);
