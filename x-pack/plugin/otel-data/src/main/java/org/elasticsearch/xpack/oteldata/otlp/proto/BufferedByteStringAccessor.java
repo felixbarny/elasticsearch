@@ -15,9 +15,7 @@ import org.elasticsearch.xcontent.XContentBuilder;
 import java.io.IOException;
 
 /**
- * A utility class that allows uses a shared {@code byte[]} buffer to convert {@link ByteString} values to byte arrays.
- * This class is designed to be used in scenarios where multiple {@link ByteString} values need to be processed,
- * such as when building TSIDs or writing UTF-8 encoded values to an {@link XContentBuilder}.
+ * A utility class that uses a shared {@code byte[]} buffer to convert {@link ByteString} values to byte arrays.
  * This avoids frequent allocations of byte arrays in {@link ByteString#toByteArray()}.
  * Note that due to the use of a shared buffer, this class is not thread-safe.
  */

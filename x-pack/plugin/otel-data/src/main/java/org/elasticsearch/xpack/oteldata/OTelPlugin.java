@@ -36,19 +36,20 @@ import java.util.function.Supplier;
 
 public class OTelPlugin extends Plugin implements ActionPlugin {
 
-    private static final boolean OTLP_METRICS_ENABLED = new FeatureFlag("otlp_metrics").isEnabled();
-
     // OTEL_DATA_REGISTRY_ENABLED controls enabling the index template registry.
     //
     // This setting will be ignored if the plugin is disabled.
-    public static final Setting<Boolean> OTEL_DATA_REGISTRY_ENABLED = Setting.boolSetting(
+    static final Setting<Boolean> OTEL_DATA_REGISTRY_ENABLED = Setting.boolSetting(
         "xpack.otel_data.registry.enabled",
         true,
         Setting.Property.NodeScope,
         Setting.Property.Dynamic
     );
+
+    private static final boolean OTLP_METRICS_ENABLED = new FeatureFlag("otlp_metrics").isEnabled();
     private static final Logger logger = LogManager.getLogger(OTelPlugin.class);
-    final SetOnce<OTelIndexTemplateRegistry> registry = new SetOnce<>();
+
+    private final SetOnce<OTelIndexTemplateRegistry> registry = new SetOnce<>();
     private final boolean enabled;
 
     public OTelPlugin(Settings settings) {

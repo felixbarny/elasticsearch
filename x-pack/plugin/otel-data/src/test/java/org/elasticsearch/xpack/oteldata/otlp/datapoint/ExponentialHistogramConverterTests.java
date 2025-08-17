@@ -113,5 +113,4 @@ public class ExponentialHistogramConverterTests extends ESTestCase {
                 List.of(-1.7071067811865475, -1.2071067811865475, 0.0, 1.2071067811865475, 1.7071067811865475) }
         );
     }
-
 }

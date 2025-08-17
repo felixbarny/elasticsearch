@@ -50,34 +50,7 @@ public class DataPointGroupingContext {
         this.byteStringAccessor = byteStringAccessor;
     }
 
-    public static DataPointGroupingContext groupDataPoints(
-        ExportMetricsServiceRequest exportMetricsServiceRequest,
-        BufferedByteStringAccessor byteStringAccessor
-    ) {
-        DataPointGroupingContext context = new DataPointGroupingContext(byteStringAccessor);
-        context.groupDataPoints(exportMetricsServiceRequest);
-        return context;
-    }
-
-    public <E extends Exception> void forEach(CheckedConsumer<DataPointGroup, E> consumer) throws E {
-        for (ResourceGroup resourceGroup : resourceGroups.values()) {
-            resourceGroup.forEach(consumer);
-        }
-    }
-
-    public int totalDataPoints() {
-        return totalDataPoints;
-    }
-
-    public int getIgnoredDataPoints() {
-        return ignoredDataPoints;
-    }
-
-    public String getIgnoredDataPointsMessage() {
-        return ignoredDataPointMessages.isEmpty() ? "" : String.join("\n", ignoredDataPointMessages);
-    }
-
-    private void groupDataPoints(ExportMetricsServiceRequest exportMetricsServiceRequest) {
+    public void groupDataPoints(ExportMetricsServiceRequest exportMetricsServiceRequest) {
         List<ResourceMetrics> resourceMetricsList = exportMetricsServiceRequest.getResourceMetricsList();
         for (int i = 0; i < resourceMetricsList.size(); i++) {
             ResourceMetrics resourceMetrics = resourceMetricsList.get(i);
@@ -117,6 +90,24 @@ public class DataPointGroupingContext {
                 }
             }
         }
+    }
+
+    public <E extends Exception> void forEach(CheckedConsumer<DataPointGroup, E> consumer) throws E {
+        for (ResourceGroup resourceGroup : resourceGroups.values()) {
+            resourceGroup.forEach(consumer);
+        }
+    }
+
+    public int totalDataPoints() {
+        return totalDataPoints;
+    }
+
+    public int getIgnoredDataPoints() {
+        return ignoredDataPoints;
+    }
+
+    public String getIgnoredDataPointsMessage() {
+        return ignoredDataPointMessages.isEmpty() ? "" : String.join("\n", ignoredDataPointMessages);
     }
 
     private ResourceGroup getOrCreateResourceGroup(ResourceMetrics resourceMetrics) {
