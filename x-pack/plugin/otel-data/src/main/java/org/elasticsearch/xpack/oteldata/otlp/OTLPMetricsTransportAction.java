@@ -86,7 +86,7 @@ public class OTLPMetricsTransportAction extends HandledTransportAction<
             context.groupDataPoints(metricsServiceRequest);
             BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
             MetricDocumentBuilder metricDocumentBuilder = new MetricDocumentBuilder(byteStringAccessor);
-            context.forEach(dataPointGroup -> addIndexRequest(bulkRequestBuilder, metricDocumentBuilder, dataPointGroup));
+            context.consume(dataPointGroup -> addIndexRequest(bulkRequestBuilder, metricDocumentBuilder, dataPointGroup));
             if (bulkRequestBuilder.numberOfActions() == 0) {
                 if (context.totalDataPoints() == 0) {
                     // If the server receives an empty request

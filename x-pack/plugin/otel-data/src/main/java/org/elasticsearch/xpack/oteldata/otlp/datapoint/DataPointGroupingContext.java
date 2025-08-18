@@ -31,6 +31,7 @@ import org.elasticsearch.xpack.oteldata.otlp.tsid.ScopeTsidFunnel;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -92,8 +93,20 @@ public class DataPointGroupingContext {
         }
     }
 
-    public <E extends Exception> void forEach(CheckedConsumer<DataPointGroup, E> consumer) throws E {
-        for (ResourceGroup resourceGroup : resourceGroups.values()) {
+    /**
+     * Consumes all data point groups in the context, removing them from the context.
+     *
+     * @param consumer the consumer to process each {@link DataPointGroup}
+     * @param <E>      the type of exception that can be thrown by the consumer
+     * @throws E if the consumer throws an exception
+     */
+    public <E extends Exception> void consume(CheckedConsumer<DataPointGroup, E> consumer) throws E {
+        for (Iterator<ResourceGroup> iterator = resourceGroups.values().iterator(); iterator.hasNext(); ) {
+            ResourceGroup resourceGroup = iterator.next();
+            // Remove the resource group from the map can help to significantly reduce GC overhead.
+            // This avoids that the resource groups are promoted to survivor space when the context is kept alive for a while,
+            // for example, when referenced in the bulk response listener.
+            iterator.remove();
             resourceGroup.forEach(consumer);
         }
     }
