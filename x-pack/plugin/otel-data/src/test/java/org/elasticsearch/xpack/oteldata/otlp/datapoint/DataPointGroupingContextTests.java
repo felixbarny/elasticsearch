@@ -73,8 +73,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
         );
         context.groupDataPoints(metricsRequest);
         assertEquals(6, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -95,8 +95,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
         );
         context.groupDataPoints(metricsRequest);
         assertEquals(2, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         List<String> targetIndexes = new ArrayList<>();
@@ -118,8 +118,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
         );
         context.groupDataPoints(metricsRequest);
         assertEquals(2, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -135,8 +135,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
         );
         context.groupDataPoints(metricsRequest);
         assertEquals(2, context.totalDataPoints());
-        assertEquals(1, context.getIgnoredDataPoints());
-        assertThat(context.getIgnoredDataPointsMessage(), containsString("Duplicate metric name 'system.cpu.usage' for timestamp"));
+        assertEquals(1, context.rejectedDataPoints());
+        assertThat(String.join("\n", context.errorMessages()), containsString("Duplicate metric name 'system.cpu.usage' for timestamp"));
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -152,7 +152,7 @@ public class DataPointGroupingContextTests extends ESTestCase {
         );
         context.groupDataPoints(metricsRequest);
         assertEquals(2, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
+        assertEquals(0, context.rejectedDataPoints());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -183,8 +183,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
 
         context.groupDataPoints(ExportMetricsServiceRequest.newBuilder().addAllResourceMetrics(List.of(resource1, resource2)).build());
         assertEquals(2, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -215,8 +215,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
 
         context.groupDataPoints(ExportMetricsServiceRequest.newBuilder().addAllResourceMetrics(List.of(resource1, resource2)).build());
         assertEquals(2, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -233,8 +233,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
         );
         context.groupDataPoints(metricsRequest);
         assertEquals(2, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -255,8 +255,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
         );
         context.groupDataPoints(metricsRequest);
         assertEquals(2, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         AtomicInteger groupCount = new AtomicInteger(0);
         context.consume(dataPointGroup -> groupCount.incrementAndGet());
@@ -279,8 +279,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
 
         context.groupDataPoints(ExportMetricsServiceRequest.newBuilder().addAllResourceMetrics(List.of(resource)).build());
         assertEquals(1, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         List<String> targetIndexes = new ArrayList<>();
         context.consume(dataPointGroup -> targetIndexes.add(dataPointGroup.targetIndex().index()));
@@ -302,8 +302,8 @@ public class DataPointGroupingContextTests extends ESTestCase {
 
         context.groupDataPoints(ExportMetricsServiceRequest.newBuilder().addAllResourceMetrics(List.of(resource)).build());
         assertEquals(1, context.totalDataPoints());
-        assertEquals(0, context.getIgnoredDataPoints());
-        assertEquals("", context.getIgnoredDataPointsMessage());
+        assertEquals(0, context.rejectedDataPoints());
+        assertEquals(List.of(), context.errorMessages());
 
         List<String> targetIndexes = new ArrayList<>();
         context.consume(dataPointGroup -> targetIndexes.add(dataPointGroup.targetIndex().index()));

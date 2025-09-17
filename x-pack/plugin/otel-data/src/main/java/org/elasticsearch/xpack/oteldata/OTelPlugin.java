@@ -26,9 +26,12 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.xpack.core.XPackSettings;
+import org.elasticsearch.xpack.oteldata.otlp.OTLPLogsRestAction;
+import org.elasticsearch.xpack.oteldata.otlp.OTLPLogsTransportAction;
 import org.elasticsearch.xpack.oteldata.otlp.OTLPMetricsRestAction;
 import org.elasticsearch.xpack.oteldata.otlp.OTLPMetricsTransportAction;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
@@ -49,6 +52,7 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
     private static final Logger logger = LogManager.getLogger(OTelPlugin.class);
 
     private static final boolean OTLP_METRICS_ENABLED = new FeatureFlag("otlp_metrics").isEnabled();
+    private static final boolean OTLP_LOGS_ENABLED = new FeatureFlag("otlp_logs").isEnabled();
     private final SetOnce<OTelIndexTemplateRegistry> registry = new SetOnce<>();
     private final boolean enabled;
 
@@ -68,11 +72,14 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
         Supplier<DiscoveryNodes> nodesInCluster,
         Predicate<NodeFeature> clusterSupportsFeature
     ) {
+        List<RestHandler> handlers = new ArrayList<>();
         if (OTLP_METRICS_ENABLED) {
-            return List.of(new OTLPMetricsRestAction());
-        } else {
-            return List.of();
+            handlers.add(new OTLPMetricsRestAction());
         }
+        if (OTLP_LOGS_ENABLED) {
+            handlers.add(new OTLPLogsRestAction());
+        }
+        return handlers;
     }
 
     @Override
@@ -103,10 +110,15 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<ActionHandler> getActions() {
+        List<ActionHandler> handlers = new ArrayList<>();
+
         if (OTLP_METRICS_ENABLED) {
-            return List.of(new ActionHandler(OTLPMetricsTransportAction.TYPE, OTLPMetricsTransportAction.class));
-        } else {
-            return List.of();
+            handlers.add(new ActionHandler(OTLPMetricsTransportAction.TYPE, OTLPMetricsTransportAction.class));
         }
+        if (OTLP_LOGS_ENABLED) {
+            handlers.add(new ActionHandler(OTLPLogsTransportAction.TYPE, OTLPLogsTransportAction.class));
+        }
+
+        return handlers;
     }
 }

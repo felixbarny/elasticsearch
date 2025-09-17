@@ -13,19 +13,19 @@ import java.util.List;
 
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 
-public class OTLPMetricsRestAction extends AbstractOtlpRestAction {
-    public OTLPMetricsRestAction() {
-        super(OTLPMetricsTransportAction.TYPE, ExportMetricsServiceResponse.newBuilder().build());
+public class OTLPLogsRestAction extends AbstractOtlpRestAction {
+    public OTLPLogsRestAction() {
+        super(OTLPLogsTransportAction.TYPE, ExportMetricsServiceResponse.newBuilder().build());
     }
 
     @Override
     public String getName() {
-        return "otlp_metrics_action";
+        return "otlp_logs_action";
     }
 
     @Override
     public List<Route> routes() {
-        return List.of(new Route(POST, "/_otlp/v1/metrics"));
+        return List.of(new Route(POST, "/_otlp/v1/logs"));
     }
 
 }

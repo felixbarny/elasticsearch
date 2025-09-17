@@ -22,12 +22,14 @@ import org.elasticsearch.common.hash.BufferedMurmur3Hasher;
 import org.elasticsearch.common.hash.MurmurHash3.Hash128;
 import org.elasticsearch.core.CheckedConsumer;
 import org.elasticsearch.core.Nullable;
+import org.elasticsearch.xpack.oteldata.otlp.AbstractOtlpTransportAction;
 import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.DataPointTsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.ResourceTsidFunnel;
 import org.elasticsearch.xpack.oteldata.otlp.tsid.ScopeTsidFunnel;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-public class DataPointGroupingContext {
+public class DataPointGroupingContext implements AbstractOtlpTransportAction.Context {
 
     private final BufferedByteStringAccessor byteStringAccessor;
     private final Map<Hash128, ResourceGroup> resourceGroups = new HashMap<>();
@@ -111,16 +113,19 @@ public class DataPointGroupingContext {
         }
     }
 
+    @Override
     public int totalDataPoints() {
         return totalDataPoints;
     }
 
-    public int getIgnoredDataPoints() {
+    @Override
+    public int rejectedDataPoints() {
         return ignoredDataPoints;
     }
 
-    public String getIgnoredDataPointsMessage() {
-        return ignoredDataPointMessages.isEmpty() ? "" : String.join("\n", ignoredDataPointMessages);
+    @Override
+    public Collection<String> errorMessages() {
+        return ignoredDataPointMessages;
     }
 
     private ResourceGroup getOrCreateResourceGroup(ResourceMetrics resourceMetrics) {

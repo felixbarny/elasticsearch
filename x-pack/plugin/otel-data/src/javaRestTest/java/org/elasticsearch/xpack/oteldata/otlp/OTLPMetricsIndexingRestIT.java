@@ -13,7 +13,6 @@ import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.exporter.otlp.http.metrics.OtlpHttpMetricExporter;
 import io.opentelemetry.sdk.common.Clock;
 import io.opentelemetry.sdk.common.CompletableResultCode;
-import io.opentelemetry.sdk.common.InstrumentationScopeInfo;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.data.ExponentialHistogramBuckets;
@@ -33,15 +32,9 @@ import io.opentelemetry.sdk.resources.Resource;
 import org.elasticsearch.client.Request;
 import org.elasticsearch.common.hash.BufferedMurmur3Hasher;
 import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
-import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.test.cluster.ElasticsearchCluster;
-import org.elasticsearch.test.cluster.local.distribution.DistributionType;
-import org.elasticsearch.test.rest.ESRestTestCase;
 import org.elasticsearch.test.rest.ObjectPath;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -64,39 +57,17 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.Matchers.not;
 
-public class OTLPMetricsIndexingRestIT extends ESRestTestCase {
+public class OTLPMetricsIndexingRestIT extends AbstractOTLPIndexingRestIT {
 
-    private static final String USER = "test_admin";
-    private static final String PASS = "x-pack-test-password";
-    private static final Resource TEST_RESOURCE = Resource.create(Attributes.of(stringKey("service.name"), "elasticsearch"));
-    private static final InstrumentationScopeInfo TEST_SCOPE = InstrumentationScopeInfo.create("io.opentelemetry.example.metrics");
     private OtlpHttpMetricExporter exporter;
     private SdkMeterProvider meterProvider;
 
-    @ClassRule
-    public static ElasticsearchCluster cluster = ElasticsearchCluster.local()
-        .distribution(DistributionType.DEFAULT)
-        .user(USER, PASS, "superuser", false)
-        .setting("xpack.security.autoconfiguration.enabled", "false")
-        .setting("xpack.license.self_generated.type", "trial")
-        .setting("xpack.ml.enabled", "false")
-        .setting("xpack.watcher.enabled", "false")
-        .build();
-
-    @Override
-    protected String getTestRestCluster() {
-        return cluster.getHttpAddresses();
-    }
-
-    protected Settings restClientSettings() {
-        String token = basicAuthHeaderValue(USER, new SecureString(PASS.toCharArray()));
-        return Settings.builder().put(super.restClientSettings()).put(ThreadContext.PREFIX + ".Authorization", token).build();
-    }
-
     @Before
-    public void beforeTest() throws Exception {
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
         exporter = OtlpHttpMetricExporter.builder()
-            .setEndpoint(getClusterHosts().getFirst().toURI() + "/_otlp/v1/metrics")
+            .setEndpoint(getClusterHosts().getFirst().toURI() + getOtlpEndpoint())
             .addHeader("Authorization", basicAuthHeaderValue(USER, new SecureString(PASS.toCharArray())))
             .build();
         meterProvider = SdkMeterProvider.builder()
@@ -107,20 +78,18 @@ public class OTLPMetricsIndexingRestIT extends ESRestTestCase {
                     .build()
             )
             .build();
-        assertBusy(() -> assertOK(client().performRequest(new Request("GET", "_index_template/metrics-otel@template"))));
-        boolean otlpEndpointEnabled = false;
-        try {
-            otlpEndpointEnabled = RestStatus.isSuccessful(
-                client().performRequest(new Request("POST", "/_otlp/v1/metrics")).getStatusLine().getStatusCode()
-            );
-        } catch (Exception ignore) {}
-        assumeTrue("Requires otlp_metrics feature flag to be enabled", otlpEndpointEnabled);
     }
 
     @Override
+    protected String getOtlpEndpoint()  {
+        return "/_otlp/v1/metrics";
+    }
+
+    @After
+    @Override
     public void tearDown() throws Exception {
-        meterProvider.close();
         super.tearDown();
+        meterProvider.close();
     }
 
     public void testIngestMetricViaMeterProvider() throws Exception {
