@@ -67,13 +67,14 @@ public class OTLPLogsTransportAction extends AbstractOtlpTransportAction {
             for (int j = 0, scopeLogsListSize = scopeLogsList.size(); j < scopeLogsListSize; j++) {
                 ScopeLogs scopeLogs = scopeLogsList.get(j);
                 InstrumentationScope scope = scopeLogs.getScope();
+                String receiverName = TargetIndex.extractReceiverName(scope);
                 List<LogRecord> logRecordsList = scopeLogs.getLogRecordsList();
                 for (int k = 0, logRecordsListSize = logRecordsList.size(); k < logRecordsListSize; k++) {
                     LogRecord logRecord = logRecordsList.get(k);
                     TargetIndex index = TargetIndex.evaluate(
                         TYPE_LOGS,
                         logRecord.getAttributesList(),
-                        null,
+                        receiverName,
                         scope.getAttributesList(),
                         resource.getAttributesList()
                     );

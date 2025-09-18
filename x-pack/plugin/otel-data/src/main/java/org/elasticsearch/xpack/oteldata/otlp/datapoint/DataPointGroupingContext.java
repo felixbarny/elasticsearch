@@ -169,7 +169,6 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
     }
 
     class ScopeGroup {
-        private static final String RECEIVER = "/receiver/";
 
         private final ResourceGroup resourceGroup;
         private final InstrumentationScope scope;
@@ -184,21 +183,7 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
             this.scope = scope;
             this.scopeSchemaUrl = scopeSchemaUrl;
             this.dataPointGroupsByIndexAndTimestamp = new HashMap<>();
-            this.receiverName = extractReceiverName(scope);
-        }
-
-        private @Nullable String extractReceiverName(InstrumentationScope scope) {
-            String scopeName = scope.getName();
-            int indexOfReceiver = scopeName.indexOf(RECEIVER);
-            if (indexOfReceiver >= 0) {
-                int beginIndex = indexOfReceiver + RECEIVER.length();
-                int endIndex = scopeName.indexOf('/', beginIndex);
-                if (endIndex < 0) {
-                    endIndex = scopeName.length();
-                }
-                return scopeName.substring(beginIndex, endIndex);
-            }
-            return null;
+            this.receiverName = TargetIndex.extractReceiverName(scope);
         }
 
         public <T> void addDataPoints(Metric metric, List<T> dataPoints, BiFunction<T, Metric, DataPoint> createDataPoint) {
