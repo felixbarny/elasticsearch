@@ -9,6 +9,7 @@ package org.elasticsearch.xpack.oteldata.otlp.docbuilder;
 
 import io.opentelemetry.proto.common.v1.AnyValue;
 import io.opentelemetry.proto.common.v1.InstrumentationScope;
+import io.opentelemetry.proto.common.v1.KeyValue;
 import io.opentelemetry.proto.logs.v1.LogRecord;
 import io.opentelemetry.proto.logs.v1.SeverityNumber;
 import io.opentelemetry.proto.resource.v1.Resource;
@@ -42,7 +43,11 @@ public class LogDocumentBuilder extends OTelDocumentBuilder {
         LogRecord logRecord
     ) throws IOException {
         builder.startObject();
-        builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(logRecord.getTimeUnixNano()));
+        long docTimestamp = logRecord.getTimeUnixNano();
+        if (docTimestamp == 0) {
+            docTimestamp = logRecord.getObservedTimeUnixNano();
+        }
+        builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(docTimestamp));
         if (logRecord.getObservedTimeUnixNano() != 0) {
             builder.field("observed_timestamp", TimeUnit.NANOSECONDS.toMillis(logRecord.getObservedTimeUnixNano()));
         }
@@ -50,10 +55,23 @@ public class LogDocumentBuilder extends OTelDocumentBuilder {
             builder.field("severity_number", logRecord.getSeverityNumber().getNumber());
         }
         addFieldIfNotEmpty(builder, "severity_text", logRecord.getSeverityTextBytes());
+        ByteString eventName = logRecord.getEventNameBytes();
+        if (eventName.isEmpty() == false) {
+            addFieldIfNotEmpty(builder, "event_name", eventName);
+        } else {
+            for (KeyValue attribute : logRecord.getAttributesList()) {
+                if ("event.name".equals(attribute.getKey())) {
+                    addFieldIfNotEmpty(builder, "event_name", attribute.getValue().getStringValueBytes());
+                    break;
+                }
+            }
+        }
+        addSpanId(builder, logRecord.getSpanId().toByteArray());
+        addTraceId(builder, logRecord.getTraceId().toByteArray());
         buildResource(resource, resourceSchemaUrl, builder);
         buildDataStream(builder, targetIndex);
         buildScope(builder, scope, scopeSchemaUrl);
-        buildAttributes(builder, logRecord.getAttributesList());
+        buildAttributes(builder, logRecord.getAttributesList(), logRecord.getDroppedAttributesCount());
         buildBody(builder, logRecord);
         builder.endObject();
     }
@@ -91,7 +109,6 @@ public class LogDocumentBuilder extends OTelDocumentBuilder {
         }
         builder.endObject();
     }
-
 
     private void buildTextBody(XContentBuilder builder, AnyValue value) throws IOException {
         builder.field("text");

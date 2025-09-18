@@ -19,6 +19,7 @@ import org.elasticsearch.xpack.oteldata.otlp.datapoint.TargetIndex;
 import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 
 import java.io.IOException;
+import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -36,22 +37,16 @@ public abstract class OTelDocumentBuilder {
     protected void buildResource(Resource resource, ByteString schemaUrl, XContentBuilder builder) throws IOException {
         builder.startObject("resource");
         addFieldIfNotEmpty(builder, "schema_url", schemaUrl);
-        if (resource.getDroppedAttributesCount() > 0) {
-            builder.field("dropped_attributes_count", resource.getDroppedAttributesCount());
-        }
-        buildAttributes(builder, resource.getAttributesList());
+        buildAttributes(builder, resource.getAttributesList(), resource.getDroppedAttributesCount());
         builder.endObject();
     }
 
     protected void buildScope(XContentBuilder builder, InstrumentationScope scope, ByteString schemaUrl) throws IOException {
         builder.startObject("scope");
         addFieldIfNotEmpty(builder, "schema_url", schemaUrl);
-        if (scope.getDroppedAttributesCount() > 0) {
-            builder.field("dropped_attributes_count", scope.getDroppedAttributesCount());
-        }
         addFieldIfNotEmpty(builder, "name", scope.getNameBytes());
         addFieldIfNotEmpty(builder, "version", scope.getVersionBytes());
-        buildAttributes(builder, scope.getAttributesList());
+        buildAttributes(builder, scope.getAttributesList(), scope.getDroppedAttributesCount());
         builder.endObject();
     }
 
@@ -73,7 +68,7 @@ public abstract class OTelDocumentBuilder {
         builder.endObject();
     }
 
-    protected void buildAttributes(XContentBuilder builder, List<KeyValue> attributes) throws IOException {
+    protected void buildAttributes(XContentBuilder builder, List<KeyValue> attributes, int droppedAttributesCount) throws IOException {
         builder.startObject("attributes");
         for (int i = 0, size = attributes.size(); i < size; i++) {
             KeyValue attribute = attributes.get(i);
@@ -82,6 +77,9 @@ public abstract class OTelDocumentBuilder {
                 builder.field(key);
                 buildAnyValue(builder, attribute.getValue());
             }
+        }
+        if (droppedAttributesCount > 0) {
+            builder.field("dropped_attributes_count", droppedAttributesCount);
         }
         builder.endObject();
     }
@@ -114,6 +112,18 @@ public abstract class OTelDocumentBuilder {
                 builder.endArray();
             }
             default -> throw new IllegalArgumentException("Unsupported attribute value type: " + value.getValueCase());
+        }
+    }
+
+    protected void addSpanId(XContentBuilder builder, byte[] spanId) throws IOException {
+        if (spanId.length > 0) {
+            builder.field("span_id", HexFormat.of().formatHex(spanId));
+        }
+    }
+
+    protected void addTraceId(XContentBuilder builder, byte[] traceId) throws IOException {
+        if (traceId.length > 0) {
+            builder.field("trace_id", HexFormat.of().formatHex(traceId));
         }
     }
 
