@@ -155,7 +155,6 @@ some_metric[5m] @ 1m;
 //
 // aggregations
 //
-some_metric[5m] @ 1m;
 sum by (foo)(some_metric);
 sum by ("foo bar")({"some.metric"});
 sum by ("foo", bar, 'baz')({"some.metric"});

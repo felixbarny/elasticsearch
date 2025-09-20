@@ -4,7 +4,21 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-parser grammar Promql;
+parser grammar PromqlBaseParser;
+
+@header {
+/*
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. Licensed under the Elastic License
+ * 2.0; you may not use this file except in compliance with the Elastic License
+ * 2.0.
+ */
+}
+
+options {
+  superClass=ParserConfig;
+  tokenVocab=PromqlBaseLexer;
+}
 
 singleExpression
     : expression EOF
@@ -23,7 +37,15 @@ expression
     | left=expression op=OR modifier? right=expression                                          #arithmeticBinary
     | value                                                                                     #valueExpression
     | LP expression RP                                                                          #parenthesized
-    | expression LSB range=TIME_VALUE (':'|IDENTIFIER) RSB evaluation?                          #subquery
+    | expression LSB range=duration subqueryResolution RSB evaluation?                          #subquery
+    ;
+
+subqueryResolution
+    : COLON (resolution=duration)?
+    | <assoc=right> TIME_VALUE_WITH_COLON op=CARET expression
+    | TIME_VALUE_WITH_COLON op=(ASTERISK | SLASH) expression
+    | TIME_VALUE_WITH_COLON op=(MINUS|PLUS) expression
+    | TIME_VALUE_WITH_COLON
     ;
 
 value
@@ -58,7 +80,7 @@ modifier
 // NB: PromQL explicitly allows a trailing comma for label enumeration
 // both inside aggregation functions and metric labels.
 labelList
-    : LP (identifier COMMA?)* RP
+    : LP (labelName COMMA?)* RP
     ;
 
 labels
@@ -66,7 +88,13 @@ labels
     ;
 
 label
-    : identifier kind=(LABEL_EQ | NEQ | LABEL_RGX | LABEL_RGX_NEQ) STRING
+    : labelName (kind=(LABEL_EQ | NEQ | LABEL_RGX | LABEL_RGX_NEQ) STRING)?
+    ;
+
+labelName
+    : identifier
+    | STRING
+    | number
     ;
 
 identifier
@@ -86,18 +114,22 @@ offset
 // do timeunit validation and break-down inside the parser
 // this helps deal with ambiguities for multi-unit declarations (1d3m)
 // and give better error messages
+// support arithmetic for duration with partial support added in Prometheus 3.4
+// https://github.com/prometheus/prometheus/issues/12318
+// https://github.com/prometheus/prometheus/pull/16249
 duration
-    :  TIME_VALUE
+    //: time_value
+    : expression
     ;
-
 at
-    : AT MINUS? number
+    : AT MINUS? (number | time_value)
     | AT (AT_START | AT_END)
     ;
 
 constant
     : number
     | string
+    | time_value
     ;
 
 number
@@ -108,6 +140,12 @@ number
 
 string
     : STRING
+    ;
+
+time_value
+    : TIME_VALUE_WITH_COLON
+    | TIME_VALUE
+    | number
     ;
 
 // declared tokens that can be used without special escaping

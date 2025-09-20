@@ -6,7 +6,7 @@
 // The file contains the failing query on one line, terminated by ; followed by a potential error message that
 // starts with | and ends with ;
 // The error message is optional and is used to roughly validate the error is as expected.
-
+//
 "";
 |no expression found in input;
 "# just a comment\n\n";

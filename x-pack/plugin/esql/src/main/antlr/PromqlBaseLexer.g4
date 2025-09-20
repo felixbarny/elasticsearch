@@ -4,7 +4,20 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-lexer grammar Promql;
+lexer grammar PromqlBaseLexer;
+
+@header {
+/*
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. Licensed under the Elastic License
+ * 2.0; you may not use this file except in compliance with the Elastic License
+ * 2.0.
+ */
+}
+
+options {
+  superClass=LexerConfig;
+}
 
 // Operators
 
@@ -63,7 +76,7 @@ RSB: ']';
 LP : '(';
 RP : ')';
 
-
+COLON: ':';
 COMMA: ',';
 
 STRING
@@ -93,8 +106,18 @@ HEXADECIMAL
     : '0x'[0-9a-fA-F]+
     ;
 
+//
+// Special handling for time values to disambiguate from identifiers
+//
+
+// hack to allow colon as a time unit separator inside subquery duration to avoid the lexer picking it as an identifier
+TIME_VALUE_WITH_COLON
+    : COLON (DIGIT+ [a-zA-Z]+)+
+    ;
+
+// similar to the identifier but without a :
 TIME_VALUE
-    : DIGIT [0-9a-zA-Z]+
+    : (DIGIT+ [a-zA-Z]+)+
     ;
 
 // NB: the parser needs to validates this token based on context
