@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.elasticsearch.common.time.DateUtils;
 import org.elasticsearch.core.TimeValue;
+import org.elasticsearch.xpack.esql.core.InvalidArgumentException;
 import org.elasticsearch.xpack.esql.core.QlIllegalArgumentException;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.core.expression.Literal;
@@ -36,12 +37,12 @@ import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.compari
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.set.VectorBinarySet;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.set.VectorBinarySet.SetOp;
 import org.elasticsearch.xpack.esql.expression.promql.types.PromqlDataTypes;
-import org.elasticsearch.xpack.esql.expression.selector.Evaluation;
-import org.elasticsearch.xpack.esql.expression.selector.InstantSelector;
-import org.elasticsearch.xpack.esql.expression.selector.LabelMatcher;
-import org.elasticsearch.xpack.esql.expression.selector.RangeSelector;
-import org.elasticsearch.xpack.esql.expression.selector.Selector;
-import org.elasticsearch.xpack.esql.expression.subquery.Subquery;
+import org.elasticsearch.xpack.esql.expression.promql.selector.Evaluation;
+import org.elasticsearch.xpack.esql.expression.promql.selector.InstantSelector;
+import org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher;
+import org.elasticsearch.xpack.esql.expression.promql.selector.RangeSelector;
+import org.elasticsearch.xpack.esql.expression.promql.selector.Selector;
+import org.elasticsearch.xpack.esql.expression.promql.subquery.Subquery;
 import org.elasticsearch.xpack.esql.parser.ParsingException;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ArithmeticBinaryContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ArithmeticUnaryContext;
@@ -54,7 +55,7 @@ import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ModifierContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ParenthesizedContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SingleExpressionContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.StringContext;
-import org.elasticsearch.xpack.esql.util.ParsingUtils;
+
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -464,7 +465,7 @@ class ExpressionBuilder extends IdentifierBuilder {
             } else {
                 value = Double.parseDouble(text);
             }
-            return new Scalar(source, value);
+            return new Literal(source, value, DataType.DOUBLE);
         } catch (NumberFormatException ne) {
             throw new ParsingException(source, "Cannot parse number [{}]", text);
         }
@@ -475,28 +476,22 @@ class ExpressionBuilder extends IdentifierBuilder {
         Source source = source(ctx);
         String text = ctx.getText();
 
-        long value;
+        Number value;
 
         try {
-            value = StringUtils.parseLong(text);
-        } catch (QlIllegalArgumentException siae) {
+            value = StringUtils.parseIntegral(text);
+        } catch (InvalidArgumentException siae) {
             // if it's too large, then quietly try to parse as a float instead
             try {
                 // use DataTypes.DOUBLE for precise type
-                return new Scalar(source, StringUtils.parseDouble(text));
+                return new Literal(source, StringUtils.parseDouble(text), DataType.DOUBLE);
             } catch (QlIllegalArgumentException ignored) {}
 
             throw new ParsingException(source, siae.getMessage());
         }
 
-        Number val = value;
-
-        // try to downsize to int if possible (since that's the most common type)
-        if ((int) value == value) {
-            val = (int) value;
-        }
         // use type instead for precise type
-        return new Scalar(source, val.doubleValue());
+        return new Literal(source, value.doubleValue(), value instanceof Integer ? DataType.INTEGER : DataType.LONG);
     }
 
     @Override
@@ -504,7 +499,7 @@ class ExpressionBuilder extends IdentifierBuilder {
         Source source = source(ctx);
         String text = ctx.getText();
 
-        DataType type = DataTypes.LONG;
+        DataType type = DataType.LONG;
         Object val;
 
         // remove leading 0x
@@ -517,20 +512,19 @@ class ExpressionBuilder extends IdentifierBuilder {
 
         // try to downsize to int
         if ((int) value == value) {
-            type = DataTypes.INTEGER;
+            type = DataType.INTEGER;
             val = (int) value;
         } else {
             val = value;
         }
         // use type for precise dataType
-        return new Scalar(source, (double) val);
+        return new Literal(source, (double) val, type);
     }
 
     @Override
     public Literal visitString(StringContext ctx) {
         Source source = source(ctx);
-        // previously DataTypes.KEYWORD
-        return new Literal(source, string(ctx.STRING()), STRING);
+        return new Literal(source, string(ctx.STRING()), DataType.KEYWORD);
     }
 
     private static TimeValue parseTimeValue(Source source, String text) {

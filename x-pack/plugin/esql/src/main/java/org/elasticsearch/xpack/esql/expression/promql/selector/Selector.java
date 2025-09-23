@@ -8,9 +8,12 @@
 package org.elasticsearch.xpack.esql.expression.promql.selector;
 
 import org.apache.http.protocol.ExecutionContext;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.xpack.esql.core.tree.Source;
 import org.elasticsearch.xpack.esql.core.expression.LeafExpression;
 import org.elasticsearch.xpack.esql.core.expression.Nullability;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,13 +63,14 @@ public abstract class Selector extends LeafExpression {
         return false;
     }
 
+
     @Override
-    public final Series fold() {
-        throw new PromqlServerException("Selectors should not be folded");
+    public String getWriteableName() {
+        throw new UnsupportedOperationException("should not serialize");
     }
 
     @Override
-    public final void execute(ExecutionContext context, ActionListener<Series> listener) {
-        context.selectorResolver().resolve(this, listener);
+    public void writeTo(StreamOutput out) throws IOException {
+        throw new UnsupportedOperationException("should not serialize");
     }
 }
