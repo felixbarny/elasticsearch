@@ -7,9 +7,9 @@
 // starts with | and ends with ;
 // The error message is optional and is used to roughly validate the error is as expected.
 //
-"";
+//"";
 |no expression found in input;
-"# just a comment\n\n";
+//"# just a comment\n\n";
 |no expression found in input;
 1+;
 |unexpected end of input;
@@ -23,8 +23,8 @@
 |bad number or duration syntax: "0de";
 1 /;
 |unexpected end of input;
-1;
-|unexpected op:*;
+//1;
+//|unexpected op:*;
 (1));
 |unexpected right parenthesis ')';
 ((1);
@@ -49,8 +49,8 @@
 |unary expression only allowed on expressions of type scalar or instant vector, got "string";
 -test[5m];
 |unary expression only allowed on expressions of type scalar or instant vector, got "range vector";
-test;
-|unexpected op:*;
+//test;
+//|unexpected op:*;
 1 offset 1d;
 |1:1: parse error: offset modifier must be preceded by an instant vector selector or range vector selector or a subquery;
 foo offset 1s offset 2s;

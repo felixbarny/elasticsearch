@@ -436,33 +436,25 @@ class ExpressionBuilder extends IdentifierBuilder {
             } else if (atCtx.AT_END() != null) {
                 at = stop;
             } else {
-                Object value = visit(atCtx.number());
-                Number number = null;
-                if (value instanceof Literal literal && literal.fold(FoldContext.small()) instanceof Number n) {
-                    number = n;
-                } else {
-                    throw new ParsingException(source, "Expected number but got {}", value);
-                }
-
+                TimeValue timeValue = visitTimeValue(atCtx.timeValue());
                 // the value can have a floating point
-                double millis = number.doubleValue() * 1000;
+                long seconds = timeValue.seconds();
+                double secondFrac = timeValue.secondsFrac(); // convert to nanoseconds
+                long nanos = 0;
 
-                if (Double.isInfinite(millis)) {
-                    throw new ParsingException(source, "Value [{}] is too large", source.text());
+                if (secondFrac >= Long.MAX_VALUE / 1_000_000 || secondFrac <= Long.MIN_VALUE / 1_000_000) {
+                    throw new ParsingException(source, "Decimal value [{}] is too large/precise", secondFrac);
                 }
-                if (Double.isNaN(millis)) {
-                    throw new ParsingException(source, "[{}] cannot be parsed as a number (NaN)", millis);
-                }
-                // force casting - loss is acceptable in Promql
-                long millisLong = (long) millis;
+                nanos = (long) (secondFrac * 1_000_000_000);
 
                 if (atCtx.MINUS() != null) {
-                    if (millisLong == Long.MIN_VALUE) {
-                        throw new ParsingException(source, "Value [{}] cannot be negated due to underflow", millisLong);
+                    if (seconds == Long.MIN_VALUE) {
+                        throw new ParsingException(source, "Value [{}] cannot be negated due to underflow", seconds);
                     }
-                    millisLong = -millisLong;
+                    seconds = -seconds;
+                    nanos = -nanos;
                 }
-                at = Instant.ofEpochMilli(millisLong);
+                at = Instant.ofEpochSecond(seconds, nanos);
             }
         }
         OffsetContext offsetContext = ctx.offset();
@@ -508,10 +500,17 @@ class ExpressionBuilder extends IdentifierBuilder {
             var literal = typedParsing(this, ctx.number(), Literal.class);
             Number number = (Number) literal.value();
             if (number instanceof Double d) {
-                if (Double.isNaN(d) || Double.isInfinite(d)) {
-                    throw new ParsingException(literal.source(), "Value [{}] cannot be used as a time duration", d);
+                double v = d.doubleValue();
+                Source source = literal.source();
+                if (Double.isFinite(v) == false) {
+                    throw new ParsingException(source, "Invalid timestamp [{}]", v);
                 }
-                throw new ParsingException(literal.source(), "not implemented yet double handling of time unit", d);
+                if (v >= Long.MAX_VALUE || v <= Long.MIN_VALUE) {
+                    throw new ParsingException(source, "Timestamp out of bounds [{}]", v);
+                }
+                if (v - (long)v > 0) {
+                    throw new ParsingException(source, "Timestamps must be in seconds precision");
+                }
             }
 
             return new TimeValue(number.longValue(), TimeUnit.SECONDS);
@@ -571,7 +570,7 @@ class ExpressionBuilder extends IdentifierBuilder {
         }
 
         // use type instead for precise type
-        return new Literal(source, value.doubleValue(), value instanceof Integer ? DataType.INTEGER : DataType.LONG);
+        return new Literal(source, value, value instanceof Integer ? DataType.INTEGER : DataType.LONG);
     }
 
     @Override
@@ -597,8 +596,7 @@ class ExpressionBuilder extends IdentifierBuilder {
         } else {
             val = value;
         }
-        // use type for precise dataType
-        return new Literal(source, (double) val, type);
+        return new Literal(source, val, type);
     }
 
     @Override

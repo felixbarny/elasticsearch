@@ -98,10 +98,11 @@ public class PromqlParser {
                 log.trace("Parse tree: {}", tree.toStringTree());
             }
             return visitor.apply(new PromqlAstBuilder(start, stop), tree);
-//        } catch (StackOverflowError e) {
-//            throw new ParsingException(
-//                "PromQL statement is too large, causing stack overflow when generating the parsing tree: [{}]", query
-//            );
+        } catch (StackOverflowError e) {
+            throw new ParsingException(
+                "PromQL statement is too large, causing stack overflow when generating the parsing tree: [{}]",
+                query
+            );
         } catch (EmptyStackException ese) {
             throw new ParsingException("Invalid query [{}]", query);
         }

@@ -5,18 +5,14 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.esql.promql.parser;
+package org.elasticsearch.xpack.esql.parser.promql;
 
 import org.elasticsearch.core.Tuple;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.xpack.esql.EsqlTestUtils;
 import org.elasticsearch.xpack.esql.core.QlClientException;
 import org.elasticsearch.xpack.esql.parser.ParsingException;
 import org.elasticsearch.xpack.esql.parser.PromqlParser;
 
-import java.io.BufferedReader;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Arrays.asList;
@@ -57,7 +53,7 @@ public class PromqlAstTests extends ESTestCase {
     }
 
     public void testSingleQuery() throws Exception {
-        String query = "foo[-1]";
+        String query = "foo @ 9223372036854775808.000000";
         new PromqlParser().createExpression(query);
     }
 
@@ -68,14 +64,13 @@ public class PromqlAstTests extends ESTestCase {
             try {
                 System.out.println("Testing invalid query: " + q);
                 PromqlParser parser = new PromqlParser();
-//                Exception pe = expectThrowsAnyOf(
-//                    //asList(ParsingException.class, UnsupportedOperationException.class),
-//                    asList(Exception.class),
-//                    () -> parser.createExpression(q)
-//                );
+                Exception pe = expectThrowsAnyOf(
+                    asList(QlClientException.class, UnsupportedOperationException.class),
+                    () -> parser.createExpression(q)
+                );
                 parser.createExpression(q);
                 //System.out.printf(pe.getMessage());
-            } catch (QlClientException pe) {
+            } catch (QlClientException | UnsupportedOperationException ex) {
                 // Expected
             }
 //            } catch (AssertionError ae) {

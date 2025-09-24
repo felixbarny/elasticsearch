@@ -122,7 +122,7 @@ duration
     : expression
     ;
 at
-    : AT MINUS? (number | timeValue)
+    : AT MINUS? timeValue
     | AT (AT_START | AT_END)
     ;
 
