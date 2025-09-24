@@ -9,12 +9,12 @@ package org.elasticsearch.xpack.esql.parser.promql;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.elasticsearch.common.time.DateUtils;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.xpack.esql.core.InvalidArgumentException;
 import org.elasticsearch.xpack.esql.core.QlIllegalArgumentException;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
+import org.elasticsearch.xpack.esql.core.expression.FoldContext;
 import org.elasticsearch.xpack.esql.core.expression.Literal;
 import org.elasticsearch.xpack.esql.core.expression.function.Function;
 import org.elasticsearch.xpack.esql.core.tree.Source;
@@ -22,27 +22,25 @@ import org.elasticsearch.xpack.esql.core.type.DataType;
 import org.elasticsearch.xpack.esql.core.util.StringUtils;
 import org.elasticsearch.xpack.esql.expression.function.FunctionDefinition;
 import org.elasticsearch.xpack.esql.expression.function.FunctionResolutionStrategy;
-import org.elasticsearch.xpack.esql.expression.function.PromqlFunctionRegistry;
 import org.elasticsearch.xpack.esql.expression.function.UnresolvedFunction;
-import org.elasticsearch.xpack.esql.expression.function.aggregate.ModifierFunctionResolution;
-import org.elasticsearch.xpack.esql.expression.predicate.operator.aggregation.AggregationOperator;
-import org.elasticsearch.xpack.esql.expression.predicate.operator.aggregation.AggregationOperator.Grouping;
-import org.elasticsearch.xpack.esql.expression.predicate.operator.aggregation.ParameterizedAggregationOperator;
+import org.elasticsearch.xpack.esql.expression.promql.function.PromqlFunctionRegistry;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorBinaryOperator;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorMatch;
+import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.aggregation.VectorAggregation;
+import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.aggregation.VectorAggregation.Grouping;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.arithmetic.VectorBinaryArithmetic;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.arithmetic.VectorBinaryArithmetic.ArithmeticOp;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.comparison.VectorBinaryComparison;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.comparison.VectorBinaryComparison.ComparisonOp;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.set.VectorBinarySet;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.set.VectorBinarySet.SetOp;
-import org.elasticsearch.xpack.esql.expression.promql.types.PromqlDataTypes;
 import org.elasticsearch.xpack.esql.expression.promql.selector.Evaluation;
 import org.elasticsearch.xpack.esql.expression.promql.selector.InstantSelector;
 import org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher;
 import org.elasticsearch.xpack.esql.expression.promql.selector.RangeSelector;
 import org.elasticsearch.xpack.esql.expression.promql.selector.Selector;
 import org.elasticsearch.xpack.esql.expression.promql.subquery.Subquery;
+import org.elasticsearch.xpack.esql.expression.promql.types.PromqlDataTypes;
 import org.elasticsearch.xpack.esql.parser.ParsingException;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ArithmeticBinaryContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ArithmeticUnaryContext;
@@ -51,17 +49,18 @@ import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.FunctionModifierCont
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.HexLiteralContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.IntegerLiteralContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LabelListContext;
+import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LabelNameContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ModifierContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ParenthesizedContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SingleExpressionContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.StringContext;
-
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.emptyList;
 import static org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher.Matcher;
@@ -93,6 +92,7 @@ import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SLASH;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SelectorContext;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SeriesMatcherContext;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SubqueryContext;
+import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.TimeValueContext;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.UNLESS;
 
 class ExpressionBuilder extends IdentifierBuilder {
@@ -264,7 +264,7 @@ class ExpressionBuilder extends IdentifierBuilder {
         Source source = source(ctx);
         Expression expression = expression(ctx.expression());
 
-        if (expression.dataType() != INSTANT_VECTOR) {
+        if (PromqlDataTypes.isInstantVector(expression.dataType()) == false) {
             throw new ParsingException(source, "Subquery is only allowed on instant vector, got {}", expression.dataType().typeName());
         }
 
@@ -273,20 +273,30 @@ class ExpressionBuilder extends IdentifierBuilder {
             // TODO: fallback to defaults
         }
 
-        TimeValue range = parseTimeValue(source(ctx.range), ctx.range.getText());
-        TimeValue resolution = null;
-        TerminalNode idToken = ctx.IDENTIFIER();
-        if (idToken != null) {
-            String idString = idToken.getText();
-            if (idString.startsWith(":") == false) {
-                Source resSource = source(ctx.range, idToken.getSymbol());
-                throw new ParsingException(resSource, "Invalid subquery range/resolution [{}]", resSource.text());
-            }
-            resolution = parseTimeValue(source(idToken), idString.substring(1));
+        Expression rangeEx = expression(ctx.range);
+        Expression resolution = expression(ctx.subqueryResolution());
+
+        return new Subquery(
+            source(ctx),
+            expression(ctx.expression()),
+            expressionToTimeValue(rangeEx),
+            expressionToTimeValue(resolution),
+            evaluation
+        );
+    }
+
+    private TimeValue expressionToTimeValue(Expression timeValueAsExpression) {
+        if (timeValueAsExpression instanceof Literal literal
+            && literal.foldable()
+            && literal.fold(FoldContext.small()) instanceof TimeValue timeValue) {
+            return timeValue;
         } else {
-            // TODO: fallback to defaults
+            throw new ParsingException(
+                timeValueAsExpression.source(),
+                "Expected a duration, got [{}]",
+                timeValueAsExpression.source().text()
+            );
         }
-        return new Subquery(source(ctx), expression(ctx.expression()), range, resolution, evaluation);
     }
 
     @Override
@@ -300,30 +310,30 @@ class ExpressionBuilder extends IdentifierBuilder {
 
         List<Expression> arguments = expressions(ctx.expression());
         FunctionResolutionStrategy strategy = FunctionResolutionStrategy.DEFAULT;
-        AggregationOperator.Grouping grouping = AggregationOperator.Grouping.NONE;
+        VectorAggregation.Grouping grouping = VectorAggregation.Grouping.NONE;
         if (ctx.functionModifier() != null) {
             FunctionModifierContext modifierContext = ctx.functionModifier();
             grouping = modifierContext.BY() != null ? Grouping.BY : Grouping.WITHOUT;
             List<String> labels = visitLabelList(modifierContext.labelList());
-            strategy = new ModifierFunctionResolution(grouping, new LinkedHashSet<>(labels));
+            // strategy = new ModifierFunctionResolution(grouping, new LinkedHashSet<>(labels));
         }
 
         FunctionDefinition def = PromqlFunctionRegistry.INSTANCE.resolveFunction(name);
         // do function validation
 
         // need exactly 2 params
-        if (ParameterizedAggregationOperator.class.isAssignableFrom(def.clazz()) && arguments.size() != 2) {
-            throw new ParsingException(
-                source,
-                "Wrong number of arguments for aggregate expression provided, expected 2, got {}",
-                arguments.size()
-            );
-        }
+        // if (ParameterizedAggregationOperator.class.isAssignableFrom(def.clazz()) && arguments.size() != 2) {
+        // throw new ParsingException(
+        // source,
+        // "Wrong number of arguments for aggregate expression provided, expected 2, got {}",
+        // arguments.size()
+        // );
+        // }
 
         UnresolvedFunction unresolved = new UnresolvedFunction(source, name, strategy, arguments);
         Function function = unresolved.buildResolved(null, def);
         // PromQl expects early validation of the tree so let's do it here
-        TypeResolution resolution = function.typeResolved();
+        Expression.TypeResolution resolution = function.typeResolved();
         if (resolution.unresolved()) {
             throw new ParsingException(source, resolution.message());
         }
@@ -350,15 +360,16 @@ class ExpressionBuilder extends IdentifierBuilder {
                 if (matcher == null) {
                     throw new ParsingException(source(labelCtx), "Unrecognized label matcher [{}]", kind);
                 }
-                String labelName = visitIdentifier(labelCtx.identifier());
-                String labelValue = string(labelCtx.STRING());
+                var nameCtx = labelCtx.labelName();
+                String labelName = visitLabelName(nameCtx);
                 if (labelName.contains(":")) {
-                    throw new ParsingException(source(labelCtx.identifier()), "[:] not allowed in label names [{}]", labelName);
+                    throw new ParsingException(source(nameCtx), "[:] not allowed in label names [{}]", labelName);
                 }
+                String labelValue = string(labelCtx.STRING());
                 // name cannot be defined twice
                 if (id != null && NAME.equals(labelName)) {
                     throw new ParsingException(
-                        source(labelCtx.identifier()),
+                        source(nameCtx),
                         "Metric name must not be defined twice: [{}] or [{}]",
                         id,
                         labelValue
@@ -386,7 +397,17 @@ class ExpressionBuilder extends IdentifierBuilder {
 
     @Override
     public List<String> visitLabelList(LabelListContext ctx) {
-        return ctx != null ? visitList(this, ctx.identifier(), String.class) : emptyList();
+        return ctx != null ? visitList(this, ctx.labelName(), String.class) : emptyList();
+    }
+
+    @Override
+    public String visitLabelName(LabelNameContext ctx) {
+        Object labelName = visit(ctx);
+        return switch (labelName) {
+            case String s -> s;
+            case Literal l -> String.valueOf(l.value());
+            default -> throw new ParsingException(source(ctx), "Expected label name, got [{}]", labelName);
+        };
     }
 
     @Override
@@ -408,10 +429,13 @@ class ExpressionBuilder extends IdentifierBuilder {
                 at = stop;
             } else {
                 Object value = visit(atCtx.number());
-                if (value instanceof Literal == false || ((Literal) value).fold() instanceof Number == false) {
+                Number number = null;
+                if (value instanceof Literal literal && literal.fold(FoldContext.small()) instanceof Number n) {
+                    number = n;
+                } else {
                     throw new ParsingException(source, "Expected number but got {}", value);
                 }
-                Number number = (Number) ((Literal) value).fold();
+
                 // the value can have a floating point
                 double millis = number.doubleValue() * 1000;
 
@@ -446,8 +470,56 @@ class ExpressionBuilder extends IdentifierBuilder {
         if (ctx == null) {
             return null;
         }
+        Object o = visit(ctx.expression());
 
-        return parseTimeValue(source(ctx), text(ctx.TIME_VALUE()));
+        return switch (o) {
+            case TimeValue tv -> tv;
+            case Literal l -> throw new ParsingException(
+                source(ctx),
+                "Expected literals to be already converted to timevalue, got [{}]",
+                l.value()
+            );
+            case Expression e -> {
+                if (e.foldable() == false) {
+                    throw new ParsingException(source(ctx), "Expected a duration, got [{}]", source(ctx).text());
+                }
+                Object folded = e.fold(FoldContext.small());
+                if (folded instanceof TimeValue timeValue) {
+                    yield timeValue;
+                } else {
+                    throw new ParsingException(source(ctx), "Expected a duration, got [{}]", source(ctx).text());
+                }
+            }
+            default -> throw new ParsingException(source(ctx), "Expected a duration, got [{}]", source(ctx).text());
+        };
+    }
+
+    @Override
+    public TimeValue visitTimeValue(TimeValueContext ctx) {
+        if (ctx.number() != null) {
+            var literal = typedParsing(this, ctx.number(), Literal.class);
+            Number number = (Number) literal.value();
+            if (number instanceof Double d) {
+                if (Double.isNaN(d) || Double.isInfinite(d)) {
+                    throw new ParsingException(literal.source(), "Value [{}] cannot be used as a time duration", d);
+                }
+                throw new ParsingException(literal.source(), "not implemented yet double handling of time unit", d);
+            }
+
+            return new TimeValue(number.longValue(), TimeUnit.SECONDS);
+        }
+        String timeString = null;
+        Source source;
+        if (ctx.TIME_VALUE_WITH_COLON() != null) {
+            // drop leading :
+            timeString = ctx.TIME_VALUE_WITH_COLON().getText().substring(1).trim();
+            source = source(ctx.TIME_VALUE_WITH_COLON());
+        } else {
+            timeString = ctx.TIME_VALUE().getText();
+            source = source(ctx.TIME_VALUE());
+        }
+
+        return parseTimeValue(source, timeString);
     }
 
     @Override

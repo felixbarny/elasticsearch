@@ -189,11 +189,11 @@ public interface PromqlBaseParserVisitor<T> extends ParseTreeVisitor<T> {
    */
   T visitString(PromqlBaseParser.StringContext ctx);
   /**
-   * Visit a parse tree produced by {@link PromqlBaseParser#time_value}.
+   * Visit a parse tree produced by {@link PromqlBaseParser#timeValue}.
    * @param ctx the parse tree
    * @return the visitor result
    */
-  T visitTime_value(PromqlBaseParser.Time_valueContext ctx);
+  T visitTimeValue(PromqlBaseParser.TimeValueContext ctx);
   /**
    * Visit a parse tree produced by {@link PromqlBaseParser#nonReserved}.
    * @param ctx the parse tree

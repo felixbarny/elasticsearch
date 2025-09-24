@@ -7,12 +7,18 @@
 
 package org.elasticsearch.xpack.esql.expression.promql.subquery;
 
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.core.TimeValue;
+import org.elasticsearch.xpack.esql.EsqlIllegalArgumentException;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.core.expression.UnaryExpression;
 import org.elasticsearch.xpack.esql.core.tree.NodeInfo;
+import org.elasticsearch.xpack.esql.core.tree.Source;
 import org.elasticsearch.xpack.esql.core.type.DataType;
+import org.elasticsearch.xpack.esql.expression.promql.selector.Evaluation;
+import org.elasticsearch.xpack.esql.expression.promql.types.PromqlDataTypes;
 
+import java.io.IOException;
 import java.util.Objects;
 
 public class Subquery extends UnaryExpression {
@@ -76,5 +82,15 @@ public class Subquery extends UnaryExpression {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), child(), range, resolution, evaluation);
+    }
+
+    @Override
+    public String getWriteableName() {
+        throw new EsqlIllegalArgumentException("should not be serialized");
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        throw new EsqlIllegalArgumentException("should not be serialized");
     }
 }

@@ -349,13 +349,13 @@ public class PromqlBaseParserBaseListener implements PromqlBaseParserListener {
    *
    * <p>The default implementation does nothing.</p>
    */
-  @Override public void enterTime_value(PromqlBaseParser.Time_valueContext ctx) { }
+  @Override public void enterTimeValue(PromqlBaseParser.TimeValueContext ctx) { }
   /**
    * {@inheritDoc}
    *
    * <p>The default implementation does nothing.</p>
    */
-  @Override public void exitTime_value(PromqlBaseParser.Time_valueContext ctx) { }
+  @Override public void exitTimeValue(PromqlBaseParser.TimeValueContext ctx) { }
   /**
    * {@inheritDoc}
    *

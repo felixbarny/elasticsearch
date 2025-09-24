@@ -122,14 +122,14 @@ duration
     : expression
     ;
 at
-    : AT MINUS? (number | time_value)
+    : AT MINUS? (number | timeValue)
     | AT (AT_START | AT_END)
     ;
 
 constant
     : number
     | string
-    | time_value
+    | timeValue
     ;
 
 number
@@ -142,7 +142,7 @@ string
     : STRING
     ;
 
-time_value
+timeValue
     : TIME_VALUE_WITH_COLON
     | TIME_VALUE
     | number

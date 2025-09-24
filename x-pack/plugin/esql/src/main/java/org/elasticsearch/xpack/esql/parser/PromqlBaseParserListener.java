@@ -302,15 +302,15 @@ public interface PromqlBaseParserListener extends ParseTreeListener {
    */
   void exitString(PromqlBaseParser.StringContext ctx);
   /**
-   * Enter a parse tree produced by {@link PromqlBaseParser#time_value}.
+   * Enter a parse tree produced by {@link PromqlBaseParser#timeValue}.
    * @param ctx the parse tree
    */
-  void enterTime_value(PromqlBaseParser.Time_valueContext ctx);
+  void enterTimeValue(PromqlBaseParser.TimeValueContext ctx);
   /**
-   * Exit a parse tree produced by {@link PromqlBaseParser#time_value}.
+   * Exit a parse tree produced by {@link PromqlBaseParser#timeValue}.
    * @param ctx the parse tree
    */
-  void exitTime_value(PromqlBaseParser.Time_valueContext ctx);
+  void exitTimeValue(PromqlBaseParser.TimeValueContext ctx);
   /**
    * Enter a parse tree produced by {@link PromqlBaseParser#nonReserved}.
    * @param ctx the parse tree

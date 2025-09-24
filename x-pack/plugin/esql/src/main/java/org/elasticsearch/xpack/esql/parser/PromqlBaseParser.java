@@ -38,13 +38,13 @@ public class PromqlBaseParser extends ParserConfig {
     RULE_seriesMatcher = 7, RULE_modifier = 8, RULE_labelList = 9, RULE_labels = 10, 
     RULE_label = 11, RULE_labelName = 12, RULE_identifier = 13, RULE_evaluation = 14, 
     RULE_offset = 15, RULE_duration = 16, RULE_at = 17, RULE_constant = 18, 
-    RULE_number = 19, RULE_string = 20, RULE_time_value = 21, RULE_nonReserved = 22;
+    RULE_number = 19, RULE_string = 20, RULE_timeValue = 21, RULE_nonReserved = 22;
   private static String[] makeRuleNames() {
     return new String[] {
       "singleExpression", "expression", "subqueryResolution", "value", "function", 
       "functionModifier", "selector", "seriesMatcher", "modifier", "labelList", 
       "labels", "label", "labelName", "identifier", "evaluation", "offset", 
-      "duration", "at", "constant", "number", "string", "time_value", "nonReserved"
+      "duration", "at", "constant", "number", "string", "timeValue", "nonReserved"
     };
   }
   public static final String[] ruleNames = makeRuleNames();
@@ -1928,8 +1928,8 @@ public class PromqlBaseParser extends ParserConfig {
     public NumberContext number() {
       return getRuleContext(NumberContext.class,0);
     }
-    public Time_valueContext time_value() {
-      return getRuleContext(Time_valueContext.class,0);
+    public TimeValueContext timeValue() {
+      return getRuleContext(TimeValueContext.class,0);
     }
     public TerminalNode MINUS() { return getToken(PromqlBaseParser.MINUS, 0); }
     public TerminalNode AT_START() { return getToken(PromqlBaseParser.AT_START, 0); }
@@ -1989,7 +1989,7 @@ public class PromqlBaseParser extends ParserConfig {
         case 2:
           {
           setState(258);
-          time_value();
+          timeValue();
           }
           break;
         }
@@ -2033,8 +2033,8 @@ public class PromqlBaseParser extends ParserConfig {
     public StringContext string() {
       return getRuleContext(StringContext.class,0);
     }
-    public Time_valueContext time_value() {
-      return getRuleContext(Time_valueContext.class,0);
+    public TimeValueContext timeValue() {
+      return getRuleContext(TimeValueContext.class,0);
     }
     @SuppressWarnings("this-escape")
     public ConstantContext(ParserRuleContext parent, int invokingState) {
@@ -2081,7 +2081,7 @@ public class PromqlBaseParser extends ParserConfig {
         enterOuterAlt(_localctx, 3);
         {
         setState(267);
-        time_value();
+        timeValue();
         }
         break;
       }
@@ -2260,34 +2260,35 @@ public class PromqlBaseParser extends ParserConfig {
   }
 
   @SuppressWarnings("CheckReturnValue")
-  public static class Time_valueContext extends ParserRuleContext {
+  public static class TimeValueContext extends ParserRuleContext {
     public TerminalNode TIME_VALUE_WITH_COLON() { return getToken(PromqlBaseParser.TIME_VALUE_WITH_COLON, 0); }
     public TerminalNode TIME_VALUE() { return getToken(PromqlBaseParser.TIME_VALUE, 0); }
     public NumberContext number() {
       return getRuleContext(NumberContext.class,0);
     }
-    public Time_valueContext(ParserRuleContext parent, int invokingState) {
+    @SuppressWarnings("this-escape")
+    public TimeValueContext(ParserRuleContext parent, int invokingState) {
       super(parent, invokingState);
     }
-    @Override public int getRuleIndex() { return RULE_time_value; }
+    @Override public int getRuleIndex() { return RULE_timeValue; }
     @Override
     public void enterRule(ParseTreeListener listener) {
-      if ( listener instanceof PromqlBaseParserListener ) ((PromqlBaseParserListener)listener).enterTime_value(this);
+      if ( listener instanceof PromqlBaseParserListener ) ((PromqlBaseParserListener)listener).enterTimeValue(this);
     }
     @Override
     public void exitRule(ParseTreeListener listener) {
-      if ( listener instanceof PromqlBaseParserListener ) ((PromqlBaseParserListener)listener).exitTime_value(this);
+      if ( listener instanceof PromqlBaseParserListener ) ((PromqlBaseParserListener)listener).exitTimeValue(this);
     }
     @Override
     public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
-      if ( visitor instanceof PromqlBaseParserVisitor ) return ((PromqlBaseParserVisitor<? extends T>)visitor).visitTime_value(this);
+      if ( visitor instanceof PromqlBaseParserVisitor ) return ((PromqlBaseParserVisitor<? extends T>)visitor).visitTimeValue(this);
       else return visitor.visitChildren(this);
     }
   }
 
-  public final Time_valueContext time_value() throws RecognitionException {
-    Time_valueContext _localctx = new Time_valueContext(_ctx, getState());
-    enterRule(_localctx, 42, RULE_time_value);
+  public final TimeValueContext timeValue() throws RecognitionException {
+    TimeValueContext _localctx = new TimeValueContext(_ctx, getState());
+    enterRule(_localctx, 42, RULE_timeValue);
     try {
       setState(280);
       _errHandler.sync(this);
