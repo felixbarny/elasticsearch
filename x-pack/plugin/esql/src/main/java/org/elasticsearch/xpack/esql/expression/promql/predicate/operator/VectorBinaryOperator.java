@@ -10,6 +10,7 @@ package org.elasticsearch.xpack.esql.expression.promql.predicate.operator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.xpack.esql.EsqlIllegalArgumentException;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
+import org.elasticsearch.xpack.esql.core.expression.FoldContext;
 import org.elasticsearch.xpack.esql.core.expression.Nullability;
 import org.elasticsearch.xpack.esql.core.expression.function.Function;
 import org.elasticsearch.xpack.esql.core.tree.Source;
@@ -39,7 +40,11 @@ public abstract class VectorBinaryOperator extends Expression {
     public interface BinaryOp {
         String name();
 
-        Function asFunction();
+        ScalarFunctionFactory asFunction();
+    }
+
+    public interface ScalarFunctionFactory {
+        Function create(Source source, Expression left, Expression right);
     }
 
     protected VectorBinaryOperator(
@@ -96,6 +101,11 @@ public abstract class VectorBinaryOperator extends Expression {
     @Override
     public boolean foldable() {
         return left.foldable() && right.foldable();
+    }
+
+    @Override
+    public Object fold(FoldContext ctx) {
+        return binaryOp.asFunction().create(source(), left(), right()).fold(ctx);
     }
 
     @Override

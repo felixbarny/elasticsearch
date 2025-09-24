@@ -7,20 +7,41 @@
 
 package org.elasticsearch.xpack.esql.parser.promql;
 
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
-import org.elasticsearch.xpack.esql.parser.ExpressionBuilder;
-import org.elasticsearch.xpack.esql.parser.PromqlBaseParser;
+import org.elasticsearch.xpack.esql.parser.ParsingException;
 
 import java.time.Instant;
 
+import static org.elasticsearch.xpack.esql.parser.ParserUtils.typedParsing;
+
 public class PromqlAstBuilder extends ExpressionBuilder {
 
-    PromqlAstBuilder(Instant start, Instant stop) {
+    public static final int MAX_EXPRESSION_DEPTH = 200;
+
+    private int expressionDepth = 0;
+
+    public PromqlAstBuilder() {
+        this(null, null);
+    }
+
+    public PromqlAstBuilder(Instant start, Instant stop) {
         super(start, stop);
     }
 
-    @Override
-    public Expression visitSingleExpression(PromqlBaseParser.SingleExpressionContext ctx) {
-        return super.visitSingleExpression(ctx);
+    public Expression expression(ParseTree ctx) {
+        expressionDepth++;
+        if (expressionDepth > MAX_EXPRESSION_DEPTH) {
+            throw new ParsingException(
+                "PromQL statement exceeded the maximum expression depth allowed ({}): [{}]",
+                MAX_EXPRESSION_DEPTH,
+                ctx.getParent().getText()
+            );
+        }
+        try {
+            return typedParsing(this, ctx, Expression.class);
+        } finally {
+            expressionDepth--;
+        }
     }
 }

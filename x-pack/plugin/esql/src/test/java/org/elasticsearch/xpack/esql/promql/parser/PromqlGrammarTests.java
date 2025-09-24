@@ -28,8 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.elasticsearch.common.logging.LoggerMessageFormat.format;
-import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.not;
 
 public class PromqlGrammarTests extends ESTestCase {
 
@@ -85,7 +86,7 @@ public class PromqlGrammarTests extends ESTestCase {
     }
 
     @Test
-    @AwaitsFix(bugUrl = "requires the parser to be implemented to perform validation")
+    //@AwaitsFix(bugUrl = "requires the parser to be implemented to perform validation")
     public void testInvalidQueries() throws Exception {
         List<Tuple<String, Integer>> lines = readQueries("/promql/grammar/queries-invalid.promql");
         for (Tuple<String, Integer> line : lines) {
@@ -98,7 +99,7 @@ public class PromqlGrammarTests extends ESTestCase {
         }
     }
 
-    private static List<Tuple<String, Integer>> readQueries(String source) throws Exception {
+    static List<Tuple<String, Integer>> readQueries(String source) throws Exception {
         var urls = EsqlTestUtils.classpathResources(source);
         assertThat(urls, not(empty()));
         List<Tuple<String, Integer>> queries = new ArrayList<>();

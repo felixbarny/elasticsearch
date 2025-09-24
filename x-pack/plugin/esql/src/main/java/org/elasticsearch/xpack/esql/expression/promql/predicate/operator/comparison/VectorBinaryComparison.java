@@ -8,9 +8,14 @@
 package org.elasticsearch.xpack.esql.expression.promql.predicate.operator.comparison;
 
 import org.elasticsearch.xpack.esql.core.expression.Expression;
-import org.elasticsearch.xpack.esql.core.expression.function.Function;
 import org.elasticsearch.xpack.esql.core.tree.NodeInfo;
 import org.elasticsearch.xpack.esql.core.tree.Source;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.Equals;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.GreaterThan;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.GreaterThanOrEqual;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.LessThan;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.LessThanOrEqual;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.NotEquals;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorBinaryOperator;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorMatch;
 
@@ -27,8 +32,15 @@ public class VectorBinaryComparison extends VectorBinaryOperator {
         LTE;
 
         @Override
-        public Function asFunction() {
-            throw new UnsupportedOperationException("not implemented");
+        public ScalarFunctionFactory asFunction() {
+            return switch (this) {
+                case EQ -> Equals::new;
+                case NEQ -> NotEquals::new;
+                case GT -> GreaterThan::new;
+                case GTE -> GreaterThanOrEqual::new;
+                case LT -> LessThan::new;
+                case LTE -> LessThanOrEqual::new;
+            };
         }
     }
 

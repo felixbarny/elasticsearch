@@ -8,9 +8,14 @@
 package org.elasticsearch.xpack.esql.expression.promql.predicate.operator.arithmetic;
 
 import org.elasticsearch.xpack.esql.core.expression.Expression;
-import org.elasticsearch.xpack.esql.core.expression.function.Function;
 import org.elasticsearch.xpack.esql.core.tree.NodeInfo;
 import org.elasticsearch.xpack.esql.core.tree.Source;
+import org.elasticsearch.xpack.esql.expression.function.scalar.math.Pow;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.arithmetic.Add;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.arithmetic.Div;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.arithmetic.Mod;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.arithmetic.Mul;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.arithmetic.Sub;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorBinaryOperator;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorMatch;
 
@@ -25,8 +30,15 @@ public class VectorBinaryArithmetic extends VectorBinaryOperator {
         POW;
 
         @Override
-        public Function asFunction() {
-            throw new UnsupportedOperationException("not implemented");
+        public ScalarFunctionFactory asFunction() {
+            return switch (this) {
+                case ADD -> Add::new;
+                case SUB -> Sub::new;
+                case MUL -> Mul::new;
+                case DIV -> Div::new;
+                case MOD -> Mod::new;
+                case POW -> Pow::new;
+            };
         }
     }
 

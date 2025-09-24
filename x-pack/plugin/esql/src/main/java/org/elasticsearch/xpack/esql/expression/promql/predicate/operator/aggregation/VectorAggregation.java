@@ -7,6 +7,7 @@
 
 package org.elasticsearch.xpack.esql.expression.promql.predicate.operator.aggregation;
 
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.core.expression.Expressions;
 import org.elasticsearch.xpack.esql.core.expression.function.Function;
@@ -14,6 +15,7 @@ import org.elasticsearch.xpack.esql.core.tree.NodeInfo;
 import org.elasticsearch.xpack.esql.core.tree.Source;
 import org.elasticsearch.xpack.esql.core.type.DataType;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -21,7 +23,17 @@ import java.util.Set;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.xpack.esql.core.util.CollectionUtils.combine;
 
-public abstract class VectorAggregation extends Function {
+public class VectorAggregation extends Function {
+
+    @Override
+    public String getWriteableName() {
+        return "";
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+
+    }
 
     public enum Grouping {
         BY,
@@ -73,7 +85,12 @@ public abstract class VectorAggregation extends Function {
     }
 
     @Override
-    public Expression replaceChildren(List<Expression> newChildren) {
+    public DataType dataType() {
+        return DataType.DOUBLE;
+    }
+
+    @Override
+    public VectorAggregation replaceChildren(List<Expression> newChildren) {
         return new VectorAggregation(source(), newChildren.get(0), parameters(), grouping(), labels(), null);
     }
 

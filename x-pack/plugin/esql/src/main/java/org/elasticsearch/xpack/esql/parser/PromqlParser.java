@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.dfa.DFA;
 import org.elasticsearch.logging.LogManager;
 import org.elasticsearch.logging.Logger;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
+import org.elasticsearch.xpack.esql.parser.promql.PromqlAstBuilder;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -44,19 +45,19 @@ public class PromqlParser {
     /**
      * Parses an PromQL expression into execution plan
      */
-    public Expression createExpression(String expression) {
-        return createExpression(expression, null, null);
+    public Expression createExpression(String query) {
+        return createExpression(query, null, null);
     }
 
-    public Expression createExpression(String expression, Instant start, Instant stop) {
+    public Expression createExpression(String query, Instant start, Instant stop) {
         if (log.isDebugEnabled()) {
-            log.debug("Parsing as expression: {}", expression);
+            log.debug("Parsing as expression: {}", query);
         }
 
         if (start == null) {
             start = Instant.now(UTC);
         }
-        return invokeParser(expression, start, stop, PromqlBaseParser::singleExpression, AstBuilder::expression);
+        return invokeParser(query, start, stop, PromqlBaseParser::singleExpression, PromqlAstBuilder::expression);
     }
 
     private <T> T invokeParser(
@@ -64,7 +65,7 @@ public class PromqlParser {
         Instant start,
         Instant stop,
         Function<PromqlBaseParser, ParserRuleContext> parseFunction,
-        BiFunction<AstBuilder, ParserRuleContext, T> visitor
+        BiFunction<PromqlAstBuilder, ParserRuleContext, T> visitor
     ) {
         try {
             PromqlBaseLexer lexer = new PromqlBaseLexer(CharStreams.fromString(query));
@@ -96,12 +97,11 @@ public class PromqlParser {
             if (log.isTraceEnabled()) {
                 log.trace("Parse tree: {}", tree.toStringTree());
             }
-            //return visitor.apply(new AstBuilder(start, stop), tree);
-            return null;
-        } catch (StackOverflowError e) {
-            throw new ParsingException(
-                "PromQL statement is too large, causing stack overflow when generating the parsing tree: [{}]", query
-            );
+            return visitor.apply(new PromqlAstBuilder(start, stop), tree);
+//        } catch (StackOverflowError e) {
+//            throw new ParsingException(
+//                "PromQL statement is too large, causing stack overflow when generating the parsing tree: [{}]", query
+//            );
         } catch (EmptyStackException ese) {
             throw new ParsingException("Invalid query [{}]", query);
         }

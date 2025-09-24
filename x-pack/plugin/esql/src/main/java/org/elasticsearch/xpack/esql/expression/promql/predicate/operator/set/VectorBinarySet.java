@@ -8,7 +8,6 @@
 package org.elasticsearch.xpack.esql.expression.promql.predicate.operator.set;
 
 import org.elasticsearch.xpack.esql.core.expression.Expression;
-import org.elasticsearch.xpack.esql.core.expression.function.Function;
 import org.elasticsearch.xpack.esql.core.tree.NodeInfo;
 import org.elasticsearch.xpack.esql.core.tree.Source;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorBinaryOperator;
@@ -22,8 +21,8 @@ public class VectorBinarySet extends VectorBinaryOperator {
         UNION;
 
         @Override
-        public Function asFunction() {
-            throw new UnsupportedOperationException("not implemented");
+        public ScalarFunctionFactory asFunction() {
+            throw new UnsupportedOperationException("not yet implemented");
         }
     }
 

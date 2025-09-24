@@ -355,6 +355,9 @@ class ExpressionBuilder extends IdentifierBuilder {
             // if no name is specified, check for non-empty matchers
             boolean nonEmptyMatcher = id != null;
             for (LabelContext labelCtx : labelsCtx.label()) {
+                if (labelCtx.kind == null) {
+                    throw new ParsingException(source(labelCtx), "No label matcher specified");
+                }
                 String kind = labelCtx.kind.getText();
                 Matcher matcher = Matcher.from(kind);
                 if (matcher == null) {
@@ -402,12 +405,17 @@ class ExpressionBuilder extends IdentifierBuilder {
 
     @Override
     public String visitLabelName(LabelNameContext ctx) {
-        Object labelName = visit(ctx);
-        return switch (labelName) {
-            case String s -> s;
-            case Literal l -> String.valueOf(l.value());
-            default -> throw new ParsingException(source(ctx), "Expected label name, got [{}]", labelName);
-        };
+        if (ctx.identifier() != null) {
+            return visitIdentifier(ctx.identifier());
+        }
+        if (ctx.STRING() != null) {
+            return string(ctx.STRING());
+        }
+        if (ctx.number() != null) {
+            Literal l = typedParsing(this, ctx.number(), Literal.class);
+            return String.valueOf(l.value());
+        }
+        throw new ParsingException(source(ctx), "Expected label name, got [{}]", source(ctx).text());
     }
 
     @Override
