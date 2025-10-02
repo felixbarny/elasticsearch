@@ -5,14 +5,23 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.esql.expression.promql.selector;
+package org.elasticsearch.xpack.esql.plan.logical.promql.selector;
 
 import org.elasticsearch.core.TimeValue;
 
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * Evaluation context for a PromQL selector, including the evaluation time and any offset to apply.
+ * The evaluation time is passed through the promql API while the rest of the parameters through the query
+ * directly.
+ *
+ * &lt;implicit&gt; offset &lt;optional_offset&gt; @ &lt;optional_at&gt;
+ */
 public class Evaluation {
+    public static final Evaluation NONE = new Evaluation(TimeValue.ZERO, false, null);
+
     private final TimeValue offset;
     private final boolean offsetNegative;
     private final Instant at;
@@ -54,5 +63,24 @@ public class Evaluation {
     @Override
     public int hashCode() {
         return Objects.hash(offset, offsetNegative, at);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        if (offset != null && offset.equals(TimeValue.ZERO) == false) {
+            sb.append("offset ");
+            if (offsetNegative) {
+                sb.append("-");
+            }
+            sb.append(offset);
+        }
+        if (at != null) {
+            if (sb.length() > 0) {
+                sb.append(" ");
+            }
+            sb.append("@ ").append(at);
+        }
+        return sb.length() > 0 ? sb.toString() : "";
     }
 }

@@ -15,7 +15,7 @@ import org.elasticsearch.xpack.esql.core.expression.UnaryExpression;
 import org.elasticsearch.xpack.esql.core.tree.NodeInfo;
 import org.elasticsearch.xpack.esql.core.tree.Source;
 import org.elasticsearch.xpack.esql.core.type.DataType;
-import org.elasticsearch.xpack.esql.expression.promql.selector.Evaluation;
+import org.elasticsearch.xpack.esql.plan.logical.promql.selector.Evaluation;
 import org.elasticsearch.xpack.esql.expression.promql.types.PromqlDataTypes;
 
 import java.io.IOException;

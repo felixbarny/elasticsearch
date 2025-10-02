@@ -16,15 +16,15 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
  */
 public interface PromqlBaseParserListener extends ParseTreeListener {
   /**
-   * Enter a parse tree produced by {@link PromqlBaseParser#singleExpression}.
+   * Enter a parse tree produced by {@link PromqlBaseParser#singleStatement}.
    * @param ctx the parse tree
    */
-  void enterSingleExpression(PromqlBaseParser.SingleExpressionContext ctx);
+  void enterSingleStatement(PromqlBaseParser.SingleStatementContext ctx);
   /**
-   * Exit a parse tree produced by {@link PromqlBaseParser#singleExpression}.
+   * Exit a parse tree produced by {@link PromqlBaseParser#singleStatement}.
    * @param ctx the parse tree
    */
-  void exitSingleExpression(PromqlBaseParser.SingleExpressionContext ctx);
+  void exitSingleStatement(PromqlBaseParser.SingleStatementContext ctx);
   /**
    * Enter a parse tree produced by the {@code valueExpression}
    * labeled alternative in {@link PromqlBaseParser#expression}.
@@ -116,15 +116,25 @@ public interface PromqlBaseParserListener extends ParseTreeListener {
    */
   void exitFunction(PromqlBaseParser.FunctionContext ctx);
   /**
-   * Enter a parse tree produced by {@link PromqlBaseParser#functionModifier}.
+   * Enter a parse tree produced by {@link PromqlBaseParser#functionParams}.
    * @param ctx the parse tree
    */
-  void enterFunctionModifier(PromqlBaseParser.FunctionModifierContext ctx);
+  void enterFunctionParams(PromqlBaseParser.FunctionParamsContext ctx);
   /**
-   * Exit a parse tree produced by {@link PromqlBaseParser#functionModifier}.
+   * Exit a parse tree produced by {@link PromqlBaseParser#functionParams}.
    * @param ctx the parse tree
    */
-  void exitFunctionModifier(PromqlBaseParser.FunctionModifierContext ctx);
+  void exitFunctionParams(PromqlBaseParser.FunctionParamsContext ctx);
+  /**
+   * Enter a parse tree produced by {@link PromqlBaseParser#grouping}.
+   * @param ctx the parse tree
+   */
+  void enterGrouping(PromqlBaseParser.GroupingContext ctx);
+  /**
+   * Exit a parse tree produced by {@link PromqlBaseParser#grouping}.
+   * @param ctx the parse tree
+   */
+  void exitGrouping(PromqlBaseParser.GroupingContext ctx);
   /**
    * Enter a parse tree produced by {@link PromqlBaseParser#selector}.
    * @param ctx the parse tree

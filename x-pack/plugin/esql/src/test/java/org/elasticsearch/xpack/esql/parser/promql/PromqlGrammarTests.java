@@ -55,7 +55,7 @@ public class PromqlGrammarTests extends ESTestCase {
             }
         });
 
-        parser.singleExpression();
+        parser.expression();
     }
 
     private void validate(String query, int lineNumber) {

@@ -20,7 +20,7 @@ options {
   tokenVocab=PromqlBaseLexer;
 }
 
-singleExpression
+singleStatement
     : expression EOF
     ;
 
@@ -55,12 +55,16 @@ value
     ;
 
 function
-    : IDENTIFIER LP RP
-    | IDENTIFIER LP expression (COMMA expression)* RP functionModifier?
-    | IDENTIFIER functionModifier LP expression (COMMA expression)* RP
+    : IDENTIFIER LP functionParams? RP
+    | IDENTIFIER LP functionParams RP grouping
+    | IDENTIFIER grouping LP functionParams RP
     ;
 
-functionModifier
+functionParams
+    : expression (COMMA expression)*
+    ;
+
+grouping
     : (BY | WITHOUT) labelList
     ;
 
@@ -74,7 +78,7 @@ seriesMatcher
     ;
 
 modifier
-    : (IGNORING | ON) modifierLabels=labelList (group=(GROUP_LEFT | GROUP_RIGHT) groupLabels=labelList?)?
+    : matching=(IGNORING | ON) modifierLabels=labelList (joining=(GROUP_LEFT | GROUP_RIGHT) groupLabels=labelList?)?
     ;
 
 // NB: PromQL explicitly allows a trailing comma for label enumeration

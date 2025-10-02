@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-package org.elasticsearch.xpack.esql.expression.promql.selector;
+package org.elasticsearch.xpack.esql.plan.logical.promql.selector;
 
 
 import org.apache.lucene.util.automaton.Automata;
@@ -17,10 +17,18 @@ import org.elasticsearch.xpack.esql.core.QlIllegalArgumentException;
 
 import java.util.Objects;
 
-import static org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher.Matcher.NEQ;
-import static org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher.Matcher.NREG;
+import static org.elasticsearch.xpack.esql.plan.logical.promql.selector.LabelMatcher.Matcher.NEQ;
+import static org.elasticsearch.xpack.esql.plan.logical.promql.selector.LabelMatcher.Matcher.NREG;
 import static org.elasticsearch.xpack.esql.core.util.StringUtils.EMPTY;
 
+/**
+ * PromQL label matcher between a label name, a value pattern and match type (=, !=, =~, !~).
+ *
+ * Examples:
+ *   {job="api"}              → [LabelMatcher("job", "api", EQ)]
+ *   {status=~"5.."}          → [LabelMatcher("status", "5..", REG)]
+ *   {env!~"test|dev"}        → [LabelMatcher("env", "test|dev", NREG)]
+ */
 public class LabelMatcher {
 
     public static final String NAME = "__name__";
@@ -57,38 +65,41 @@ public class LabelMatcher {
     private final String value;
     private final Matcher matcher;
 
-    private final Automaton automaton;
+    private Automaton automaton;
 
     public LabelMatcher(String name, String value, Matcher matcher) {
         this.name = name;
         this.value = value;
         this.matcher = matcher;
-        this.automaton = automaton(value, matcher);
     }
 
     public String name() {
         return name;
     }
 
+    public String value() {
+        return value;
+    }
+
+    public Matcher matcher() {
+        return matcher;
+    }
+
     public Automaton automaton() {
+        if (automaton == null) {
+            automaton = automaton(value, matcher);
+        }
         return automaton;
     }
 
     // TODO: externalize this to allow pluggable strategies (such as caching across labels/requests)
     private static Automaton automaton(String value, Matcher matcher) {
         Automaton automaton;
-        // exact match
-        if (matcher == Matcher.EQ || matcher == Matcher.NEQ) {
-            automaton = Automata.makeString(value);
-        }
-        // regex match
-        else {
-            try {
-                automaton = new RegExp(value).toAutomaton();
-                automaton = MinimizationOperations.minimize(automaton, Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
-            } catch (IllegalArgumentException ex) {
-                throw new QlIllegalArgumentException(ex, "Cannot parse regex {}", value);
-            }
+        try {
+            automaton = new RegExp(value).toAutomaton();
+            automaton = MinimizationOperations.minimize(automaton, Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
+        } catch (IllegalArgumentException ex) {
+            throw new QlIllegalArgumentException(ex, "Cannot parse regex {}", value);
         }
         // negate if needed
         if (matcher == NEQ || matcher == NREG) {
@@ -98,15 +109,15 @@ public class LabelMatcher {
     }
 
     public boolean matchesAll() {
-        return Operations.isTotal(automaton);
+        return Operations.isTotal(automaton());
     }
 
     public boolean matchesNone() {
-        return Operations.isEmpty(automaton);
+        return Operations.isEmpty(automaton());
     }
 
     public boolean matchesEmpty() {
-        return Operations.run(automaton, EMPTY);
+        return Operations.run(automaton(), EMPTY);
     }
 
     @Override
@@ -120,13 +131,12 @@ public class LabelMatcher {
         LabelMatcher label = (LabelMatcher) o;
         return matcher == label.matcher
             && Objects.equals(name, label.name)
-            && Objects.equals(value, label.value)
-            && Objects.equals(automaton, label.automaton);
+            && Objects.equals(value, label.value);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, value, matcher, automaton);
+        return Objects.hash(name, value, matcher);
     }
 
     @Override

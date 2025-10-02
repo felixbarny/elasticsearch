@@ -16,44 +16,28 @@ import org.elasticsearch.xpack.esql.core.QlIllegalArgumentException;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.core.expression.FoldContext;
 import org.elasticsearch.xpack.esql.core.expression.Literal;
-import org.elasticsearch.xpack.esql.core.expression.function.Function;
 import org.elasticsearch.xpack.esql.core.tree.Source;
 import org.elasticsearch.xpack.esql.core.type.DataType;
 import org.elasticsearch.xpack.esql.core.util.StringUtils;
-import org.elasticsearch.xpack.esql.expression.function.FunctionDefinition;
-import org.elasticsearch.xpack.esql.expression.function.FunctionResolutionStrategy;
-import org.elasticsearch.xpack.esql.expression.function.UnresolvedFunction;
-import org.elasticsearch.xpack.esql.expression.promql.function.PromqlFunctionRegistry;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorBinaryOperator;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.VectorMatch;
-import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.aggregation.VectorAggregation;
-import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.aggregation.VectorAggregation.Grouping;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.arithmetic.VectorBinaryArithmetic;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.arithmetic.VectorBinaryArithmetic.ArithmeticOp;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.comparison.VectorBinaryComparison;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.comparison.VectorBinaryComparison.ComparisonOp;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.set.VectorBinarySet;
 import org.elasticsearch.xpack.esql.expression.promql.predicate.operator.set.VectorBinarySet.SetOp;
-import org.elasticsearch.xpack.esql.expression.promql.selector.Evaluation;
-import org.elasticsearch.xpack.esql.expression.promql.selector.InstantSelector;
-import org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher;
-import org.elasticsearch.xpack.esql.expression.promql.selector.RangeSelector;
-import org.elasticsearch.xpack.esql.expression.promql.selector.Selector;
-import org.elasticsearch.xpack.esql.expression.promql.subquery.Subquery;
 import org.elasticsearch.xpack.esql.expression.promql.types.PromqlDataTypes;
 import org.elasticsearch.xpack.esql.parser.ParsingException;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ArithmeticBinaryContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ArithmeticUnaryContext;
-import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.FunctionContext;
-import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.FunctionModifierContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.HexLiteralContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.IntegerLiteralContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LabelListContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LabelNameContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ModifierContext;
-import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.ParenthesizedContext;
-import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SingleExpressionContext;
 import org.elasticsearch.xpack.esql.parser.PromqlBaseParser.StringContext;
+import org.elasticsearch.xpack.esql.plan.logical.promql.selector.Evaluation;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -63,8 +47,6 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.emptyList;
-import static org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher.Matcher;
-import static org.elasticsearch.xpack.esql.expression.promql.selector.LabelMatcher.NAME;
 import static org.elasticsearch.xpack.esql.parser.ParserUtils.source;
 import static org.elasticsearch.xpack.esql.parser.ParserUtils.typedParsing;
 import static org.elasticsearch.xpack.esql.parser.ParserUtils.visitList;
@@ -80,8 +62,6 @@ import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.GT;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.GTE;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LT;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LTE;
-import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LabelContext;
-import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.LabelsContext;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.MINUS;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.NEQ;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.OR;
@@ -89,15 +69,12 @@ import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.OffsetContext
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.PERCENT;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.PLUS;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SLASH;
-import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SelectorContext;
-import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SeriesMatcherContext;
-import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.SubqueryContext;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.TimeValueContext;
 import static org.elasticsearch.xpack.esql.parser.PromqlBaseParser.UNLESS;
 
 class ExpressionBuilder extends IdentifierBuilder {
 
-    private final Instant start, stop;
+    protected final Instant start, stop;
 
     ExpressionBuilder() {
         this(null, null);
@@ -119,11 +96,6 @@ class ExpressionBuilder extends IdentifierBuilder {
 
     protected List<Expression> expressions(List<? extends ParserRuleContext> contexts) {
         return visitList(this, contexts, Expression.class);
-    }
-
-    @Override
-    public Expression visitSingleExpression(SingleExpressionContext ctx) {
-        return expression(ctx.expression());
     }
 
     @Override
@@ -193,17 +165,17 @@ class ExpressionBuilder extends IdentifierBuilder {
 
             VectorMatch.Filter filter = modifierCtx.ON() != null ? VectorMatch.Filter.ON : VectorMatch.Filter.IGNORING;
             List<String> filterList = visitLabelList(modifierCtx.modifierLabels);
-            VectorMatch.Grouping grouping = VectorMatch.Grouping.NONE;
+            VectorMatch.Joining joining = VectorMatch.Joining.NONE;
             List<String> groupingList = visitLabelList(modifierCtx.groupLabels);
-            if (modifierCtx.group != null) {
-                grouping = modifierCtx.GROUP_LEFT() != null ? VectorMatch.Grouping.LEFT : VectorMatch.Grouping.RIGHT;
+            if (modifierCtx.joining != null) {
+                joining = modifierCtx.GROUP_LEFT() != null ? VectorMatch.Joining.LEFT : VectorMatch.Joining.RIGHT;
 
                 // grouping not allowed with logic operators
                 switch (opType) {
                     case AND:
                     case UNLESS:
                     case OR:
-                        throw new ParsingException(source(modifierCtx), "No grouping [{}] allowed for [{}] operator", grouping, opText);
+                        throw new ParsingException(source(modifierCtx), "No grouping [{}] allowed for [{}] operator", joining, opText);
                 }
 
                 // label declared in ON cannot appear in grouping
@@ -221,7 +193,7 @@ class ExpressionBuilder extends IdentifierBuilder {
                 }
             }
 
-            modifier = new VectorMatch(filter, new LinkedHashSet<>(filterList), grouping, new LinkedHashSet<>(groupingList));
+            modifier = new VectorMatch(filter, new LinkedHashSet<>(filterList), joining, new LinkedHashSet<>(groupingList));
         }
 
         VectorBinaryOperator.BinaryOp binaryOperator = switch (opType) {
@@ -254,38 +226,7 @@ class ExpressionBuilder extends IdentifierBuilder {
         };
     }
 
-    @Override
-    public Expression visitParenthesized(ParenthesizedContext ctx) {
-        return expression(ctx.expression());
-    }
-
-    @Override
-    public Subquery visitSubquery(SubqueryContext ctx) {
-        Source source = source(ctx);
-        Expression expression = expression(ctx.expression());
-
-        if (PromqlDataTypes.isInstantVector(expression.dataType()) == false) {
-            throw new ParsingException(source, "Subquery is only allowed on instant vector, got {}", expression.dataType().typeName());
-        }
-
-        Evaluation evaluation = visitEvaluation(ctx.evaluation());
-        if (evaluation == null) {
-            // TODO: fallback to defaults
-        }
-
-        Expression rangeEx = expression(ctx.range);
-        Expression resolution = expression(ctx.subqueryResolution());
-
-        return new Subquery(
-            source(ctx),
-            expression(ctx.expression()),
-            expressionToTimeValue(rangeEx),
-            expressionToTimeValue(resolution),
-            evaluation
-        );
-    }
-
-    private TimeValue expressionToTimeValue(Expression timeValueAsExpression) {
+    TimeValue expressionToTimeValue(Expression timeValueAsExpression) {
         if (timeValueAsExpression instanceof Literal literal
             && literal.foldable()
             && literal.fold(FoldContext.small()) instanceof TimeValue timeValue) {
@@ -297,105 +238,6 @@ class ExpressionBuilder extends IdentifierBuilder {
                 timeValueAsExpression.source().text()
             );
         }
-    }
-
-    @Override
-    public Function visitFunction(FunctionContext ctx) {
-        Source source = source(ctx);
-        String name = ctx.IDENTIFIER().getText().toLowerCase(Locale.ROOT);
-
-        if (PromqlFunctionRegistry.INSTANCE.functionExists(name) == false) {
-            throw new ParsingException(source, "unknown function with name [{}]", name);
-        }
-
-        List<Expression> arguments = expressions(ctx.expression());
-        FunctionResolutionStrategy strategy = FunctionResolutionStrategy.DEFAULT;
-        VectorAggregation.Grouping grouping = VectorAggregation.Grouping.NONE;
-        if (ctx.functionModifier() != null) {
-            FunctionModifierContext modifierContext = ctx.functionModifier();
-            grouping = modifierContext.BY() != null ? Grouping.BY : Grouping.WITHOUT;
-            List<String> labels = visitLabelList(modifierContext.labelList());
-            // strategy = new ModifierFunctionResolution(grouping, new LinkedHashSet<>(labels));
-        }
-
-        FunctionDefinition def = PromqlFunctionRegistry.INSTANCE.resolveFunction(name);
-        // do function validation
-
-        // need exactly 2 params
-        // if (ParameterizedAggregationOperator.class.isAssignableFrom(def.clazz()) && arguments.size() != 2) {
-        // throw new ParsingException(
-        // source,
-        // "Wrong number of arguments for aggregate expression provided, expected 2, got {}",
-        // arguments.size()
-        // );
-        // }
-
-        UnresolvedFunction unresolved = new UnresolvedFunction(source, name, strategy, arguments);
-        Function function = unresolved.buildResolved(null, def);
-        // PromQl expects early validation of the tree so let's do it here
-        Expression.TypeResolution resolution = function.typeResolved();
-        if (resolution.unresolved()) {
-            throw new ParsingException(source, resolution.message());
-        }
-        return function;
-    }
-
-    @Override
-    public Selector visitSelector(SelectorContext ctx) {
-        Source source = source(ctx);
-        SeriesMatcherContext seriesMatcher = ctx.seriesMatcher();
-        String id = visitIdentifier(seriesMatcher.identifier());
-        List<LabelMatcher> labels = new ArrayList<>();
-
-        if (id != null) {
-            labels.add(new LabelMatcher(NAME, id, Matcher.EQ));
-        }
-        LabelsContext labelsCtx = seriesMatcher.labels();
-        if (labelsCtx != null) {
-            // if no name is specified, check for non-empty matchers
-            boolean nonEmptyMatcher = id != null;
-            for (LabelContext labelCtx : labelsCtx.label()) {
-                if (labelCtx.kind == null) {
-                    throw new ParsingException(source(labelCtx), "No label matcher specified");
-                }
-                String kind = labelCtx.kind.getText();
-                Matcher matcher = Matcher.from(kind);
-                if (matcher == null) {
-                    throw new ParsingException(source(labelCtx), "Unrecognized label matcher [{}]", kind);
-                }
-                var nameCtx = labelCtx.labelName();
-                String labelName = visitLabelName(nameCtx);
-                if (labelName.contains(":")) {
-                    throw new ParsingException(source(nameCtx), "[:] not allowed in label names [{}]", labelName);
-                }
-                String labelValue = string(labelCtx.STRING());
-                // name cannot be defined twice
-                if (id != null && NAME.equals(labelName)) {
-                    throw new ParsingException(
-                        source(nameCtx),
-                        "Metric name must not be defined twice: [{}] or [{}]",
-                        id,
-                        labelValue
-                    );
-                }
-                LabelMatcher label = new LabelMatcher(labelName, labelValue, matcher);
-                // require at least one empty non-empty matcher
-                if (nonEmptyMatcher == false && label.matchesEmpty() == false) {
-                    nonEmptyMatcher = true;
-                }
-                labels.add(label);
-            }
-            if (nonEmptyMatcher == false) {
-                throw new ParsingException(source(labelsCtx), "Vector selector must contain at least one non-empty matcher");
-            }
-        }
-        Evaluation evaluation = visitEvaluation(ctx.evaluation());
-        TimeValue range = visitDuration(ctx.duration());
-        // fall back to default
-        if (evaluation == null) {
-            evaluation = new Evaluation(start);
-        }
-        return range == null ? new InstantSelector(source, labels, evaluation) : new RangeSelector(source, labels, range, evaluation);
     }
 
     @Override

@@ -123,7 +123,7 @@ TIME_VALUE
 // NB: the parser needs to validates this token based on context
 // (metric vs label vs..) as it can include non-supported characters
 IDENTIFIER
-    : [a-zA-Z_:][a-zA-Z0-9_:]*
+    : [a-zA-Z_:][a-zA-Z0-9_:.]*
     ;
 
 COMMENT

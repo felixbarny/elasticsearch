@@ -25,13 +25,13 @@ public class PromqlBaseParserBaseListener implements PromqlBaseParserListener {
    *
    * <p>The default implementation does nothing.</p>
    */
-  @Override public void enterSingleExpression(PromqlBaseParser.SingleExpressionContext ctx) { }
+  @Override public void enterSingleStatement(PromqlBaseParser.SingleStatementContext ctx) { }
   /**
    * {@inheritDoc}
    *
    * <p>The default implementation does nothing.</p>
    */
-  @Override public void exitSingleExpression(PromqlBaseParser.SingleExpressionContext ctx) { }
+  @Override public void exitSingleStatement(PromqlBaseParser.SingleStatementContext ctx) { }
   /**
    * {@inheritDoc}
    *
@@ -133,13 +133,25 @@ public class PromqlBaseParserBaseListener implements PromqlBaseParserListener {
    *
    * <p>The default implementation does nothing.</p>
    */
-  @Override public void enterFunctionModifier(PromqlBaseParser.FunctionModifierContext ctx) { }
+  @Override public void enterFunctionParams(PromqlBaseParser.FunctionParamsContext ctx) { }
   /**
    * {@inheritDoc}
    *
    * <p>The default implementation does nothing.</p>
    */
-  @Override public void exitFunctionModifier(PromqlBaseParser.FunctionModifierContext ctx) { }
+  @Override public void exitFunctionParams(PromqlBaseParser.FunctionParamsContext ctx) { }
+  /**
+   * {@inheritDoc}
+   *
+   * <p>The default implementation does nothing.</p>
+   */
+  @Override public void enterGrouping(PromqlBaseParser.GroupingContext ctx) { }
+  /**
+   * {@inheritDoc}
+   *
+   * <p>The default implementation does nothing.</p>
+   */
+  @Override public void exitGrouping(PromqlBaseParser.GroupingContext ctx) { }
   /**
    * {@inheritDoc}
    *

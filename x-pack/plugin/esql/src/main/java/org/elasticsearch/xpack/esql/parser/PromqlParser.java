@@ -21,8 +21,8 @@ import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.elasticsearch.logging.LogManager;
 import org.elasticsearch.logging.Logger;
-import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.parser.promql.PromqlAstBuilder;
+import org.elasticsearch.xpack.esql.plan.logical.LogicalPlan;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -45,11 +45,11 @@ public class PromqlParser {
     /**
      * Parses an PromQL expression into execution plan
      */
-    public Expression createExpression(String query) {
-        return createExpression(query, null, null);
+    public LogicalPlan createStatement(String query) {
+        return createStatement(query, null, null);
     }
 
-    public Expression createExpression(String query, Instant start, Instant stop) {
+    public LogicalPlan createStatement(String query, Instant start, Instant stop) {
         if (log.isDebugEnabled()) {
             log.debug("Parsing as expression: {}", query);
         }
@@ -57,7 +57,7 @@ public class PromqlParser {
         if (start == null) {
             start = Instant.now(UTC);
         }
-        return invokeParser(query, start, stop, PromqlBaseParser::singleExpression, PromqlAstBuilder::expression);
+        return invokeParser(query, start, stop, PromqlBaseParser::singleStatement, PromqlAstBuilder::plan);
     }
 
     private <T> T invokeParser(

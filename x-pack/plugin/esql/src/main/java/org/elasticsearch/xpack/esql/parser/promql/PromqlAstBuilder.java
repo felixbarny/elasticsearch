@@ -8,14 +8,13 @@
 package org.elasticsearch.xpack.esql.parser.promql;
 
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.parser.ParsingException;
+import org.elasticsearch.xpack.esql.parser.PlanFactory;
+import org.elasticsearch.xpack.esql.plan.logical.LogicalPlan;
 
 import java.time.Instant;
 
-import static org.elasticsearch.xpack.esql.parser.ParserUtils.typedParsing;
-
-public class PromqlAstBuilder extends ExpressionBuilder {
+public class PromqlAstBuilder extends LogicalPlanBuilder {
 
     public static final int MAX_EXPRESSION_DEPTH = 200;
 
@@ -29,7 +28,7 @@ public class PromqlAstBuilder extends ExpressionBuilder {
         super(start, stop);
     }
 
-    public Expression expression(ParseTree ctx) {
+    public LogicalPlan plan(ParseTree ctx) {
         expressionDepth++;
         if (expressionDepth > MAX_EXPRESSION_DEPTH) {
             throw new ParsingException(
@@ -39,7 +38,7 @@ public class PromqlAstBuilder extends ExpressionBuilder {
             );
         }
         try {
-            return typedParsing(this, ctx, Expression.class);
+            return super.plan(ctx);
         } finally {
             expressionDepth--;
         }

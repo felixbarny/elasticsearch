@@ -22,24 +22,24 @@ public class VectorMatch {
         NONE
     }
 
-    public enum Grouping {
+    public enum Joining {
         LEFT,
         RIGHT,
         NONE
     }
 
-    public static final VectorMatch NONE = new VectorMatch(Filter.NONE, emptySet(), Grouping.NONE, emptySet());
+    public static final VectorMatch NONE = new VectorMatch(Filter.NONE, emptySet(), Joining.NONE, emptySet());
 
     private final Filter filter;
     private final Set<String> filterLabels;
 
-    private final Grouping grouping;
+    private final Joining joining;
     private final Set<String> groupingLabels;
 
-    public VectorMatch(Filter filter, Set<String> filterLabels, Grouping grouping, Set<String> groupingLabels) {
+    public VectorMatch(Filter filter, Set<String> filterLabels, Joining joining, Set<String> groupingLabels) {
         this.filter = filter;
         this.filterLabels = filterLabels;
-        this.grouping = grouping;
+        this.joining = joining;
         this.groupingLabels = groupingLabels;
     }
 
@@ -51,8 +51,8 @@ public class VectorMatch {
         return filterLabels;
     }
 
-    public Grouping grouping() {
-        return grouping;
+    public Joining grouping() {
+        return joining;
     }
 
     public Set<String> groupingLabels() {
@@ -65,7 +65,7 @@ public class VectorMatch {
             VectorMatch that = (VectorMatch) o;
             return filter == that.filter
                 && Objects.equals(filterLabels, that.filterLabels)
-                && grouping == that.grouping
+                && joining == that.joining
                 && Objects.equals(groupingLabels, that.groupingLabels);
         }
         return false;
@@ -73,15 +73,15 @@ public class VectorMatch {
 
     @Override
     public int hashCode() {
-        return Objects.hash(filter, filterLabels, grouping, groupingLabels);
+        return Objects.hash(filter, filterLabels, joining, groupingLabels);
     }
 
     @Override
     public String toString() {
         String filterString = filter != Filter.NONE ? filter.name().toLowerCase(Locale.ROOT) + "(" + filterLabels + ")" : EMPTY;
-        String groupingString = grouping != Grouping.NONE
+        String groupingString = joining != Joining.NONE
             ? " "
-            + grouping.name().toLowerCase(Locale.ROOT)
+            + joining.name().toLowerCase(Locale.ROOT)
             + (groupingLabels.isEmpty() == false ? "(" + groupingLabels + ")" : EMPTY)
             + " "
             : EMPTY;

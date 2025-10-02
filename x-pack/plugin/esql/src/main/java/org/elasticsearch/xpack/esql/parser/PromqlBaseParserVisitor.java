@@ -19,11 +19,11 @@ import org.antlr.v4.runtime.tree.ParseTreeVisitor;
  */
 public interface PromqlBaseParserVisitor<T> extends ParseTreeVisitor<T> {
   /**
-   * Visit a parse tree produced by {@link PromqlBaseParser#singleExpression}.
+   * Visit a parse tree produced by {@link PromqlBaseParser#singleStatement}.
    * @param ctx the parse tree
    * @return the visitor result
    */
-  T visitSingleExpression(PromqlBaseParser.SingleExpressionContext ctx);
+  T visitSingleStatement(PromqlBaseParser.SingleStatementContext ctx);
   /**
    * Visit a parse tree produced by the {@code valueExpression}
    * labeled alternative in {@link PromqlBaseParser#expression}.
@@ -78,11 +78,17 @@ public interface PromqlBaseParserVisitor<T> extends ParseTreeVisitor<T> {
    */
   T visitFunction(PromqlBaseParser.FunctionContext ctx);
   /**
-   * Visit a parse tree produced by {@link PromqlBaseParser#functionModifier}.
+   * Visit a parse tree produced by {@link PromqlBaseParser#functionParams}.
    * @param ctx the parse tree
    * @return the visitor result
    */
-  T visitFunctionModifier(PromqlBaseParser.FunctionModifierContext ctx);
+  T visitFunctionParams(PromqlBaseParser.FunctionParamsContext ctx);
+  /**
+   * Visit a parse tree produced by {@link PromqlBaseParser#grouping}.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  T visitGrouping(PromqlBaseParser.GroupingContext ctx);
   /**
    * Visit a parse tree produced by {@link PromqlBaseParser#selector}.
    * @param ctx the parse tree

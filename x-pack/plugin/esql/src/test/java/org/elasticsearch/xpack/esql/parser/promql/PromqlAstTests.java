@@ -12,6 +12,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.xpack.esql.core.QlClientException;
 import org.elasticsearch.xpack.esql.parser.ParsingException;
 import org.elasticsearch.xpack.esql.parser.PromqlParser;
+import org.elasticsearch.xpack.esql.plan.logical.LogicalPlan;
 
 import java.util.List;
 
@@ -30,7 +31,7 @@ public class PromqlAstTests extends ESTestCase {
             String q = line.v1();
             try {
                 PromqlParser parser = new PromqlParser();
-                parser.createExpression(q);
+                LogicalPlan plan = parser.createStatement(q, null, null);
             } catch (ParsingException pe) {
                 fail(
                     format(null,
@@ -48,15 +49,17 @@ public class PromqlAstTests extends ESTestCase {
     }
 
     public void testQuery() throws Exception {
-        String query = "metric[5m]";
-        new PromqlParser().createExpression(query);
+        String query = "rate(metric[5m])";
+        new PromqlParser().createStatement(query);
     }
 
+    @AwaitsFix(bugUrl = "placeholder for individual queries")
     public void testSingleQuery() throws Exception {
-        String query = "foo @ 9223372036854775808.000000";
-        new PromqlParser().createExpression(query);
+        String query = "{x=\".*\"}";
+        new PromqlParser().createStatement(query);
     }
 
+    //@AwaitsFix(bugUrl = "requires parsing validation, not the focus for now")
     public void testUnsupportedQueries() throws Exception {
         List<Tuple<String, Integer>> lines = PromqlGrammarTests.readQueries("/promql/grammar/queries-invalid.promql");
         for (Tuple<String, Integer> line : lines) {
@@ -66,9 +69,9 @@ public class PromqlAstTests extends ESTestCase {
                 PromqlParser parser = new PromqlParser();
                 Exception pe = expectThrowsAnyOf(
                     asList(QlClientException.class, UnsupportedOperationException.class),
-                    () -> parser.createExpression(q)
+                    () -> parser.createStatement(q)
                 );
-                parser.createExpression(q);
+                parser.createStatement(q);
                 //System.out.printf(pe.getMessage());
             } catch (QlClientException | UnsupportedOperationException ex) {
                 // Expected

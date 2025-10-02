@@ -26,7 +26,7 @@ public class PromqlBaseParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> 
    * <p>The default implementation returns the result of calling
    * {@link #visitChildren} on {@code ctx}.</p>
    */
-  @Override public T visitSingleExpression(PromqlBaseParser.SingleExpressionContext ctx) { return visitChildren(ctx); }
+  @Override public T visitSingleStatement(PromqlBaseParser.SingleStatementContext ctx) { return visitChildren(ctx); }
   /**
    * {@inheritDoc}
    *
@@ -89,7 +89,14 @@ public class PromqlBaseParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> 
    * <p>The default implementation returns the result of calling
    * {@link #visitChildren} on {@code ctx}.</p>
    */
-  @Override public T visitFunctionModifier(PromqlBaseParser.FunctionModifierContext ctx) { return visitChildren(ctx); }
+  @Override public T visitFunctionParams(PromqlBaseParser.FunctionParamsContext ctx) { return visitChildren(ctx); }
+  /**
+   * {@inheritDoc}
+   *
+   * <p>The default implementation returns the result of calling
+   * {@link #visitChildren} on {@code ctx}.</p>
+   */
+  @Override public T visitGrouping(PromqlBaseParser.GroupingContext ctx) { return visitChildren(ctx); }
   /**
    * {@inheritDoc}
    *
