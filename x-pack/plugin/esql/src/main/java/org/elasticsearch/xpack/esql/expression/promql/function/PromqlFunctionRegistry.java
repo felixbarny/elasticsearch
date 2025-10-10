@@ -192,7 +192,7 @@ public class PromqlFunctionRegistry {
             Arity.ONE,
             (source, params) -> {
                 Expression valueField = params.get(0);
-                Expression timestampField = params.size() > 1 ? params.get(1) : defaultTimestampField(source);
+                Expression timestampField = params.get(1);
                 return builder.build(source, valueField, timestampField);
             }
         );
@@ -218,10 +218,6 @@ public class PromqlFunctionRegistry {
                 return builder.build(source, field, param);
             }
         );
-    }
-
-    private static Expression defaultTimestampField(Source source) {
-        return new ReferenceAttribute(source, "@timestamp", DataType.DATETIME);
     }
 
     private void register(FunctionDefinition[][] definitionGroups) {

@@ -10,7 +10,6 @@ package org.elasticsearch.xpack.esql.optimizer.rules.logical.promql;
 import org.elasticsearch.xpack.esql.core.QlIllegalArgumentException;
 import org.elasticsearch.xpack.esql.core.expression.Alias;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
-import org.elasticsearch.xpack.esql.core.expression.FieldAttribute;
 import org.elasticsearch.xpack.esql.core.expression.Literal;
 import org.elasticsearch.xpack.esql.core.expression.NamedExpression;
 import org.elasticsearch.xpack.esql.core.expression.function.Function;
@@ -123,6 +122,7 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
 
         Map<String, Expression> extras = new HashMap<>();
         extras.put("field", selector.series());
+        extras.put("timestamp", selector.timestamp());
 
         // arguably the instant selector is a selector with range 0
         if (selector instanceof RangeSelector rangeSelector) {
@@ -147,12 +147,11 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
             Function esqlFunction = PromqlFunctionRegistry.INSTANCE.buildEsqlFunction(
                 withinAggregate.functionName(),
                 withinAggregate.source(),
-                List.of(target)
+                List.of(target, extras.get("timestamp"))
             );
 
            extras.put("field", esqlFunction);
-
-            result = new MapResult(childResult.plan, extras);
+           result = new MapResult(childResult.plan, extras);
         }
         else if (functionCall instanceof AcrossSeriesAggregate acrossAggregate) {
             // expects
@@ -165,7 +164,7 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
             Bucket tbucket = (Bucket) extras.get("tbucket");
             List<NamedExpression> aggs = List.of(new Alias(acrossAggregate.source(), acrossAggregate.sourceText(), esqlFunction));
             LogicalPlan p = new TimeSeriesAggregate(acrossAggregate.source(), childResult.plan, acrossAggregate.groupings(), aggs, tbucket);
-            result = new MapResult(childResult.plan, extras);
+            result = new MapResult(p, extras);
         } else {
             throw new QlIllegalArgumentException("Unsupported PromQL function call: {}", functionCall);
         }
@@ -191,12 +190,15 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
      */
     static Expression translateLabelMatchers(Source source, List<Expression> fields, LabelMatchers labelMatchers) {
         List<Expression> conditions = new ArrayList<>();
+        boolean hasNameMatcher = false;
         var matchers = labelMatchers.matchers();
         for (int i = 0, s = matchers.size(); i < s; i++) {
             LabelMatcher matcher = matchers.get(i);
-            Expression field = fields.get(i);
             // special handling for name label
-            if (LabelMatcher.NAME.equals(matcher.name()) != false) {
+            if (LabelMatcher.NAME.equals(matcher.name())) {
+                hasNameMatcher = true;
+            } else {
+                Expression field = fields.get(hasNameMatcher ? i - 1 : i); // adjust index if name matcher was seen
                 Expression condition = translateLabelMatcher(source, field, matcher);
                 if (condition != null) {
                     conditions.add(condition);
@@ -206,7 +208,7 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
 
         // could happen in case of an optimization that removes all matchers
         if (conditions.isEmpty()) {
-            return Literal.FALSE;
+            return null;
         }
 
         return Predicates.combineAnd(conditions);

@@ -8,6 +8,7 @@
 package org.elasticsearch.xpack.esql.plan.logical.promql.selector;
 
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.xpack.esql.core.capabilities.Resolvables;
 import org.elasticsearch.xpack.esql.core.expression.Attribute;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.core.tree.Source;
@@ -85,7 +86,7 @@ public abstract class Selector extends UnaryPlan {
 
     @Override
     public boolean expressionsResolved() {
-        return true;
+        return series.resolved() && timestamp.resolved() && Resolvables.resolved(labels);
     }
 
     @Override
@@ -95,6 +96,7 @@ public abstract class Selector extends UnaryPlan {
             return Objects.equals(evaluation, selector.evaluation)
                 && Objects.equals(labelMatchers, selector.labelMatchers)
                 && Objects.equals(series, selector.series)
+                && Objects.equals(timestamp, selector.timestamp)
                 && Objects.equals(labels, selector.labels);
         }
         return false;
@@ -102,7 +104,7 @@ public abstract class Selector extends UnaryPlan {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), series, labels, labelMatchers, evaluation);
+        return Objects.hash(super.hashCode(), series, labels, labelMatchers, evaluation, timestamp);
     }
 
     @Override

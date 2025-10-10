@@ -40,6 +40,16 @@ public class PromqlCommand extends UnaryPlan implements TelemetryAware {
         return new PromqlCommand(source(), newChild, promqlPlan);
     }
 
+    public PromqlCommand withPromqlPlan(LogicalPlan newPromqlPlan) {
+        return new PromqlCommand(source(), child(), newPromqlPlan);
+    }
+
+
+    @Override
+    public boolean expressionsResolved() {
+        return promqlPlan.resolved();
+    }
+
     @Override
     public String telemetryLabel() {
         return "PROMQL";
@@ -57,11 +67,6 @@ public class PromqlCommand extends UnaryPlan implements TelemetryAware {
 
     public LogicalPlan promqlPlan() {
         return promqlPlan;
-    }
-
-    @Override
-    public boolean expressionsResolved() {
-        return promqlPlan.resolved();
     }
 
     @Override

@@ -7,6 +7,7 @@
 
 package org.elasticsearch.xpack.esql.plan.logical.promql;
 
+import org.elasticsearch.xpack.esql.core.capabilities.Resolvables;
 import org.elasticsearch.xpack.esql.core.expression.Expression;
 import org.elasticsearch.xpack.esql.core.tree.NodeInfo;
 import org.elasticsearch.xpack.esql.core.tree.Source;
@@ -45,6 +46,11 @@ public class AcrossSeriesAggregate extends PromqlFunctionCall {
 
     public List<Expression> groupings() {
         return groupings;
+    }
+
+    @Override
+    public boolean expressionsResolved() {
+        return Resolvables.resolved(groupings) && super.expressionsResolved();
     }
 
     @Override
