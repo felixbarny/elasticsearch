@@ -51,13 +51,38 @@ public class PromqlLogicalPlanOptimizerTests extends AbstractLogicalPlanOptimize
         );
     }
 
+    public void testAvgAvgOverTimeOutput() {
+        // TS metrics-hostmetricsreceiver.otel-default
+        // | WHERE @timestamp >= \"{{from | minus .benchmark.duration}}\" AND @timestamp <=\"{{from}}\"
+        // | STATS AVG(AVG_OVER_TIME(`metrics.system.memory.utilization`)) BY host.name, TBUCKET(1h) | LIMIT 10000"
+        var plan = planPromql("""
+            TS k8s
+            | promql avg by (pod) (avg_over_time(network.bytes_in{pod=~"host-0|host-1|host-2"}[1h]))
+            | LIMIT 1000
+            """);
+
+        System.out.println(plan);
+    }
+
+    public void testTSAvgAvgOverTimeOutput() {
+        // TS metrics-hostmetricsreceiver.otel-default
+        // | STATS AVG(AVG_OVER_TIME(`metrics.system.memory.utilization`)) BY host.name, TBUCKET(1h) | LIMIT 10000"
+        var plan = planPromql("""
+            TS k8s
+            | STATS AVG(AVG_OVER_TIME(network.bytes_in)) BY pod, TBUCKET(1h)
+            | LIMIT 1000
+            """);
+
+        System.out.println(plan);
+    }
+
     public void testRangeSelector() {
         // TS metrics-hostmetricsreceiver.otel-default
         // | WHERE @timestamp >= \"{{from | minus .benchmark.duration}}\" AND @timestamp <=\"{{from}}\"
         // | STATS AVG(AVG_OVER_TIME(`metrics.system.memory.utilization`)) BY host.name, TBUCKET(1h) | LIMIT 10000"
         var plan = planPromql("""
             TS k8s
-            | promql avg by (pod) (avg_over_time(network.total_bytes_in[1h]))
+            | promql max by (pod) (avg_over_time(network.total_bytes_in[1h]))
             """);
 
         System.out.println(plan);
@@ -85,7 +110,7 @@ public class PromqlLogicalPlanOptimizerTests extends AbstractLogicalPlanOptimize
         String testQuery = """
             TS k8s
             | promql
-                avg by (host_name)(avg_over_time(system_cpu_load_average_1m{host_name=~"host-0|host-1|host-2"}[5m]))
+                max by (pod)(avg_over_time(network.total_bytes_in{pod=~"host-0|host-1|host-2"}[5m]))
             """;
 
         var plan = planPromql(testQuery);

@@ -27,6 +27,7 @@ import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.In;
 import org.elasticsearch.xpack.esql.expression.promql.function.PromqlFunctionRegistry;
 import org.elasticsearch.xpack.esql.optimizer.rules.logical.OptimizerRules;
 import org.elasticsearch.xpack.esql.optimizer.rules.logical.TranslateTimeSeriesAggregate;
+import org.elasticsearch.xpack.esql.plan.logical.Eval;
 import org.elasticsearch.xpack.esql.plan.logical.Filter;
 import org.elasticsearch.xpack.esql.plan.logical.LogicalPlan;
 import org.elasticsearch.xpack.esql.plan.logical.TimeSeriesAggregate;
@@ -124,14 +125,17 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
         extras.put("field", selector.series());
         extras.put("timestamp", selector.timestamp());
 
-        // arguably the instant selector is a selector with range 0
-        if (selector instanceof RangeSelector rangeSelector) {
-            Bucket tbucket = new Bucket(selector.source(), selector.timestamp(), rangeSelector.range(), null, null);
-            extras.put("tbucket", tbucket);
-
-        }
         // return the condition as filter
         LogicalPlan p = new Filter(selector.source(), selector.child(), Predicates.combineAnd(selectorConditions));
+
+        // arguably the instant selector is a selector with range 0
+        if (selector instanceof RangeSelector rangeSelector) {
+            Bucket b = new Bucket(rangeSelector.source(), selector.timestamp(), rangeSelector.range(), null, null);
+            Alias tbucket = new Alias(b.source(), "TBUCKET", b);
+            p = new Eval(tbucket.source(), p, List.of(tbucket));
+            extras.put("tbucket", tbucket.toAttribute());
+        }
+
         return new MapResult(p, extras);
     }
 
@@ -161,9 +165,30 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
                 List.of(target)
             );
 
-            Bucket tbucket = (Bucket) extras.get("tbucket");
-            List<NamedExpression> aggs = List.of(new Alias(acrossAggregate.source(), acrossAggregate.sourceText(), esqlFunction));
-            LogicalPlan p = new TimeSeriesAggregate(acrossAggregate.source(), childResult.plan, acrossAggregate.groupings(), aggs, tbucket);
+            List<NamedExpression> aggs = new ArrayList<>();
+            aggs.add(new Alias(acrossAggregate.source(), acrossAggregate.sourceText(), esqlFunction));
+
+            List<Expression> groupings = new ArrayList<>(acrossAggregate.groupings().size());
+
+            // add groupings
+            for (Expression grouping : acrossAggregate.groupings()) {
+                NamedExpression named;
+                if (grouping instanceof NamedExpression ne) {
+                    named = ne;
+                } else {
+                    named = new Alias(grouping.source(), grouping.sourceText(), grouping);
+                }
+                aggs.add(named);
+                groupings.add(named.toAttribute());
+            }
+
+            NamedExpression bucket = (NamedExpression) extras.get("tbucket");
+            if (bucket != null) {
+                aggs.add(bucket);
+                groupings.add(bucket.toAttribute());
+            }
+
+            LogicalPlan p = new TimeSeriesAggregate(acrossAggregate.source(), childResult.plan, groupings, aggs, null);
             result = new MapResult(p, extras);
         } else {
             throw new QlIllegalArgumentException("Unsupported PromQL function call: {}", functionCall);
@@ -239,7 +264,7 @@ public final class TranslatePromqlToTimeSeriesAggregate extends OptimizerRules.O
         }
 
         // Try to extract disjoint patterns (handles mixed prefix/suffix/exact)
-        List<AutomatonUtils.PatternFragment> fragments = AutomatonUtils.extractFragments(matcher.name());
+        List<AutomatonUtils.PatternFragment> fragments = AutomatonUtils.extractFragments(matcher.value());
         if (fragments != null && fragments.isEmpty() == false) {
             return translateDisjointPatterns(source, field, fragments);
         }

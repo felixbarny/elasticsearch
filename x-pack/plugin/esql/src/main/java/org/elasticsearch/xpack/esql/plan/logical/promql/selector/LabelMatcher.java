@@ -34,10 +34,10 @@ public class LabelMatcher {
     public static final String NAME = "__name__";
 
     public enum Matcher {
-        EQ("="),
-        NEQ("!="),
-        REG("=~"),
-        NREG("!~");
+        EQ("=", false),
+        NEQ("!=", false),
+        REG("=~", true),
+        NREG("!~", true);
 
         public static Matcher from(String value) {
             switch (value) {
@@ -55,9 +55,11 @@ public class LabelMatcher {
         }
 
         private final String value;
+        private final boolean isRegex;
 
-        Matcher(String value) {
+        Matcher(String value, boolean isRegex) {
             this.value = value;
+            this.isRegex = isRegex;
         }
     }
 
@@ -96,7 +98,7 @@ public class LabelMatcher {
     private static Automaton automaton(String value, Matcher matcher) {
         Automaton automaton;
         try {
-            automaton = new RegExp(value).toAutomaton();
+            automaton = matcher.isRegex ? new RegExp(value).toAutomaton() : Automata.makeString(value);
             automaton = MinimizationOperations.minimize(automaton, Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
         } catch (IllegalArgumentException ex) {
             throw new QlIllegalArgumentException(ex, "Cannot parse regex {}", value);
