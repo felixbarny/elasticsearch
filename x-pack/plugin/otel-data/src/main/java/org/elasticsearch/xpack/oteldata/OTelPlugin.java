@@ -51,7 +51,6 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
 
     private static final Logger logger = LogManager.getLogger(OTelPlugin.class);
 
-    private static final boolean OTLP_METRICS_ENABLED = new FeatureFlag("otlp_metrics").isEnabled();
     private static final boolean OTLP_LOGS_ENABLED = new FeatureFlag("otlp_logs").isEnabled();
     private final SetOnce<OTelIndexTemplateRegistry> registry = new SetOnce<>();
     private final boolean enabled;
@@ -72,10 +71,8 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
         Supplier<DiscoveryNodes> nodesInCluster,
         Predicate<NodeFeature> clusterSupportsFeature
     ) {
-        List<RestHandler> handlers = new ArrayList<>();
-        if (OTLP_METRICS_ENABLED) {
-            handlers.add(new OTLPMetricsRestAction());
-        }
+        List<RestHandler> handlers = new ArrayList<>(2);
+        handlers.add(new OTLPMetricsRestAction());
         if (OTLP_LOGS_ENABLED) {
             handlers.add(new OTLPLogsRestAction());
         }
@@ -110,15 +107,11 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<ActionHandler> getActions() {
-        List<ActionHandler> handlers = new ArrayList<>();
-
-        if (OTLP_METRICS_ENABLED) {
-            handlers.add(new ActionHandler(OTLPMetricsTransportAction.TYPE, OTLPMetricsTransportAction.class));
-        }
+        List<ActionHandler> handlers = new ArrayList<>(2);
+        handlers.add(new ActionHandler(OTLPMetricsTransportAction.TYPE, OTLPMetricsTransportAction.class));
         if (OTLP_LOGS_ENABLED) {
             handlers.add(new ActionHandler(OTLPLogsTransportAction.TYPE, OTLPLogsTransportAction.class));
         }
-
         return handlers;
     }
 }

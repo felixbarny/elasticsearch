@@ -81,7 +81,7 @@ public class OTLPMetricsIndexingRestIT extends AbstractOTLPIndexingRestIT {
     }
 
     @Override
-    protected String getOtlpEndpoint()  {
+    protected String getOtlpEndpoint() {
         return "/_otlp/v1/metrics";
     }
 

@@ -133,7 +133,7 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
         Hash128 resourceHash = resourceTsidBuilder.hash();
         ResourceGroup resourceGroup = resourceGroups.get(resourceHash);
         if (resourceGroup == null) {
-            resourceGroup = new ResourceGroup(resourceMetrics.getResource(), resourceMetrics.getSchemaUrlBytes());
+            resourceGroup = new ResourceGroup(resourceMetrics.getResource(), resourceMetrics.getSchemaUrlBytes(), resourceTsidBuilder);
             resourceGroups.put(resourceHash, resourceGroup);
         }
         return resourceGroup;
@@ -142,20 +142,23 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
     class ResourceGroup {
         private final Resource resource;
         private final ByteString resourceSchemaUrl;
+        private final TsidBuilder resourceTsidBuilder;
         private final Map<Hash128, ScopeGroup> scopes;
 
-        ResourceGroup(Resource resource, ByteString resourceSchemaUrl) {
+        ResourceGroup(Resource resource, ByteString resourceSchemaUrl, TsidBuilder resourceTsidBuilder) {
             this.resource = resource;
             this.resourceSchemaUrl = resourceSchemaUrl;
+            this.resourceTsidBuilder = resourceTsidBuilder;
             this.scopes = new HashMap<>();
         }
 
         public ScopeGroup getOrCreateScope(ScopeMetrics scopeMetrics) {
             TsidBuilder scopeTsidBuilder = ScopeTsidFunnel.forScope(byteStringAccessor, scopeMetrics);
             Hash128 scopeHash = scopeTsidBuilder.hash();
+            scopeTsidBuilder.addAll(resourceTsidBuilder);
             ScopeGroup scopeGroup = scopes.get(scopeHash);
             if (scopeGroup == null) {
-                scopeGroup = new ScopeGroup(this, scopeMetrics.getScope(), scopeMetrics.getSchemaUrlBytes());
+                scopeGroup = new ScopeGroup(this, scopeMetrics.getScope(), scopeMetrics.getSchemaUrlBytes(), scopeTsidBuilder);
                 scopes.put(scopeHash, scopeGroup);
             }
             return scopeGroup;
@@ -173,15 +176,17 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
         private final ResourceGroup resourceGroup;
         private final InstrumentationScope scope;
         private final ByteString scopeSchemaUrl;
+        private final TsidBuilder scopeTsidBuilder;
         @Nullable
         private final String receiverName;
         // index -> timestamp -> dataPointGroupHash -> DataPointGroup
         private final Map<TargetIndex, Map<Hash128, Map<Hash128, DataPointGroup>>> dataPointGroupsByIndexAndTimestamp;
 
-        ScopeGroup(ResourceGroup resourceGroup, InstrumentationScope scope, ByteString scopeSchemaUrl) {
+        ScopeGroup(ResourceGroup resourceGroup, InstrumentationScope scope, ByteString scopeSchemaUrl, TsidBuilder scopeTsidBuilder) {
             this.resourceGroup = resourceGroup;
             this.scope = scope;
             this.scopeSchemaUrl = scopeSchemaUrl;
+            this.scopeTsidBuilder = scopeTsidBuilder;
             this.dataPointGroupsByIndexAndTimestamp = new HashMap<>();
             this.receiverName = TargetIndex.extractReceiverName(scope);
         }
@@ -206,8 +211,13 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
         }
 
         private DataPointGroup getOrCreateDataPointGroup(DataPoint dataPoint) {
-            TsidBuilder dataPointGroupTsidBuilder = DataPointTsidFunnel.forDataPoint(byteStringAccessor, dataPoint);
+            TsidBuilder dataPointGroupTsidBuilder = DataPointTsidFunnel.forDataPoint(
+                byteStringAccessor,
+                dataPoint,
+                scopeTsidBuilder.size()
+            );
             Hash128 dataPointGroupHash = dataPointGroupTsidBuilder.hash();
+            dataPointGroupTsidBuilder.addAll(scopeTsidBuilder);
             // in addition to the fields that go into the _tsid, we also need to group by timestamp and start timestamp
             Hash128 timestamp = new Hash128(dataPoint.getTimestampUnixNano(), dataPoint.getStartTimestampUnixNano());
             TargetIndex targetIndex = TargetIndex.evaluate(
@@ -226,6 +236,7 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
                     resourceGroup.resourceSchemaUrl,
                     scope,
                     scopeSchemaUrl,
+                    dataPointGroupTsidBuilder,
                     dataPoint.getAttributes(),
                     dataPoint.getUnit(),
                     targetIndex
@@ -251,6 +262,7 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
         private final ByteString resourceSchemaUrl;
         private final InstrumentationScope scope;
         private final ByteString scopeSchemaUrl;
+        private final TsidBuilder tsidBuilder;
         private final List<KeyValue> dataPointAttributes;
         private final String unit;
         private final Set<String> metricNames = new HashSet<>();
@@ -263,6 +275,7 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
             ByteString resourceSchemaUrl,
             InstrumentationScope scope,
             ByteString scopeSchemaUrl,
+            TsidBuilder tsidBuilder,
             List<KeyValue> dataPointAttributes,
             String unit,
             TargetIndex targetIndex
@@ -271,6 +284,7 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
             this.resourceSchemaUrl = resourceSchemaUrl;
             this.scope = scope;
             this.scopeSchemaUrl = scopeSchemaUrl;
+            this.tsidBuilder = tsidBuilder;
             this.dataPointAttributes = dataPointAttributes;
             this.unit = unit;
             this.targetIndex = targetIndex;
@@ -322,6 +336,10 @@ public class DataPointGroupingContext implements AbstractOtlpTransportAction.Con
 
         public ByteString scopeSchemaUrl() {
             return scopeSchemaUrl;
+        }
+
+        public TsidBuilder tsidBuilder() {
+            return tsidBuilder;
         }
 
         public List<KeyValue> dataPointAttributes() {

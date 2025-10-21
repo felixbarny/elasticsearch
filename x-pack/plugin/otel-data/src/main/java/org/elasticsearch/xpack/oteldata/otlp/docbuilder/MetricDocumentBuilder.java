@@ -7,6 +7,8 @@
 
 package org.elasticsearch.xpack.oteldata.otlp.docbuilder;
 
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.hash.BufferedMurmur3Hasher;
 import org.elasticsearch.xcontent.XContentBuilder;
@@ -15,8 +17,8 @@ import org.elasticsearch.xpack.oteldata.otlp.datapoint.DataPointGroupingContext;
 import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,9 +33,11 @@ public class MetricDocumentBuilder extends OTelDocumentBuilder {
         super(byteStringAccessor);
     }
 
-    public HashMap<String, String> buildMetricDocument(XContentBuilder builder, DataPointGroupingContext.DataPointGroup dataPointGroup)
-        throws IOException {
-        HashMap<String, String> dynamicTemplates = new HashMap<>();
+    public BytesRef buildMetricDocument(
+        XContentBuilder builder,
+        Map<String, String> dynamicTemplates,
+        DataPointGroupingContext.DataPointGroup dataPointGroup
+    ) throws IOException {
         List<DataPoint> dataPoints = dataPointGroup.dataPoints();
         builder.startObject();
         builder.field("@timestamp", TimeUnit.NANOSECONDS.toMillis(dataPointGroup.getTimestampUnixNano()));
@@ -47,7 +51,8 @@ public class MetricDocumentBuilder extends OTelDocumentBuilder {
         if (Strings.hasLength(dataPointGroup.unit())) {
             builder.field("unit", dataPointGroup.unit());
         }
-        builder.field("_metric_names_hash", dataPointGroup.getMetricNamesHash(hasher));
+        String metricNamesHash = dataPointGroup.getMetricNamesHash(hasher);
+        builder.field("_metric_names_hash", metricNamesHash);
 
         long docCount = 0;
         builder.startObject("metrics");
@@ -69,7 +74,9 @@ public class MetricDocumentBuilder extends OTelDocumentBuilder {
             builder.field("_doc_count", docCount);
         }
         builder.endObject();
-        return dynamicTemplates;
+        TsidBuilder tsidBuilder = dataPointGroup.tsidBuilder();
+        tsidBuilder.addStringDimension("_metric_names_hash", metricNamesHash);
+        return tsidBuilder.buildTsid();
     }
 
 }

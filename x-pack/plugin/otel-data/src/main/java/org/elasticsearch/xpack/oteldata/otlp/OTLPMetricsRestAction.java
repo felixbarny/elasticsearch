@@ -12,12 +12,14 @@ import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse;
 import java.util.List;
 
 import static org.elasticsearch.rest.RestRequest.Method.POST;
+import org.elasticsearch.rest.Scope;
+import org.elasticsearch.rest.ServerlessScope;
 
+@ServerlessScope(Scope.PUBLIC)
 public class OTLPMetricsRestAction extends AbstractOtlpRestAction {
     public OTLPMetricsRestAction() {
         super(OTLPMetricsTransportAction.TYPE, ExportMetricsServiceResponse.newBuilder().build());
     }
-
     @Override
     public String getName() {
         return "otlp_metrics_action";
