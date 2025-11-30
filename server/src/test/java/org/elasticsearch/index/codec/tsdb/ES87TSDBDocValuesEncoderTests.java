@@ -16,6 +16,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.packed.PackedInts;
+import org.elasticsearch.core.ScaledDecimals;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -46,6 +47,156 @@ public class ES87TSDBDocValuesEncoderTests extends LuceneTestCase {
         long[] arr = new long[blockSize];
         Arrays.fill(arr, 3);
         final long expectedNumBytes = 2; // token + min value
+        doTest(arr, expectedNumBytes);
+    }
+
+    public void testDoubleEncoding() throws IOException {
+        double[] doubles = new double[] {
+            0.001286,
+            4.0E-4,
+            2.93E-4,
+            3.36E-4,
+            3.06E-4,
+            2.8E-4,
+            0.100443,
+            0.001489,
+            2.84E-4,
+            3.12E-4,
+            2.42E-4,
+            2.82E-4,
+            3.15E-4,
+            2.88E-4,
+            2.88E-4,
+            3.27E-4,
+            0.001258,
+            2.86E-4,
+            3.05E-4,
+            2.69E-4,
+            2.77E-4,
+            0.095372,
+            3.4E-4,
+            3.04E-4,
+            0.001295,
+            0.001294,
+            2.89E-4,
+            2.46E-4,
+            3.02E-4,
+            2.89E-4,
+            2.82E-4,
+            2.42E-4,
+            0.001291,
+            0.001287,
+            3.31E-4,
+            0.100412,
+            3.14E-4,
+            2.6E-4,
+            3.05E-4,
+            3.2E-4,
+            2.9E-4,
+            0.001314,
+            0.100419,
+            3.08E-4,
+            2.89E-4,
+            2.83E-4,
+            3.01E-4,
+            2.9E-4,
+            2.84E-4,
+            0.001351,
+            2.66E-4,
+            2.74E-4,
+            2.71E-4,
+            2.87E-4,
+            0.001288,
+            3.16E-4,
+            3.24E-4,
+            2.8E-4,
+            0.001291,
+            2.84E-4,
+            2.45E-4,
+            4.25E-4,
+            3.08E-4,
+            3.0E-4,
+            2.62E-4,
+            2.84E-4,
+            2.91E-4,
+            0.001319,
+            2.75E-4,
+            2.75E-4,
+            0.001299,
+            4.3E-4,
+            2.41E-4,
+            4.18E-4,
+            3.15E-4,
+            3.12E-4,
+            2.99E-4,
+            2.83E-4,
+            0.001287,
+            4.97E-4,
+            2.46E-4,
+            2.81E-4,
+            0.001324,
+            3.06E-4,
+            0.001255,
+            3.07E-4,
+            2.74E-4,
+            2.73E-4,
+            3.48E-4,
+            0.001264,
+            2.73E-4,
+            3.14E-4,
+            2.34E-4,
+            2.74E-4,
+            3.07E-4,
+            2.82E-4,
+            0.001249,
+            2.94E-4,
+            3.27E-4,
+            0.00127,
+            3.87E-4,
+            2.63E-4,
+            2.91E-4,
+            4.69E-4,
+            3.05E-4,
+            2.96E-4,
+            2.59E-4,
+            0.001299,
+            2.82E-4,
+            2.75E-4,
+            3.01E-4,
+            2.69E-4,
+            3.01E-4,
+            2.82E-4,
+            2.48E-4,
+            2.37E-4,
+            3.04E-4,
+            4.17E-4,
+            2.87E-4,
+            2.99E-4,
+            2.74E-4,
+            0.001284,
+            2.92E-4,
+            0.099382,
+            0.001297,
+            2.97E-4,
+            3.6E-4,
+            4.0E-4 };
+        long[] arr = new long[doubles.length];
+        short exp = ScaledDecimals.appendDoubleToDecimal(arr, 0, doubles);
+        final long expectedNumBytes = 9 // token + GCD (8 bytes)
+            + (blockSize * 56) / Byte.SIZE; // data
+        doTest(arr, expectedNumBytes);
+    }
+
+    public void testRandomDoubles() throws IOException {
+        double[] doubles = random().doubles().limit(blockSize).toArray();
+        long[] arr = new long[blockSize];
+//        for (int i = 0; i < blockSize; ++i) {
+//            arr[i] = NumericUtils.doubleToSortableLong(doubles[i]);
+//        }
+        short exp = ScaledDecimals.appendDoubleToDecimal(arr, 0, doubles);
+
+        final long expectedNumBytes = 11
+            + (blockSize * 56) / Byte.SIZE; // data
         doTest(arr, expectedNumBytes);
     }
 
@@ -138,7 +289,7 @@ public class ES87TSDBDocValuesEncoderTests extends LuceneTestCase {
         doTest(arr, expectedNumBytes);
     }
 
-    public void testFloatingPointValues() throws IOException {
+    public void testDoubleingPointValues() throws IOException {
         long[] arr = new long[blockSize];
         // NOTE: these values are crafted in such a way that after applying GCD encoding we get values represented using 36 bits per value.
         for (int i = 0; i < blockSize; ++i) {
