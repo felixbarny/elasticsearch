@@ -16,7 +16,6 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.packed.PackedInts;
-import org.elasticsearch.core.ScaledDecimals;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -181,22 +180,13 @@ public class ES87TSDBDocValuesEncoderTests extends LuceneTestCase {
             3.6E-4,
             4.0E-4 };
         long[] arr = new long[doubles.length];
-        short exp = ScaledDecimals.appendDoubleToDecimal(arr, 0, doubles);
-        final long expectedNumBytes = 9 // token + GCD (8 bytes)
-            + (blockSize * 56) / Byte.SIZE; // data
-        doTest(arr, expectedNumBytes);
-    }
-
-    public void testRandomDoubles() throws IOException {
-        double[] doubles = random().doubles().limit(blockSize).toArray();
-        long[] arr = new long[blockSize];
-//        for (int i = 0; i < blockSize; ++i) {
-//            arr[i] = NumericUtils.doubleToSortableLong(doubles[i]);
-//        }
-        short exp = ScaledDecimals.appendDoubleToDecimal(arr, 0, doubles);
-
-        final long expectedNumBytes = 11
-            + (blockSize * 56) / Byte.SIZE; // data
+        for (int i = 0; i < blockSize; ++i) {
+            arr[i] = NumericUtils.doubleToSortableLong(doubles[i]);
+        }
+        final long expectedNumBytes = 1 // token
+            + 2 // exponent
+            + 1 // bits per value (FOR)
+            + (blockSize * 17) / Byte.SIZE; // data
         doTest(arr, expectedNumBytes);
     }
 
@@ -231,15 +221,16 @@ public class ES87TSDBDocValuesEncoderTests extends LuceneTestCase {
     }
 
     /**
-     * Integers as doubles, GCD compression should help here given high numbers of trailing zeroes.
+     * Integers as doubles, scaled decimal compression converts them to integers again.
      */
     public void testIntegersAsDoubles() throws IOException {
         long[] arr = new long[blockSize];
         for (int i = 0; i < blockSize; ++i) {
             arr[i] = NumericUtils.doubleToSortableLong((i + 2) & 0x03); // 0, 1 or 2
         }
-        final long expectedNumBytes = 9 // token + GCD (8 bytes)
-            + blockSize * 12 / Byte.SIZE; // 12 bits per value -> 26 longs
+        final long expectedNumBytes = 1 // token
+            + 2 // exponent
+            + blockSize * 2 / Byte.SIZE;
         doTest(arr, expectedNumBytes);
     }
 
@@ -315,7 +306,7 @@ public class ES87TSDBDocValuesEncoderTests extends LuceneTestCase {
                 }
             }
             long actualBitsPerValue = DocValuesForUtil.roundBits(bitsPerValue);
-            int actualTokenBytes = bitsPerValue < 16 ? 1 : 2;
+            int actualTokenBytes = bitsPerValue < 8 ? 1 : 2;
             final long expectedNumBytes = bitsPerValue == 0
                 ? 2
                 : actualTokenBytes // token

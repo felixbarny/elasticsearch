@@ -12,7 +12,9 @@ package org.elasticsearch.index.codec.tsdb;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.util.MathUtil;
+import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.packed.PackedInts;
+import org.elasticsearch.core.ScaledDecimals;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -61,6 +63,24 @@ public final class TSDBDocValuesEncoder {
     public TSDBDocValuesEncoder(int numericBlockSize) {
         this.forUtil = new DocValuesForUtil(numericBlockSize);
         this.numericBlockSize = numericBlockSize;
+    }
+
+    private void scaledDecimalEncode(int token, int tokenBits, long[] in, DataOutput out) throws IOException {
+        long first = in[0];
+        // TODO get a type hint from the caller to only apply this encoding for floating point values
+        double asDouble = NumericUtils.sortableLongToDouble(first);
+        boolean doScaledDecimalConversion = ScaledDecimals.numberOfLeadingZeros(asDouble) > Long.numberOfLeadingZeros(first);
+        short exponent = 0;
+        if (doScaledDecimalConversion) {
+            exponent = ScaledDecimals.appendDoubleToDecimal(in, 0, in, SortableLongArrayAccessor.get());
+            token = (token << 1) | 0x01;
+        } else {
+            token <<= 1;
+        }
+        deltaEncode(token, tokenBits + 1, in, out);
+        if (doScaledDecimalConversion) {
+            out.writeShort(exponent);
+        }
     }
 
     /**
@@ -178,7 +198,7 @@ public final class TSDBDocValuesEncoder {
     public void encode(long[] in, DataOutput out) throws IOException {
         assert in.length == numericBlockSize;
 
-        deltaEncode(0, 0, in, out);
+        scaledDecimalEncode(0, 0, in, out);
     }
 
     /**
@@ -298,7 +318,10 @@ public final class TSDBDocValuesEncoder {
         assert out.length == numericBlockSize : out.length;
 
         final int token = in.readVInt();
-        final int bitsPerValue = token >>> 3;
+        // TODO how can we add a codec in a backwards compatible way?
+        //  we'd need to know the token bit length (how many encodings were applied) upfront
+        int tokenBitLength = 4;
+        final int bitsPerValue = token >>> tokenBitLength;
 
         if (bitsPerValue != 0) {
             forUtil.decode(bitsPerValue, in, out);
@@ -308,25 +331,31 @@ public final class TSDBDocValuesEncoder {
 
         // simple blocks that only perform bit packing exit early here
         // this is typical for SORTED(_SET) ordinals
-        if ((token & 0x07) != 0) {
+        if ((token & (1 << tokenBitLength) - 1) != 0) {
 
-            final boolean doGcdCompression = (token & 0x01) != 0;
+            final boolean doGcdCompression = (token & 1) != 0;
             if (doGcdCompression) {
                 final long gcd = 2 + in.readVLong();
                 mul(out, gcd);
             }
 
-            final boolean hasOffset = (token & 0x02) != 0;
+            final boolean hasOffset = (token & 1 << 1) != 0;
             if (hasOffset) {
                 final long min = in.readZLong();
                 add(out, min);
             }
 
-            final boolean doDeltaCompression = (token & 0x04) != 0;
+            final boolean doDeltaCompression = (token & 1 << 2) != 0;
             if (doDeltaCompression) {
                 final long first = in.readZLong();
                 out[0] += first;
                 deltaDecode(out);
+            }
+
+            final boolean doScaledDecimalConversion = (token & 1 << 3) != 0;
+            if (doScaledDecimalConversion) {
+                final short exponent = in.readShort();
+                ScaledDecimals.appendDecimal(out, SortableLongArrayAccessor.get(), 0, out, exponent);
             }
         }
     }

@@ -67,6 +67,7 @@ public class ScaledDecimals {
      * Thread-local buffer for temporary calculations to avoid allocations.
      */
     private static final ThreadLocal<ValuesAndExponentsBuffer> BUFFER_POOL = ThreadLocal.withInitial(ValuesAndExponentsBuffer::new);
+    private static final ThreadLocal<ScaledDecimal> SCALED_DECIMAL_POOL = ThreadLocal.withInitial(ScaledDecimal::new);
 
     /**
      * Calibrates a and b with the corresponding exponents ae, be and returns the resulting exponent e.
@@ -150,6 +151,10 @@ public class ScaledDecimals {
         return DECIMAL_MULTIPLIERS[exp];
     }
 
+    public static int appendDecimalToDouble(double[] dst, int dstOffset, long[] va, short e) {
+        return appendDecimal(dst, DoubleAccessor.forDoubleArray(), dstOffset, va, e);
+    }
+
     /**
      * Converts each item in va to f=v*10^e and appends it to dst.
      * Returns the number of items written to dst (starting from offset dstOffset).
@@ -160,21 +165,21 @@ public class ScaledDecimals {
      * @param e exponent
      * @return number of items written
      */
-    public static int appendDecimalToDouble(double[] dst, int dstOffset, long[] va, short e) {
+    public static <D> int appendDecimal(D dst, DoubleAccessor<D> accessor, int dstOffset, long[] va, short e) {
         if (va.length == 0) {
             return 0;
         }
 
         // Check if all zeros
         if (isAllZeros(va)) {
-            Arrays.fill(dst, dstOffset, dstOffset + va.length, 0.0);
+            accessor.fill(dst, dstOffset, va.length, 0.0);
             return va.length;
         }
 
         if (e == 0) {
             // Check if all ones
             if (isAllOnes(va)) {
-                Arrays.fill(dst, dstOffset, dstOffset + va.length, 1.0);
+                accessor.fill(dst, dstOffset, va.length, 1.0);
                 return va.length;
             }
 
@@ -182,13 +187,13 @@ public class ScaledDecimals {
             for (int i = 0; i < va.length; i++) {
                 long v = va[i];
                 if (isSpecialValue(v) == false) {
-                    dst[dstOffset + i] = (double) v;
+                    accessor.set(dst, dstOffset + i, (double) v);
                 } else if (v == Long.MAX_VALUE) {
-                    dst[dstOffset + i] = Double.POSITIVE_INFINITY;
+                    accessor.set(dst, dstOffset + i, Double.POSITIVE_INFINITY);
                 } else if (v == Long.MIN_VALUE) {
-                    dst[dstOffset + i] = Double.NEGATIVE_INFINITY;
+                    accessor.set(dst, dstOffset + i, Double.NEGATIVE_INFINITY);
                 } else {
-                    dst[dstOffset + i] = STALE_NAN;
+                    accessor.set(dst, dstOffset + i, STALE_NAN);
                 }
             }
             return va.length;
@@ -200,13 +205,13 @@ public class ScaledDecimals {
             for (int i = 0; i < va.length; i++) {
                 long v = va[i];
                 if (isSpecialValue(v) == false) {
-                    dst[dstOffset + i] = v / e10;
+                    accessor.set(dst, dstOffset + i, v / e10);
                 } else if (v == Long.MAX_VALUE) {
-                    dst[dstOffset + i] = Double.POSITIVE_INFINITY;
+                    accessor.set(dst, dstOffset + i, Double.POSITIVE_INFINITY);
                 } else if (v == Long.MIN_VALUE) {
-                    dst[dstOffset + i] = Double.NEGATIVE_INFINITY;
+                    accessor.set(dst, dstOffset + i, Double.NEGATIVE_INFINITY);
                 } else {
-                    dst[dstOffset + i] = STALE_NAN;
+                    accessor.set(dst, dstOffset + i, STALE_NAN);
                 }
             }
             return va.length;
@@ -216,16 +221,26 @@ public class ScaledDecimals {
         for (int i = 0; i < va.length; i++) {
             long v = va[i];
             if (isSpecialValue(v) == false) {
-                dst[dstOffset + i] = v * e10;
+                accessor.set(dst, dstOffset + i, v * e10);
             } else if (v == Long.MAX_VALUE) {
-                dst[dstOffset + i] = Double.POSITIVE_INFINITY;
+                accessor.set(dst, dstOffset + i, Double.POSITIVE_INFINITY);
             } else if (v == Long.MIN_VALUE) {
-                dst[dstOffset + i] = Double.NEGATIVE_INFINITY;
+                accessor.set(dst, dstOffset + i, Double.NEGATIVE_INFINITY);
             } else {
-                dst[dstOffset + i] = STALE_NAN;
+                accessor.set(dst, dstOffset + i, STALE_NAN);
             }
         }
         return va.length;
+    }
+
+    public static int numberOfLeadingZeros(double d) {
+        ScaledDecimal result = SCALED_DECIMAL_POOL.get();
+        fromDouble(d, result);
+        return Long.numberOfLeadingZeros(result.value);
+    }
+
+    public static short appendDoubleToDecimal(long[] dst, int dstOffset, double[] src) {
+        return appendDoubleToDecimal(dst, dstOffset, src, DoubleAccessor.forDoubleArray());
     }
 
     /**
@@ -236,30 +251,31 @@ public class ScaledDecimals {
      * @param src       source values
      * @return the common exponent e
      */
-    public static short appendDoubleToDecimal(long[] dst, int dstOffset, double[] src) {
-        if (src.length == 0) {
+    public static <S> short appendDoubleToDecimal(long[] dst, int dstOffset, S src, DoubleAccessor<S> accessor) {
+        int srcLength = accessor.length(src);
+        if (srcLength == 0) {
             return 0;
         }
 
-        if (isAllZeros(src)) {
-            Arrays.fill(dst, dstOffset, dstOffset + src.length, 0L);
+        if (isAllZeros(src, accessor)) {
+            Arrays.fill(dst, dstOffset, dstOffset + srcLength, 0L);
             return 0;
         }
 
-        if (isAllOnes(src)) {
-            Arrays.fill(dst, dstOffset, dstOffset + src.length, 1L);
+        if (isAllOnes(src, accessor)) {
+            Arrays.fill(dst, dstOffset, dstOffset + srcLength, 1L);
             return 0;
         }
 
         ValuesAndExponentsBuffer vae = BUFFER_POOL.get();
-        vae.ensureCapacity(src.length);
+        vae.ensureCapacity(srcLength);
 
         // Determine the minimum exponent across all src items
         short minExp = Short.MAX_VALUE;
-        ScaledDecimal tmpResult = new ScaledDecimal();
+        ScaledDecimal tmpResult = SCALED_DECIMAL_POOL.get();
 
-        for (int i = 0; i < src.length; i++) {
-            fromDouble(src[i], tmpResult);
+        for (int i = 0; i < srcLength; i++) {
+            fromDouble(accessor.get(src, i), tmpResult);
             vae.values[i] = tmpResult.value;
             vae.exponents[i] = tmpResult.exponent;
             if (tmpResult.exponent < minExp && isSpecialValue(tmpResult.value) == false) {
@@ -269,7 +285,7 @@ public class ScaledDecimals {
 
         // Determine whether all src items may be upscaled to minExp
         short downExp = 0;
-        for (int i = 0; i < src.length; i++) {
+        for (int i = 0; i < srcLength; i++) {
             long v = vae.values[i];
             short exp = vae.exponents[i];
             short upExp = (short) (exp - minExp);
@@ -281,7 +297,7 @@ public class ScaledDecimals {
         minExp += downExp;
 
         // Scale each item in src to minExp and write to dst
-        for (int i = 0; i < src.length; i++) {
+        for (int i = 0; i < srcLength; i++) {
             long v = vae.values[i];
             if (isSpecialValue(v)) {
                 // No need to scale special values
@@ -341,50 +357,50 @@ public class ScaledDecimals {
     }
 
     /**
-     * Rounds f to the given number of decimal digits after the point.
+     * Rounds d to the given number of decimal digits after the point.
      *
-     * @param f value to round
+     * @param d value to round
      * @param digits number of decimal digits
      * @return rounded value
      */
-    public static double roundToDecimalDigits(double f, int digits) {
-        if (isStaleNaN(f) || Double.isNaN(f)) {
-            return f;
+    public static double roundToDecimalDigits(double d, int digits) {
+        if (isStaleNaN(d) || Double.isNaN(d)) {
+            return d;
         }
         if (digits <= -100 || digits >= 100) {
-            return f;
+            return d;
         }
         double m = Math.pow(10, digits);
-        return Math.round(f * m) / m;
+        return Math.round(d * m) / m;
     }
 
     /**
-     * Rounds f to value with the given number of significant figures.
+     * Rounds d to value with the given number of significant figures.
      *
-     * @param f value to round
+     * @param d value to round
      * @param digits number of significant figures
      * @return rounded value
      */
-    public static double roundToSignificantFigures(double f, int digits) {
-        if (isStaleNaN(f)) {
+    public static double roundToSignificantFigures(double d, int digits) {
+        if (isStaleNaN(d)) {
             // Do not modify stale nan mark value
-            return f;
+            return d;
         }
         if (digits <= 0 || digits >= 18) {
-            return f;
+            return d;
         }
-        if (Double.isNaN(f) || Double.isInfinite(f) || f == 0) {
-            return f;
+        if (Double.isNaN(d) || Double.isInfinite(d) || d == 0) {
+            return d;
         }
 
         long n = (long) Math.pow(10, digits);
-        boolean isNegative = f < 0;
+        boolean isNegative = d < 0;
         if (isNegative) {
-            f = -f;
+            d = -d;
         }
 
-        ScaledDecimal result = new ScaledDecimal();
-        positiveDoubleToDecimal(f, result);
+        ScaledDecimal result = SCALED_DECIMAL_POOL.get();
+        positiveDoubleToDecimal(d, result);
         long v = result.value;
         short e = result.exponent;
 
@@ -424,22 +440,22 @@ public class ScaledDecimals {
             }
             return STALE_NAN;
         }
-        double f = (double) v;
+        double d = (double) v;
         // Increase conversion precision for negative exponents by dividing by e10
         if (e < 0) {
-            return f / Math.pow(10, -e);
+            return d / Math.pow(10, -e);
         }
-        return f * Math.pow(10, e);
+        return d * Math.pow(10, e);
     }
 
     /**
-     * Returns true if f represents Prometheus staleness mark.
+     * Returns true if d represents Prometheus staleness mark.
      *
-     * @param f value to check
+     * @param d value to check
      * @return true if stale NaN
      */
-    public static boolean isStaleNaN(double f) {
-        return Double.doubleToRawLongBits(f) == STALE_NAN_BITS;
+    public static boolean isStaleNaN(double d) {
+        return Double.doubleToRawLongBits(d) == STALE_NAN_BITS;
     }
 
     /**
@@ -453,32 +469,32 @@ public class ScaledDecimals {
     }
 
     /**
-     * Converts f to v*10^e and stores the result in the provided DecimalResult object.
+     * Converts d to v*10^e and stores the result in the provided DecimalResult object.
      * It tries minimizing v.
      *
-     * @param f value to convert
+     * @param d value to convert
      * @param result result object to store value and exponent (will be modified)
      */
-    public static void fromDouble(double f, ScaledDecimal result) {
-        if (f == 0) {
+    public static void fromDouble(double d, ScaledDecimal result) {
+        if (d == 0) {
             result.set(0, (short) 0);
             return;
         }
-        if (isStaleNaN(f)) {
+        if (isStaleNaN(d)) {
             result.set(V_STALE_NAN, (short) 0);
             return;
         }
-        if (Double.isInfinite(f)) {
-            fromDoubleInf(f, result);
+        if (Double.isInfinite(d)) {
+            fromDoubleInf(d, result);
             return;
         }
-        if (f > 0) {
-            positiveDoubleToDecimal(f, result);
+        if (d > 0) {
+            positiveDoubleToDecimal(d, result);
             if (result.value > V_MAX) {
                 result.value = V_MAX;
             }
         } else {
-            positiveDoubleToDecimal(-f, result);
+            positiveDoubleToDecimal(-d, result);
             result.value = -result.value;
             if (result.value < V_MIN) {
                 result.value = V_MIN;
@@ -486,20 +502,20 @@ public class ScaledDecimals {
         }
     }
 
-    private static void fromDoubleInf(double f, ScaledDecimal result) {
-        if (Double.isInfinite(f) && f > 0) {
+    private static void fromDoubleInf(double d, ScaledDecimal result) {
+        if (Double.isInfinite(d) && d > 0) {
             result.set(Long.MAX_VALUE, (short) 0);
         } else {
             result.set(Long.MIN_VALUE, (short) 0);
         }
     }
 
-    static void positiveDoubleToDecimal(double f, ScaledDecimal result) {
-        // There is no need in checking for f == 0, since it should be already checked by the caller
-        long u = (long) f;
+    static void positiveDoubleToDecimal(double d, ScaledDecimal result) {
+        // There is no need in checking for d == 0, since it should be already checked by the caller
+        long u = (long) d;
         // Slow path for floating point numbers
-        if ((double) u != f) {
-            positiveDoubleToDecimalSlow(f, result);
+        if ((double) u != d) {
+            positiveDoubleToDecimalSlow(d, result);
             return;
         }
         // Fast path for integers
@@ -605,22 +621,75 @@ public class ScaledDecimals {
         return true;
     }
 
-    private static boolean isAllZeros(double[] a) {
-        for (double v : a) {
-            if (v != 0.0) {
-                return false;
-            }
-        }
-        return true;
+    private static <S> boolean isAllZeros(S src, DoubleAccessor<S> accessor) {
+        return accessor.isAllZeros(src);
     }
 
-    private static boolean isAllOnes(double[] a) {
-        for (double v : a) {
-            if (v != 1.0) {
-                return false;
+    private static <S> boolean isAllOnes(S src, DoubleAccessor<S> accessor) {
+        return accessor.isAllOnes(src);
+    }
+
+    public interface DoubleAccessor<T> {
+        static DoubleAccessor<double[]> forDoubleArray() {
+            return DoubleArrayAccessor.INSTANCE;
+        }
+
+        double get(T target, int index);
+
+        void set(T target, int index, double d);
+
+        int length(T target);
+
+        boolean isAllZeros(T target);
+
+        boolean isAllOnes(T target);
+
+        void fill(T target, int offset, int length, double value);
+
+        class DoubleArrayAccessor implements DoubleAccessor<double[]> {
+
+            private static final DoubleArrayAccessor INSTANCE = new DoubleArrayAccessor();
+
+            @Override
+            public double get(double[] target, int index) {
+                return target[index];
+            }
+
+            @Override
+            public void set(double[] target, int index, double d) {
+                target[index] = d;
+            }
+
+            @Override
+            public int length(double[] target) {
+                return target.length;
+            }
+
+            @Override
+            public boolean isAllZeros(double[] target) {
+                for (double v : target) {
+                    if (v != 0.0) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public boolean isAllOnes(double[] target) {
+                for (double v : target) {
+                    if (v != 0.0) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void fill(double[] target, int offset, int length, double value) {
+                Arrays.fill(target, offset, offset + length, value);
             }
         }
-        return true;
     }
 
     /**
