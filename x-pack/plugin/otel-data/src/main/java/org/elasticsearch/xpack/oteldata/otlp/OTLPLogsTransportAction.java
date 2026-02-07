@@ -31,6 +31,7 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.xcontent.XContentBuilder;
 import org.elasticsearch.xcontent.XContentFactory;
 import org.elasticsearch.xpack.oteldata.otlp.datapoint.TargetIndex;
+import org.elasticsearch.xpack.oteldata.otlp.docbuilder.LogDocumentBuilder;
 import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 
 import java.io.IOException;
@@ -61,6 +62,7 @@ public class OTLPLogsTransportAction extends AbstractOTLPTransportAction {
     protected ProcessingContext prepareBulkRequest(OTLPActionRequest request, BulkRequestBuilder bulkRequestBuilder) throws IOException {
         BufferedByteStringAccessor byteStringAccessor = new BufferedByteStringAccessor();
         var logsServiceRequest = ExportLogsServiceRequest.parseFrom(request.getRequest().streamInput());
+        LogDocumentBuilder logDocumentBuilder = new LogDocumentBuilder(byteStringAccessor);
         List<ResourceLogs> resourceLogsList = logsServiceRequest.getResourceLogsList();
         for (int i = 0, resourceLogsListSize = resourceLogsList.size(); i < resourceLogsListSize; i++) {
             ResourceLogs resourceLogs = resourceLogsList.get(i);
@@ -81,8 +83,19 @@ public class OTLPLogsTransportAction extends AbstractOTLPTransportAction {
                         resource.getAttributesList()
                     );
                     try (XContentBuilder xContentBuilder = XContentFactory.cborBuilder(new BytesStreamOutput())) {
+                        logDocumentBuilder.buildLogDocument(
+                            xContentBuilder,
+                            resource,
+                            resourceLogs.getSchemaUrlBytes(),
+                            scope,
+                            scopeLogs.getSchemaUrlBytes(),
+                            index,
+                            logRecord
+                        );
                         bulkRequestBuilder.add(
-                            new IndexRequest(index.index()).opType(DocWriteRequest.OpType.CREATE).setRequireDataStream(true)
+                            new IndexRequest(index.index()).opType(DocWriteRequest.OpType.CREATE)
+                                .setRequireDataStream(true)
+                                .source(xContentBuilder)
                         );
                     }
                 }
