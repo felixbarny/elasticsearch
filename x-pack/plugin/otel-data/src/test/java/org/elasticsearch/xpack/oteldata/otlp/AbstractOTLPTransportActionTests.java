@@ -13,9 +13,12 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.DocWriteRequest;
 import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
+import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.internal.Client;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.ESTestCase;
 import org.mockito.ArgumentCaptor;
@@ -28,7 +31,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,11 +56,14 @@ public abstract class AbstractOTLPTransportActionTests extends ESTestCase {
     /** Construct the signal-specific transport action under test. */
     protected abstract AbstractOTLPTransportAction createAction();
 
-    /** Create an {@link OTLPActionRequest} containing at least one data point / log record. */
-    protected abstract OTLPActionRequest createRequestWithData();
+    /** Create a protobuf payload containing at least one data point / log record. */
+    protected abstract BytesReference createRequestWithData();
 
-    /** Create an {@link OTLPActionRequest} with no data points / log records. */
-    protected abstract OTLPActionRequest createEmptyRequest();
+    /** Create a protobuf payload with no data points / log records. */
+    protected abstract BytesReference createEmptyRequest();
+
+    /** Create the frame processor under test. */
+    protected abstract OtlpProtobufFrameProcessor getFrameProcessor();
 
     /** Parse whether the protobuf response has a partial success field set. */
     protected abstract boolean parseHasPartialSuccess(byte[] responseBytes) throws InvalidProtocolBufferException;
@@ -133,12 +138,10 @@ public abstract class AbstractOTLPTransportActionTests extends ESTestCase {
     public void testBulkError() throws Exception {
         assertExceptionStatus(new IllegalArgumentException("bazinga"), RestStatus.BAD_REQUEST);
         assertExceptionStatus(new IllegalStateException("bazinga"), RestStatus.INTERNAL_SERVER_ERROR);
+        assertExceptionStatus(new EsRejectedExecutionException("bazinga"), RestStatus.TOO_MANY_REQUESTS);
     }
 
     private void assertExceptionStatus(Exception exception, RestStatus restStatus) throws InvalidProtocolBufferException {
-        if (randomBoolean()) {
-            doThrow(exception).when(client).execute(any(), any(), any());
-        }
         OTLPActionResponse response = executeRequest(createRequestWithData(), exception);
 
         assertThat(response.getStatus(), equalTo(restStatus));
@@ -149,24 +152,33 @@ public abstract class AbstractOTLPTransportActionTests extends ESTestCase {
 
     // --- shared test infrastructure ---
 
-    protected OTLPActionResponse executeRequest(OTLPActionRequest request) {
+    protected OTLPActionResponse executeRequest(BytesReference request) {
         return executeRequest(request, listener -> listener.onResponse(new BulkResponse(new BulkItemResponse[] {}, 0)));
     }
 
-    protected OTLPActionResponse executeRequest(OTLPActionRequest request, BulkResponse bulkResponse) {
+    protected OTLPActionResponse executeRequest(BytesReference request, BulkResponse bulkResponse) {
         return executeRequest(request, listener -> listener.onResponse(bulkResponse));
     }
 
-    protected OTLPActionResponse executeRequest(OTLPActionRequest request, Exception bulkFailure) {
+    protected OTLPActionResponse executeRequest(BytesReference request, Exception bulkFailure) {
         return executeRequest(request, listener -> listener.onFailure(bulkFailure));
     }
 
-    protected OTLPActionResponse executeRequest(OTLPActionRequest request, Consumer<ActionListener<BulkResponse>> bulkResponseConsumer) {
+    private OTLPActionResponse executeRequest(BytesReference request, Consumer<ActionListener<BulkResponse>> bulkResponseConsumer) {
+        OtlpProtobufFrameProcessor frameProcessor = getFrameProcessor();
+        OTLPActionRequest transportRequest;
+        try {
+            frameProcessor.onFrame(request);
+            transportRequest = new OTLPActionRequest(frameProcessor.onComplete());
+        } catch (Exception e) {
+            transportRequest = new OTLPActionRequest(frameProcessor.onFailure(e));
+        }
+
         ArgumentCaptor<ActionListener<BulkResponse>> bulkResponseListener = ArgumentCaptor.captor();
-        doNothing().when(client).execute(any(), any(), bulkResponseListener.capture());
+        doNothing().when(client).execute(any(), any(BulkRequest.class), bulkResponseListener.capture());
 
         ActionListener<OTLPActionResponse> responseListener = mock();
-        action.doExecute(null, request, responseListener);
+        action.doExecute(null, transportRequest, responseListener);
         if (bulkResponseListener.getAllValues().isEmpty() == false) {
             bulkResponseConsumer.accept(bulkResponseListener.getValue());
         }

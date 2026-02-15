@@ -17,6 +17,7 @@ import io.opentelemetry.proto.resource.v1.Resource;
 
 import com.google.protobuf.ByteString;
 
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.common.hash.BufferedMurmur3Hasher;
 import org.elasticsearch.common.hash.MurmurHash3.Hash128;
@@ -34,61 +35,77 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 
 public class DataPointGroupingContext implements AbstractOTLPTransportAction.ProcessingContext {
 
     private final BufferedByteStringAccessor byteStringAccessor;
+    private final BulkRequestBuilder bulkRequestBuilder;
     private final Map<Hash128, ResourceGroup> resourceGroups = new HashMap<>();
     private final Set<String> ignoredDataPointMessages = new HashSet<>();
 
     private int totalDataPoints = 0;
     private int ignoredDataPoints = 0;
+    @Nullable
+    private Exception failure;
 
-    public DataPointGroupingContext(BufferedByteStringAccessor byteStringAccessor) {
-        this.byteStringAccessor = byteStringAccessor;
+    /**
+     * Creates a context that groups OTLP metric data points and carries bulk execution state.
+     */
+    public DataPointGroupingContext(BufferedByteStringAccessor byteStringAccessor, BulkRequestBuilder bulkRequestBuilder) {
+        this.byteStringAccessor = Objects.requireNonNull(byteStringAccessor);
+        this.bulkRequestBuilder = Objects.requireNonNull(bulkRequestBuilder);
     }
 
     public void groupDataPoints(ExportMetricsServiceRequest exportMetricsServiceRequest) {
         List<ResourceMetrics> resourceMetricsList = exportMetricsServiceRequest.getResourceMetricsList();
         for (int i = 0; i < resourceMetricsList.size(); i++) {
-            ResourceMetrics resourceMetrics = resourceMetricsList.get(i);
-            ResourceGroup resourceGroup = getOrCreateResourceGroup(resourceMetrics);
-            List<ScopeMetrics> scopeMetricsList = resourceMetrics.getScopeMetricsList();
-            for (int j = 0; j < scopeMetricsList.size(); j++) {
-                ScopeMetrics scopeMetrics = scopeMetricsList.get(j);
-                ScopeGroup scopeGroup = resourceGroup.getOrCreateScope(scopeMetrics);
-                List<Metric> metricsList = scopeMetrics.getMetricsList();
-                for (int k = 0; k < metricsList.size(); k++) {
-                    var metric = metricsList.get(k);
-                    switch (metric.getDataCase()) {
-                        case SUM:
-                            scopeGroup.addDataPoints(metric, metric.getSum().getDataPointsList(), DataPoint.Number::new);
-                            break;
-                        case GAUGE:
-                            scopeGroup.addDataPoints(metric, metric.getGauge().getDataPointsList(), DataPoint.Number::new);
-                            break;
-                        case EXPONENTIAL_HISTOGRAM:
-                            // for now, we convert exponential histograms to TDigest
-                            // once we have native support for exponential histograms in ES, we'll migrate to that
-                            scopeGroup.addDataPoints(
-                                metric,
-                                metric.getExponentialHistogram().getDataPointsList(),
-                                DataPoint.ExponentialHistogram::new
-                            );
-                            break;
-                        case HISTOGRAM:
-                            scopeGroup.addDataPoints(metric, metric.getHistogram().getDataPointsList(), DataPoint.Histogram::new);
-                            break;
-                        case SUMMARY:
-                            scopeGroup.addDataPoints(metric, metric.getSummary().getDataPointsList(), DataPoint.Summary::new);
-                            break;
-                        default:
-                            ignoredDataPoints++;
-                            ignoredDataPointMessages.add("unsupported metric type " + metric.getDataCase());
-                            break;
-                    }
+            groupResourceMetrics(resourceMetricsList.get(i));
+        }
+    }
+
+    /**
+     * Groups all data points contained in a single {@link ResourceMetrics} message into this context.
+     *
+     * @param resourceMetrics the resource metrics message to process
+     */
+    public void groupResourceMetrics(ResourceMetrics resourceMetrics) {
+        ResourceGroup resourceGroup = getOrCreateResourceGroup(resourceMetrics);
+        List<ScopeMetrics> scopeMetricsList = resourceMetrics.getScopeMetricsList();
+        for (int j = 0; j < scopeMetricsList.size(); j++) {
+            ScopeMetrics scopeMetrics = scopeMetricsList.get(j);
+            ScopeGroup scopeGroup = resourceGroup.getOrCreateScope(scopeMetrics);
+            List<Metric> metricsList = scopeMetrics.getMetricsList();
+            for (int k = 0; k < metricsList.size(); k++) {
+                var metric = metricsList.get(k);
+                switch (metric.getDataCase()) {
+                    case SUM:
+                        scopeGroup.addDataPoints(metric, metric.getSum().getDataPointsList(), DataPoint.Number::new);
+                        break;
+                    case GAUGE:
+                        scopeGroup.addDataPoints(metric, metric.getGauge().getDataPointsList(), DataPoint.Number::new);
+                        break;
+                    case EXPONENTIAL_HISTOGRAM:
+                        // for now, we convert exponential histograms to TDigest
+                        // once we have native support for exponential histograms in ES, we'll migrate to that
+                        scopeGroup.addDataPoints(
+                            metric,
+                            metric.getExponentialHistogram().getDataPointsList(),
+                            DataPoint.ExponentialHistogram::new
+                        );
+                        break;
+                    case HISTOGRAM:
+                        scopeGroup.addDataPoints(metric, metric.getHistogram().getDataPointsList(), DataPoint.Histogram::new);
+                        break;
+                    case SUMMARY:
+                        scopeGroup.addDataPoints(metric, metric.getSummary().getDataPointsList(), DataPoint.Summary::new);
+                        break;
+                    default:
+                        ignoredDataPoints++;
+                        ignoredDataPointMessages.add("unsupported metric type " + metric.getDataCase());
+                        break;
                 }
             }
         }
@@ -139,6 +156,25 @@ public class DataPointGroupingContext implements AbstractOTLPTransportAction.Pro
             }
         }
         return sb.toString();
+    }
+
+    @Override
+    public BulkRequestBuilder getBulkRequestBuilder() {
+        return bulkRequestBuilder;
+    }
+
+    @Override
+    public Exception getFailure() {
+        return failure;
+    }
+
+    @Override
+    public void onFailure(Exception failure) {
+        if (this.failure == null) {
+            this.failure = Objects.requireNonNull(failure);
+        } else if (this.failure != failure) {
+            this.failure.addSuppressed(failure);
+        }
     }
 
     private ResourceGroup getOrCreateResourceGroup(ResourceMetrics resourceMetrics) {

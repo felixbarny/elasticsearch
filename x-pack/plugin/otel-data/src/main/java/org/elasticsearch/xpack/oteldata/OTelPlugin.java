@@ -79,7 +79,7 @@ public class OTelPlugin extends Plugin implements ActionPlugin {
         Supplier<DiscoveryNodes> nodesInCluster,
         Predicate<NodeFeature> clusterSupportsFeature
     ) {
-        return List.of(new OTLPMetricsRestAction());
+        return List.of(new OTLPMetricsRestAction(clusterSettings));
     }
 
     @Override

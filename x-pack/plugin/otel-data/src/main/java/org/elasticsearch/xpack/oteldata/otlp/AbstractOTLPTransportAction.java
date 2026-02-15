@@ -26,7 +26,6 @@ import org.elasticsearch.tasks.Task;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,10 +50,17 @@ public abstract class AbstractOTLPTransportAction extends HandledTransportAction
 
     @Override
     protected void doExecute(Task task, OTLPActionRequest request, ActionListener<OTLPActionResponse> listener) {
-        ProcessingContext context = ProcessingContext.EMPTY;
+        ProcessingContext context = request.getProcessingContext();
+        Exception failure = context.getFailure();
+        if (failure != null) {
+            handleFailure(listener, failure, context);
+            return;
+        }
         try {
-            BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
-            context = prepareBulkRequest(request, bulkRequestBuilder);
+            BulkRequestBuilder bulkRequestBuilder = context.getBulkRequestBuilder();
+            if (bulkRequestBuilder == null) {
+                throw new IllegalStateException("bulk request was not prepared");
+            }
             if (bulkRequestBuilder.numberOfActions() == 0) {
                 if (context.getIgnoredDataPoints() == 0) {
                     handleEmptyRequest(listener);
@@ -97,19 +103,6 @@ public abstract class AbstractOTLPTransportAction extends HandledTransportAction
      */
     public interface ProcessingContext {
 
-        ProcessingContext EMPTY = () -> 0;
-
-        /**
-         * Creates a ProcessingContext that only tracks the total number of data points processed
-         * and does not track any ignored data points or error messages.
-         *
-         * @param totalDataPoints the total number of data points processed
-         * @return a ProcessingContext instance with the specified total data points and no ignored data points or error messages
-         */
-        static ProcessingContext withTotalDataPoints(int totalDataPoints) {
-            return new WithTotalDataPoints(totalDataPoints);
-        }
-
         int totalDataPoints();
 
         default int getIgnoredDataPoints() {
@@ -121,22 +114,44 @@ public abstract class AbstractOTLPTransportAction extends HandledTransportAction
         }
 
         /**
-         * A simple implementation of ProcessingContext that only tracks the total number of data points processed
-         * and does not track any ignored data points or error messages.
+         * Returns the prepared bulk request to execute for this OTLP request, or {@code null} when unavailable.
          */
-        record WithTotalDataPoints(int totalDataPoints) implements ProcessingContext {}
-    }
+        BulkRequestBuilder getBulkRequestBuilder();
 
-    /**
-     * Parses the OTLP export request and populates the given bulk request builder with the corresponding index operations.
-     *
-     * @param request            the incoming OTLP export request
-     * @param bulkRequestBuilder the bulk request builder to populate with index operations
-     * @return a {@link ProcessingContext} summarizing the outcome, including total and rejected item counts
-     * @throws IOException if creating the source for the bulk request fails
-     */
-    protected abstract ProcessingContext prepareBulkRequest(OTLPActionRequest request, BulkRequestBuilder bulkRequestBuilder)
-        throws IOException;
+        /**
+         * Returns a parsing or pre-execution failure captured before transport execution, or {@code null} when successful.
+         */
+        Exception getFailure();
+
+        void onFailure(Exception failure);
+
+        /**
+         * Creates a minimal failure-only context used when the normal processing path itself throws.
+         */
+        static ProcessingContext failureOnly(int totalDataPoints, Exception failure) {
+            return new ProcessingContext() {
+                @Override
+                public int totalDataPoints() {
+                    return totalDataPoints;
+                }
+
+                @Override
+                public BulkRequestBuilder getBulkRequestBuilder() {
+                    return null;
+                }
+
+                @Override
+                public Exception getFailure() {
+                    return failure;
+                }
+
+                @Override
+                public void onFailure(Exception f) {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        }
+    }
 
     public void handleSuccess(ActionListener<OTLPActionResponse> listener) {
         listener.onResponse(new OTLPActionResponse(RestStatus.OK, BytesArray.EMPTY));

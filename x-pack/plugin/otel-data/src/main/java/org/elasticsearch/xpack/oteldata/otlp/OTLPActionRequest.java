@@ -10,21 +10,26 @@ package org.elasticsearch.xpack.oteldata.otlp;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.CompositeIndicesRequest;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class OTLPActionRequest extends ActionRequest implements CompositeIndicesRequest {
-    private final BytesReference request;
+    private final AbstractOTLPTransportAction.ProcessingContext processingContext;
 
     public OTLPActionRequest(StreamInput in) throws IOException {
         super(in);
-        request = in.readBytesReference();
+        this.processingContext = null;
+        throw new UnsupportedOperationException("OTLPActionRequest only supports local execution and should not be serialized");
     }
 
-    public OTLPActionRequest(BytesReference request) {
-        this.request = request;
+    /**
+     * Creates a local-only OTLP action request carrying request processing metadata and execution state.
+     */
+    public OTLPActionRequest(AbstractOTLPTransportAction.ProcessingContext processingContext) {
+        this.processingContext = Objects.requireNonNull(processingContext);
     }
 
     @Override
@@ -32,7 +37,15 @@ public class OTLPActionRequest extends ActionRequest implements CompositeIndices
         return null;
     }
 
-    public BytesReference getRequest() {
-        return request;
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        throw new UnsupportedOperationException("OTLPActionRequest only supports local execution and should not be serialized");
+    }
+
+    /**
+     * Returns request processing metadata collected while parsing OTLP frames.
+     */
+    public AbstractOTLPTransportAction.ProcessingContext getProcessingContext() {
+        return processingContext;
     }
 }

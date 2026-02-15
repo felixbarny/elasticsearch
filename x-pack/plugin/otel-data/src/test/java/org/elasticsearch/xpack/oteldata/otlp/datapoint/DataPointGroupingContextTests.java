@@ -12,6 +12,8 @@ import io.opentelemetry.proto.metrics.v1.ExponentialHistogramDataPoint;
 import io.opentelemetry.proto.metrics.v1.HistogramDataPoint;
 import io.opentelemetry.proto.metrics.v1.ResourceMetrics;
 
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.client.internal.Client;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 
@@ -35,10 +37,14 @@ import static org.elasticsearch.xpack.oteldata.otlp.OtlpUtils.createSummaryMetri
 import static org.elasticsearch.xpack.oteldata.otlp.OtlpUtils.keyValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.mock;
 
 public class DataPointGroupingContextTests extends ESTestCase {
 
-    private final DataPointGroupingContext context = new DataPointGroupingContext(new BufferedByteStringAccessor());
+    private final DataPointGroupingContext context = new DataPointGroupingContext(
+        new BufferedByteStringAccessor(),
+        new BulkRequestBuilder(mock(Client.class))
+    );
     private final long nowUnixNanos = System.currentTimeMillis() * 1_000_000L;
 
     public void testGroupingSameGroup() throws Exception {

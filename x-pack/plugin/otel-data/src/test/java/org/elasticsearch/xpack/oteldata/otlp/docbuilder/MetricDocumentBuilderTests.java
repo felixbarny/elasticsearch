@@ -20,6 +20,8 @@ import io.opentelemetry.proto.metrics.v1.SummaryDataPoint;
 import io.opentelemetry.proto.resource.v1.Resource;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.client.internal.Client;
 import org.elasticsearch.cluster.routing.TsidBuilder;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.test.ESTestCase;
@@ -55,6 +57,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
 
 public class MetricDocumentBuilderTests extends ESTestCase {
 
@@ -62,7 +65,10 @@ public class MetricDocumentBuilderTests extends ESTestCase {
         new BufferedByteStringAccessor(),
         MappingHints.DEFAULT_TDIGEST
     );
-    private final DataPointGroupingContext dataPointGroupingContext = new DataPointGroupingContext(new BufferedByteStringAccessor());
+    private final DataPointGroupingContext dataPointGroupingContext = new DataPointGroupingContext(
+        new BufferedByteStringAccessor(),
+        new BulkRequestBuilder(mock(Client.class))
+    );
     private final long timestamp = randomLong();
     private final long startTimestamp = randomLong();
 
