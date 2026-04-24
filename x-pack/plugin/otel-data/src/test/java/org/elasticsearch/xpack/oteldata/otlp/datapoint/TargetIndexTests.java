@@ -8,6 +8,7 @@
 package org.elasticsearch.xpack.oteldata.otlp.datapoint;
 
 import io.opentelemetry.proto.common.v1.AnyValue;
+import io.opentelemetry.proto.common.v1.InstrumentationScope;
 import io.opentelemetry.proto.common.v1.KeyValue;
 
 import org.elasticsearch.test.ESTestCase;
@@ -139,6 +140,140 @@ public class TargetIndexTests extends ESTestCase {
         // DataStream.sanitizeDataset and DataStream.sanitizeNamespace should be applied
         assertThat(index.dataset(), equalTo("some_dataset.otel"));
         assertThat(index.namespace(), equalTo("some_namespace"));
+    }
+
+    public void testEvaluateUsesSelfTelemetryScopeRouting() {
+        assertEvaluatedTargetIndex("logs", "go.opentelemetry.io/collector/receiver/receiverhelper", List.of(), "collectortelemetry");
+        assertEvaluatedTargetIndex("metrics", "go.opentelemetry.io/collector/receiver/receiverhelper", List.of(), "collectortelemetry");
+        assertEvaluatedTargetIndex("traces", "go.opentelemetry.io/collector/receiver/receiverhelper", List.of(), "collectortelemetry");
+    }
+
+    public void testEvaluateUsesEncodingFormatBeforeReceiverRouting() {
+        assertEvaluatedTargetIndex(
+            "logs",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper",
+            List.of(createStringAttribute("encoding.format", "aws.cloudtrail")),
+            "aws.cloudtrail"
+        );
+        assertEvaluatedTargetIndex(
+            "metrics",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper",
+            List.of(createStringAttribute("encoding.format", "aws.cloudtrail")),
+            "aws.cloudtrail"
+        );
+        assertEvaluatedTargetIndex(
+            "traces",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper",
+            List.of(createStringAttribute("encoding.format", "aws.cloudtrail")),
+            "aws.cloudtrail"
+        );
+    }
+
+    public void testEvaluateUsesReceiverRouting() {
+        assertEvaluatedTargetIndex(
+            "logs",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper",
+            List.of(),
+            "hostmetricsreceiver"
+        );
+        assertEvaluatedTargetIndex(
+            "metrics",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper",
+            List.of(),
+            "hostmetricsreceiver"
+        );
+        assertEvaluatedTargetIndex(
+            "traces",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper",
+            List.of(),
+            "hostmetricsreceiver"
+        );
+    }
+
+    public void testEvaluateUsesConnectorRouting() {
+        assertEvaluatedTargetIndex(
+            "logs",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector",
+            List.of(),
+            "spanmetricsconnector"
+        );
+        assertEvaluatedTargetIndex(
+            "metrics",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector",
+            List.of(),
+            "spanmetricsconnector"
+        );
+        assertEvaluatedTargetIndex(
+            "traces",
+            "github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector",
+            List.of(),
+            "spanmetricsconnector"
+        );
+    }
+
+    public void testEvaluateSupportsReceiverAndConnectorRoutingWithoutTrailingSlash() {
+        TargetIndex receiverIndex = TargetIndex.evaluate(
+            "logs",
+            List.of(),
+            InstrumentationScope.newBuilder()
+                .setName("/receiver/foo")
+                .build(),
+            List.of()
+        );
+        TargetIndex connectorIndex = TargetIndex.evaluate(
+            "logs",
+            List.of(),
+            InstrumentationScope.newBuilder()
+                .setName("/connector/bar")
+                .build(),
+            List.of()
+        );
+
+        assertThat(receiverIndex.index(), equalTo("logs-foo.otel-default"));
+        assertThat(connectorIndex.index(), equalTo("logs-bar.otel-default"));
+    }
+
+    public void testEvaluateIgnoresEmptyEncodingFormat() {
+        TargetIndex index = TargetIndex.evaluate(
+            "logs",
+            List.of(),
+            InstrumentationScope.newBuilder()
+                .setName("github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/awslogsencodingextension")
+                .addAttributes(createStringAttribute("encoding.format", ""))
+                .build(),
+            List.of()
+        );
+
+        assertThat(index.index(), equalTo("logs-generic.otel-default"));
+        assertThat(index.dataset(), equalTo("generic.otel"));
+    }
+
+    public void testEvaluateRespectsExplicitDatasetAttributes() {
+        TargetIndex index = TargetIndex.evaluate(
+            "logs",
+            List.of(createStringAttribute("data_stream.dataset", "attr-dataset")),
+            InstrumentationScope.newBuilder()
+                .setName("github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper")
+                .addAttributes(createStringAttribute("encoding.format", "aws.cloudtrail"))
+                .build(),
+            List.of(createStringAttribute("data_stream.namespace", "resource-namespace"))
+        );
+
+        assertThat(index.index(), equalTo("logs-attr_dataset.otel-resource-namespace"));
+        assertThat(index.dataset(), equalTo("attr_dataset.otel"));
+        assertThat(index.namespace(), equalTo("resource-namespace"));
+    }
+
+    private void assertEvaluatedTargetIndex(String type, String scopeName, List<KeyValue> scopeAttributes, String expectedDataset) {
+        TargetIndex index = TargetIndex.evaluate(
+            type,
+            List.of(),
+            InstrumentationScope.newBuilder().setName(scopeName).addAllAttributes(scopeAttributes).build(),
+            List.of()
+        );
+
+        assertThat(index.index(), equalTo(type + "-" + expectedDataset + ".otel-default"));
+        assertThat(index.dataset(), equalTo(expectedDataset + ".otel"));
     }
 
     private KeyValue createStringAttribute(String key, String value) {

@@ -14,6 +14,7 @@ import org.elasticsearch.cluster.metadata.DataStream;
 import org.elasticsearch.core.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Represents the target index for a data point, which can be either a specific index or a data stream.
@@ -24,6 +25,16 @@ public final class TargetIndex {
     public static final String TYPE_METRICS = "metrics";
 
     private static final String RECEIVER = "/receiver/";
+    private static final String CONNECTOR = "/connector/";
+    private static final Set<String> SELF_TELEMETRY_SCOPES = Set.of(
+        "go.opentelemetry.io/collector/receiver/receiverhelper",
+        "go.opentelemetry.io/collector/scraper/scraperhelper",
+        "go.opentelemetry.io/collector/processor/processorhelper",
+        "go.opentelemetry.io/collector/exporter/exporterhelper",
+        "go.opentelemetry.io/collector/service"
+    );
+    private static final String SELF_TELEMETRY_DATASET = "collectortelemetry";
+    private static final String ENCODING_FORMAT = "encoding.format";
     private static final String ELASTICSEARCH_INDEX = "elasticsearch.index";
     private static final String DATA_STREAM_DATASET = "data_stream.dataset";
     private static final String DATA_STREAM_NAMESPACE = "data_stream.namespace";
@@ -39,6 +50,10 @@ public final class TargetIndex {
 
     public static TargetIndex defaultMetrics() {
         return DEFAULT_METRICS_TARGET;
+    }
+
+    public static TargetIndex evaluate(String type, List<KeyValue> attributes, InstrumentationScope scope, List<KeyValue> resourceAttributes) {
+        return evaluate(type, attributes, extractScopeRoutingDataset(scope), scope.getAttributesList(), resourceAttributes);
     }
 
     public static boolean isTargetIndexAttribute(String attributeKey) {
@@ -110,6 +125,44 @@ public final class TargetIndex {
             return scopeName.substring(beginIndex, endIndex);
         }
         return null;
+    }
+
+    private static @Nullable String extractScopeRoutingDataset(InstrumentationScope scope) {
+        String scopeName = scope.getName();
+        if (SELF_TELEMETRY_SCOPES.contains(scopeName)) {
+            return SELF_TELEMETRY_DATASET;
+        }
+        for (int i = 0, size = scope.getAttributesCount(); i < size; i++) {
+            KeyValue attribute = scope.getAttributes(i);
+            if (ENCODING_FORMAT.equals(attribute.getKey()) && attribute.getValue().hasStringValue()) {
+                String format = attribute.getValue().getStringValue();
+                if (format.isEmpty() == false) {
+                    return format;
+                }
+                break;
+            }
+        }
+        String receiver = extractComponentName(scopeName, RECEIVER);
+        if (receiver != null) {
+            return receiver;
+        }
+        return extractComponentName(scopeName, CONNECTOR);
+    }
+
+    private static @Nullable String extractComponentName(String scopeName, String marker) {
+        int indexOfMarker = scopeName.indexOf(marker);
+        if (indexOfMarker < 0) {
+            return null;
+        }
+        int beginIndex = indexOfMarker + marker.length();
+        int endIndex = scopeName.indexOf('/', beginIndex);
+        if (endIndex < 0) {
+            endIndex = scopeName.length();
+        }
+        if (beginIndex >= endIndex) {
+            return null;
+        }
+        return scopeName.substring(beginIndex, endIndex);
     }
 
     private TargetIndex() {}
