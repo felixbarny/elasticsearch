@@ -235,6 +235,53 @@ public class LogDocumentBuilderTests extends ESTestCase {
         assertThat(doc.evaluate("attributes.my_bytes"), equalTo(Base64.getEncoder().encodeToString(bytes)));
     }
 
+    public void testGeoAttributesAreMerged() throws IOException {
+        Resource resource = Resource.newBuilder()
+            .addAttributes(keyValue("geo.location.lon", 10.1))
+            .addAttributes(keyValue("geo.location.lat", 20.2))
+            .build();
+        InstrumentationScope scope = InstrumentationScope.newBuilder()
+            .setName("test-scope")
+            .addAttributes(keyValue("scope.geo.location.lon", 30.3))
+            .addAttributes(keyValue("scope.geo.location.lat", 40.4))
+            .build();
+        LogRecord logRecord = LogRecord.newBuilder()
+            .setTimeUnixNano(1_000_000_000L)
+            .setBody(AnyValue.newBuilder().setStringValue("msg").build())
+            .addAttributes(keyValue("geo.location.lon", 1.1))
+            .addAttributes(keyValue("geo.location.lat", 2.2))
+            .addAttributes(keyValue("foo.bar.geo.location.lon", 3.3))
+            .addAttributes(keyValue("foo.bar.geo.location.lat", 4.4))
+            .addAttributes(keyValue("a.geo.location.lon", 5.5))
+            .addAttributes(keyValue("b.geo.location.lat", 6.6))
+            .addAttributes(keyValue("unrelatedgeo.location.lon", 7.7))
+            .addAttributes(keyValue("unrelatedgeo.location.lat", 8.8))
+            .addAttributes(keyValue("d", 9.9))
+            .addAttributes(keyValue("e.geo.location.lon", "foo"))
+            .addAttributes(keyValue("e.geo.location.lat", "bar"))
+            .build();
+
+        ObjectPath doc = buildDocument(resource, scope, logRecord);
+
+        assertThat(doc.evaluate("attributes.geo\\.location.0"), equalTo(1.1));
+        assertThat(doc.evaluate("attributes.geo\\.location.1"), equalTo(2.2));
+        assertThat(doc.evaluate("attributes.foo\\.bar\\.geo\\.location.0"), equalTo(3.3));
+        assertThat(doc.evaluate("attributes.foo\\.bar\\.geo\\.location.1"), equalTo(4.4));
+        assertThat(doc.evaluate("attributes.a\\.geo\\.location\\.lon"), equalTo(5.5));
+        assertThat(doc.evaluate("attributes.b\\.geo\\.location\\.lat"), equalTo(6.6));
+        assertThat(doc.evaluate("attributes.unrelatedgeo\\.location\\.lon"), equalTo(7.7));
+        assertThat(doc.evaluate("attributes.unrelatedgeo\\.location\\.lat"), equalTo(8.8));
+        assertThat(doc.evaluate("attributes.d"), equalTo(9.9));
+        assertThat(doc.evaluate("attributes.e\\.geo\\.location\\.lon"), equalTo("foo"));
+        assertThat(doc.evaluate("attributes.e\\.geo\\.location\\.lat"), equalTo("bar"));
+        assertThat(doc.evaluate("attributes.geo\\.location\\.lon"), nullValue());
+        assertThat(doc.evaluate("attributes.geo\\.location\\.lat"), nullValue());
+        assertThat(doc.evaluate("resource.attributes.geo\\.location.0"), equalTo(10.1));
+        assertThat(doc.evaluate("resource.attributes.geo\\.location.1"), equalTo(20.2));
+        assertThat(doc.evaluate("scope.attributes.scope\\.geo\\.location.0"), equalTo(30.3));
+        assertThat(doc.evaluate("scope.attributes.scope\\.geo\\.location.1"), equalTo(40.4));
+    }
+
     public void testTimestampFallsBackToObservedTimestamp() throws IOException {
         LogRecord logRecord = LogRecord.newBuilder()
             .setObservedTimeUnixNano(5_000_000_000L)

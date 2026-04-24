@@ -21,7 +21,9 @@ import org.elasticsearch.xpack.oteldata.otlp.datapoint.TargetIndex;
 import org.elasticsearch.xpack.oteldata.otlp.proto.BufferedByteStringAccessor;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -106,9 +108,13 @@ public class LogDocumentBuilder extends OTelDocumentBuilder {
             builder.field("dropped_attributes_count", droppedAttributesCount);
         }
         boolean startedAttributes = false;
+        Map<String, GeoLocation> geoLocations = new LinkedHashMap<>();
         for (int i = 0, size = attributes.size(); i < size; i++) {
             KeyValue attribute = attributes.get(i);
             if (isIgnoredLogAttribute(attribute.getKey())) {
+                continue;
+            }
+            if (collectGeoLocation(attribute, geoLocations)) {
                 continue;
             }
             if (startedAttributes == false) {
@@ -118,6 +124,7 @@ public class LogDocumentBuilder extends OTelDocumentBuilder {
             builder.field(attribute.getKey());
             buildAnyValue(builder, attribute.getValue());
         }
+        startedAttributes = writeGeoLocations(builder, geoLocations, startedAttributes);
         if (startedAttributes) {
             builder.endObject();
         }
@@ -129,6 +136,72 @@ public class LogDocumentBuilder extends OTelDocumentBuilder {
             || "elastic.mapping.mode".equals(attributeKey)
             || "elasticsearch.document_id".equals(attributeKey)
             || "elasticsearch.ingest_pipeline".equals(attributeKey);
+    }
+
+    private static boolean collectGeoLocation(KeyValue attribute, Map<String, GeoLocation> geoLocations) {
+        AnyValue value = attribute.getValue();
+        if (value.getValueCase() != AnyValue.ValueCase.DOUBLE_VALUE) {
+            return false;
+        }
+        String key = attribute.getKey();
+        if ("geo.location.lon".equals(key)) {
+            geoLocations.computeIfAbsent("", ignored -> new GeoLocation()).lon = value.getDoubleValue();
+            geoLocations.get("").hasLon = true;
+            return true;
+        }
+        if ("geo.location.lat".equals(key)) {
+            geoLocations.computeIfAbsent("", ignored -> new GeoLocation()).lat = value.getDoubleValue();
+            geoLocations.get("").hasLat = true;
+            return true;
+        }
+        String lonSuffix = ".geo.location.lon";
+        if (key.endsWith(lonSuffix)) {
+            String prefix = key.substring(0, key.length() - lonSuffix.length() + 1);
+            geoLocations.computeIfAbsent(prefix, ignored -> new GeoLocation()).lon = value.getDoubleValue();
+            geoLocations.get(prefix).hasLon = true;
+            return true;
+        }
+        String latSuffix = ".geo.location.lat";
+        if (key.endsWith(latSuffix)) {
+            String prefix = key.substring(0, key.length() - latSuffix.length() + 1);
+            geoLocations.computeIfAbsent(prefix, ignored -> new GeoLocation()).lat = value.getDoubleValue();
+            geoLocations.get(prefix).hasLat = true;
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean writeGeoLocations(XContentBuilder builder, Map<String, GeoLocation> geoLocations, boolean startedAttributes)
+        throws IOException {
+        for (Map.Entry<String, GeoLocation> entry : geoLocations.entrySet()) {
+            if (startedAttributes == false) {
+                builder.startObject("attributes");
+                startedAttributes = true;
+            }
+            String prefix = entry.getKey();
+            GeoLocation geoLocation = entry.getValue();
+            if (geoLocation.hasLon && geoLocation.hasLat) {
+                builder.startArray(prefix + "geo.location");
+                builder.value(geoLocation.lon);
+                builder.value(geoLocation.lat);
+                builder.endArray();
+            } else {
+                if (geoLocation.hasLon) {
+                    builder.field(prefix + "geo.location.lon", geoLocation.lon);
+                }
+                if (geoLocation.hasLat) {
+                    builder.field(prefix + "geo.location.lat", geoLocation.lat);
+                }
+            }
+        }
+        return startedAttributes;
+    }
+
+    private static class GeoLocation {
+        private double lon;
+        private double lat;
+        private boolean hasLon;
+        private boolean hasLat;
     }
 
     private void buildBody(XContentBuilder builder, LogRecord logRecord) throws IOException {
