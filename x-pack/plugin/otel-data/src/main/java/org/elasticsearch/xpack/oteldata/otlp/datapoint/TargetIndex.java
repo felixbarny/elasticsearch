@@ -14,6 +14,9 @@ import org.elasticsearch.cluster.metadata.DataStream;
 import org.elasticsearch.core.Nullable;
 
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Represents the target index for a data point, which can be either a specific index or a data stream.
@@ -24,6 +27,17 @@ public final class TargetIndex {
     public static final String TYPE_METRICS = "metrics";
 
     private static final String RECEIVER = "/receiver/";
+    private static final Pattern LOGS_RECEIVER_PATTERN = Pattern.compile("/receiver/(\\w+receiver)");
+    private static final Pattern LOGS_CONNECTOR_PATTERN = Pattern.compile("/connector/(\\w+connector)");
+    private static final Set<String> LOGS_SELF_TELEMETRY_SCOPES = Set.of(
+        "go.opentelemetry.io/collector/receiver/receiverhelper",
+        "go.opentelemetry.io/collector/scraper/scraperhelper",
+        "go.opentelemetry.io/collector/processor/processorhelper",
+        "go.opentelemetry.io/collector/exporter/exporterhelper",
+        "go.opentelemetry.io/collector/service"
+    );
+    private static final String LOGS_SELF_TELEMETRY_DATASET = "collectortelemetry";
+    private static final String ENCODING_FORMAT = "encoding.format";
     private static final String ELASTICSEARCH_INDEX = "elasticsearch.index";
     private static final String DATA_STREAM_DATASET = "data_stream.dataset";
     private static final String DATA_STREAM_NAMESPACE = "data_stream.namespace";
@@ -39,6 +53,10 @@ public final class TargetIndex {
 
     public static TargetIndex defaultMetrics() {
         return DEFAULT_METRICS_TARGET;
+    }
+
+    public static TargetIndex evaluateLogs(List<KeyValue> attributes, InstrumentationScope scope, List<KeyValue> resourceAttributes) {
+        return evaluate("logs", attributes, extractLogsDataset(scope), scope.getAttributesList(), resourceAttributes);
     }
 
     public static boolean isTargetIndexAttribute(String attributeKey) {
@@ -108,6 +126,32 @@ public final class TargetIndex {
                 endIndex = scopeName.length();
             }
             return scopeName.substring(beginIndex, endIndex);
+        }
+        return null;
+    }
+
+    private static @Nullable String extractLogsDataset(InstrumentationScope scope) {
+        String scopeName = scope.getName();
+        if (LOGS_SELF_TELEMETRY_SCOPES.contains(scopeName)) {
+            return LOGS_SELF_TELEMETRY_DATASET;
+        }
+        for (int i = 0, size = scope.getAttributesCount(); i < size; i++) {
+            KeyValue attribute = scope.getAttributes(i);
+            if (ENCODING_FORMAT.equals(attribute.getKey()) && attribute.getValue().hasStringValue()) {
+                String format = attribute.getValue().getStringValue();
+                if (format.isEmpty() == false) {
+                    return format;
+                }
+                break;
+            }
+        }
+        Matcher receiverMatcher = LOGS_RECEIVER_PATTERN.matcher(scopeName);
+        if (receiverMatcher.find()) {
+            return receiverMatcher.group(1);
+        }
+        Matcher connectorMatcher = LOGS_CONNECTOR_PATTERN.matcher(scopeName);
+        if (connectorMatcher.find()) {
+            return connectorMatcher.group(1);
         }
         return null;
     }

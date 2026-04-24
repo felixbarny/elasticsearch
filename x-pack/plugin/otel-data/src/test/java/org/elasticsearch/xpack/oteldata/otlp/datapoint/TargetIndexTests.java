@@ -8,6 +8,7 @@
 package org.elasticsearch.xpack.oteldata.otlp.datapoint;
 
 import io.opentelemetry.proto.common.v1.AnyValue;
+import io.opentelemetry.proto.common.v1.InstrumentationScope;
 import io.opentelemetry.proto.common.v1.KeyValue;
 
 import org.elasticsearch.test.ESTestCase;
@@ -139,6 +140,86 @@ public class TargetIndexTests extends ESTestCase {
         // DataStream.sanitizeDataset and DataStream.sanitizeNamespace should be applied
         assertThat(index.dataset(), equalTo("some_dataset.otel"));
         assertThat(index.namespace(), equalTo("some_namespace"));
+    }
+
+    public void testEvaluateLogsUsesSelfTelemetryScopeRouting() {
+        TargetIndex index = TargetIndex.evaluateLogs(
+            List.of(),
+            InstrumentationScope.newBuilder().setName("go.opentelemetry.io/collector/receiver/receiverhelper").build(),
+            List.of()
+        );
+
+        assertThat(index.index(), equalTo("logs-collectortelemetry.otel-default"));
+        assertThat(index.dataset(), equalTo("collectortelemetry.otel"));
+    }
+
+    public void testEvaluateLogsUsesEncodingFormatBeforeReceiverRouting() {
+        TargetIndex index = TargetIndex.evaluateLogs(
+            List.of(),
+            InstrumentationScope.newBuilder()
+                .setName("github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper")
+                .addAttributes(createStringAttribute("encoding.format", "aws.cloudtrail"))
+                .build(),
+            List.of()
+        );
+
+        assertThat(index.index(), equalTo("logs-aws.cloudtrail.otel-default"));
+        assertThat(index.dataset(), equalTo("aws.cloudtrail.otel"));
+    }
+
+    public void testEvaluateLogsUsesReceiverRouting() {
+        TargetIndex index = TargetIndex.evaluateLogs(
+            List.of(),
+            InstrumentationScope.newBuilder()
+                .setName("github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper")
+                .build(),
+            List.of()
+        );
+
+        assertThat(index.index(), equalTo("logs-hostmetricsreceiver.otel-default"));
+        assertThat(index.dataset(), equalTo("hostmetricsreceiver.otel"));
+    }
+
+    public void testEvaluateLogsUsesConnectorRouting() {
+        TargetIndex index = TargetIndex.evaluateLogs(
+            List.of(),
+            InstrumentationScope.newBuilder()
+                .setName("github.com/open-telemetry/opentelemetry-collector-contrib/connector/spanmetricsconnector")
+                .build(),
+            List.of()
+        );
+
+        assertThat(index.index(), equalTo("logs-spanmetricsconnector.otel-default"));
+        assertThat(index.dataset(), equalTo("spanmetricsconnector.otel"));
+    }
+
+    public void testEvaluateLogsIgnoresEmptyEncodingFormat() {
+        TargetIndex index = TargetIndex.evaluateLogs(
+            List.of(),
+            InstrumentationScope.newBuilder()
+                .setName("github.com/open-telemetry/opentelemetry-collector-contrib/extension/encoding/awslogsencodingextension")
+                .addAttributes(createStringAttribute("encoding.format", ""))
+                .build(),
+            List.of()
+        );
+
+        assertThat(index.index(), equalTo("logs-generic.otel-default"));
+        assertThat(index.dataset(), equalTo("generic.otel"));
+    }
+
+    public void testEvaluateLogsRespectsExplicitDatasetAttributes() {
+        TargetIndex index = TargetIndex.evaluateLogs(
+            List.of(createStringAttribute("data_stream.dataset", "attr-dataset")),
+            InstrumentationScope.newBuilder()
+                .setName("github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/scraper/cpuscraper")
+                .addAttributes(createStringAttribute("encoding.format", "aws.cloudtrail"))
+                .build(),
+            List.of(createStringAttribute("data_stream.namespace", "resource-namespace"))
+        );
+
+        assertThat(index.index(), equalTo("logs-attr_dataset.otel-resource-namespace"));
+        assertThat(index.dataset(), equalTo("attr_dataset.otel"));
+        assertThat(index.namespace(), equalTo("resource-namespace"));
     }
 
     private KeyValue createStringAttribute(String key, String value) {
