@@ -3005,6 +3005,11 @@ public class EsqlCapabilities {
          */
         APPROXIMATION_FIX_NON_APPROXIMABLE_FORK_BRANCHES,
 
+        /**
+         * Support for PromQL {@code histogram_quantile()} over classic histograms with {@code le} buckets.
+         */
+        PROMQL_HISTOGRAM_QUANTILE,
+
         // Last capability should still have a comma for fewer merge conflicts when adding new ones :)
         // This comment prevents the semicolon from being on the previous capability when Spotless formats the file.
         ;
