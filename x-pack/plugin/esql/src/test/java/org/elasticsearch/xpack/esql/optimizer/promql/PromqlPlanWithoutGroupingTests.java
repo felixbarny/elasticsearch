@@ -9,10 +9,12 @@ package org.elasticsearch.xpack.esql.optimizer.promql;
 
 import org.elasticsearch.TransportVersion;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.IndexMode;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.blockloader.BlockLoaderFunctionConfig;
 import org.elasticsearch.xpack.esql.EsqlTestUtils;
 import org.elasticsearch.xpack.esql.SerializationTestUtils;
+import org.elasticsearch.xpack.esql.TestAnalyzer;
 import org.elasticsearch.xpack.esql.VerificationException;
 import org.elasticsearch.xpack.esql.action.EsqlCapabilities;
 import org.elasticsearch.xpack.esql.core.expression.Alias;
@@ -23,9 +25,13 @@ import org.elasticsearch.xpack.esql.core.expression.FoldContext;
 import org.elasticsearch.xpack.esql.core.expression.MetadataAttribute;
 import org.elasticsearch.xpack.esql.core.expression.NamedExpression;
 import org.elasticsearch.xpack.esql.core.expression.TimeSeriesMetadataAttribute;
+import org.elasticsearch.xpack.esql.core.type.DateEsField;
+import org.elasticsearch.xpack.esql.core.type.EsField;
 import org.elasticsearch.xpack.esql.core.type.FunctionEsField;
+import org.elasticsearch.xpack.esql.core.type.KeywordEsField;
 import org.elasticsearch.xpack.esql.expression.function.aggregate.DimensionValues;
 import org.elasticsearch.xpack.esql.expression.function.grouping.TimeSeriesWithout;
+import org.elasticsearch.xpack.esql.index.EsIndexGenerator;
 import org.elasticsearch.xpack.esql.optimizer.LocalLogicalOptimizerContext;
 import org.elasticsearch.xpack.esql.optimizer.LocalLogicalPlanOptimizer;
 import org.elasticsearch.xpack.esql.optimizer.LocalPhysicalOptimizerContext;
@@ -49,9 +55,14 @@ import org.elasticsearch.xpack.esql.session.Versioned;
 import org.elasticsearch.xpack.esql.stats.SearchStats;
 import org.junit.Before;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.elasticsearch.xpack.esql.EsqlTestUtils.as;
+import static org.elasticsearch.xpack.esql.core.type.DataType.DOUBLE;
+import static org.elasticsearch.xpack.esql.core.type.DataType.OBJECT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
@@ -288,5 +299,56 @@ public class PromqlPlanWithoutGroupingTests extends AbstractPromqlPlanOptimizerT
     public void testScalarOverMaxOfWithoutProducesScalarOutput() {
         var plan = planPromql("PROMQL index=k8s step=1h result=(scalar(max(sum without (pod, region) (avg_over_time(network.cost[1h])))))");
         assertThat(plan.output().stream().map(Attribute::name).toList(), equalTo(List.of("result", "step")));
+    }
+
+    public void testWithoutGroupingSupportsPrometheusPassthroughLabelFieldNames() {
+        // Passthrough root alias: bare PromQL label resolves to `foo` and excludes that name.
+        assertThat(withoutFields(prometheusPassthroughWithoutPlan("foo")), equalTo(Set.of("foo")));
+
+        // Stored path still resolves and TimeSeriesWithout emits both forms for TSDB metadata.
+        assertThat(withoutFields(prometheusPassthroughWithoutPlan("labels.foo")), equalTo(Set.of("foo", "labels.foo")));
+    }
+
+    private static LogicalPlan prometheusPassthroughWithoutPlan(String label) {
+        return logicalOptimizerWithLatestVersion.optimize(
+            prometheusPassthroughAnalyzer().query("PROMQL index=prometheus step=1h result=(sum without (" + label + ") (metric))")
+        );
+    }
+
+    private static Set<String> withoutFields(LogicalPlan plan) {
+        var timeSeriesMetadata = plan.collect(EsRelation.class)
+            .stream()
+            .flatMap(relation -> relation.output().stream())
+            .filter(TimeSeriesMetadataAttribute.class::isInstance)
+            .map(TimeSeriesMetadataAttribute.class::cast)
+            .findFirst()
+            .orElse(null);
+        assertNotNull(timeSeriesMetadata);
+        return timeSeriesMetadata.withoutFields();
+    }
+
+    private static TestAnalyzer prometheusPassthroughAnalyzer() {
+        return analyzerWithEnrichPolicies().addIndex(
+            EsIndexGenerator.esIndex("prometheus", prometheusPassthroughMapping(), Map.of("prometheus", IndexMode.TIME_SERIES))
+        );
+    }
+
+    /**
+     * Prometheus-style index: stored label dimensions under {@code labels.*} plus passthrough root aliases.
+     */
+    private static Map<String, EsField> prometheusPassthroughMapping() {
+        KeywordEsField foo = dimensionKeyword("foo");
+        KeywordEsField bar = dimensionKeyword("bar");
+        Map<String, EsField> mapping = new LinkedHashMap<>();
+        mapping.put("@timestamp", DateEsField.dateEsField("@timestamp", Map.of(), true, EsField.TimeSeriesFieldType.NONE));
+        mapping.put("labels", new EsField("labels", OBJECT, Map.of("foo", foo, "bar", bar), false, EsField.TimeSeriesFieldType.NONE));
+        mapping.put("foo", foo);
+        mapping.put("bar", bar);
+        mapping.put("metric", new EsField("metric", DOUBLE, Map.of(), true, EsField.TimeSeriesFieldType.METRIC));
+        return mapping;
+    }
+
+    private static KeywordEsField dimensionKeyword(String name) {
+        return new KeywordEsField(name, Map.of(), true, Short.MAX_VALUE, false, false, EsField.TimeSeriesFieldType.DIMENSION);
     }
 }
