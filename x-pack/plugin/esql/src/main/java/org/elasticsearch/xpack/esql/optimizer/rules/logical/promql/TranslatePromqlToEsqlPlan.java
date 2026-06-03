@@ -7,6 +7,7 @@
 
 package org.elasticsearch.xpack.esql.optimizer.rules.logical.promql;
 
+import org.elasticsearch.common.logging.HeaderWarning;
 import org.elasticsearch.common.time.DateUtils;
 import org.elasticsearch.xpack.esql.analysis.AnalyzerContext;
 import org.elasticsearch.xpack.esql.analysis.AnalyzerRules;
@@ -23,12 +24,14 @@ import org.elasticsearch.xpack.esql.core.expression.predicate.regex.RLikePattern
 import org.elasticsearch.xpack.esql.core.tree.Source;
 import org.elasticsearch.xpack.esql.core.type.DataType;
 import org.elasticsearch.xpack.esql.expression.function.aggregate.AggregateFunction;
+import org.elasticsearch.xpack.esql.expression.function.aggregate.PrometheusHistogramQuantile;
 import org.elasticsearch.xpack.esql.expression.function.aggregate.LastOverTime;
 import org.elasticsearch.xpack.esql.expression.function.aggregate.Scalar;
 import org.elasticsearch.xpack.esql.expression.function.aggregate.TimeSeriesAggregateFunction;
 import org.elasticsearch.xpack.esql.expression.function.aggregate.Values;
 import org.elasticsearch.xpack.esql.expression.function.grouping.TStep;
 import org.elasticsearch.xpack.esql.expression.function.grouping.TimeSeriesWithout;
+import org.elasticsearch.xpack.esql.expression.function.scalar.conditional.Case;
 import org.elasticsearch.xpack.esql.expression.function.scalar.convert.ToDouble;
 import org.elasticsearch.xpack.esql.expression.function.scalar.convert.ToString;
 import org.elasticsearch.xpack.esql.expression.function.scalar.internal.PackDimension;
@@ -39,12 +42,14 @@ import org.elasticsearch.xpack.esql.expression.function.scalar.string.regex.RLik
 import org.elasticsearch.xpack.esql.expression.predicate.Predicates;
 import org.elasticsearch.xpack.esql.expression.predicate.logical.And;
 import org.elasticsearch.xpack.esql.expression.predicate.logical.Not;
+import org.elasticsearch.xpack.esql.expression.predicate.logical.Or;
 import org.elasticsearch.xpack.esql.expression.predicate.nulls.IsNotNull;
 import org.elasticsearch.xpack.esql.expression.predicate.nulls.IsNull;
 import org.elasticsearch.xpack.esql.expression.predicate.operator.arithmetic.Sub;
 import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.Equals;
 import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.GreaterThanOrEqual;
 import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.In;
+import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.InsensitiveEquals;
 import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.LessThanOrEqual;
 import org.elasticsearch.xpack.esql.expression.predicate.operator.comparison.NotEquals;
 import org.elasticsearch.xpack.esql.expression.promql.function.PromqlFunctionRegistry;
@@ -60,6 +65,7 @@ import org.elasticsearch.xpack.esql.plan.logical.Project;
 import org.elasticsearch.xpack.esql.plan.logical.TimeSeriesAggregate;
 import org.elasticsearch.xpack.esql.plan.logical.UnaryPlan;
 import org.elasticsearch.xpack.esql.plan.logical.promql.AcrossSeriesAggregate;
+import org.elasticsearch.xpack.esql.plan.logical.promql.HistogramQuantile;
 import org.elasticsearch.xpack.esql.plan.logical.promql.PromqlCommand;
 import org.elasticsearch.xpack.esql.plan.logical.promql.PromqlFunctionCall;
 import org.elasticsearch.xpack.esql.plan.logical.promql.ScalarConversionFunction;
@@ -137,6 +143,8 @@ import static org.elasticsearch.xpack.esql.expression.predicate.Predicates.combi
  * </ul>
  */
 public final class TranslatePromqlToEsqlPlan extends AnalyzerRules.ParameterizedAnalyzerRule<PromqlCommand, AnalyzerContext> {
+    private static final String PROMETHEUS_LABELS_PREFIX = "labels.";
+
     // Sentinel bounds for open-ended range queries (PROMQL step=X without explicit start/end).
     // TStep requires explicit lower and upper bounds, so we pass the widest representable range.
     // Use Instant.EPOCH / MAX_MILLIS_BEFORE_9999 instead of Long.MIN/MAX to avoid time boundary handling in the engine.
@@ -253,6 +261,7 @@ public final class TranslatePromqlToEsqlPlan extends AnalyzerRules.Parameterized
     private TranslationResult translateNode(LogicalPlan node, LogicalPlan currentPlan, TranslationContext ctx) {
         return switch (node) {
             case AcrossSeriesAggregate agg -> translateAcrossSeriesAggregate(agg, currentPlan, ctx);
+            case HistogramQuantile histogramQuantile -> translateHistogramQuantile(histogramQuantile, currentPlan, ctx);
             case ScalarConversionFunction scalar -> translateScalarConversion(scalar, currentPlan, ctx);
             case WithinSeriesAggregate withinAgg -> translateFunctionCall(withinAgg, currentPlan, ctx);
             case PromqlFunctionCall functionCall -> translateFunctionCall(functionCall, currentPlan, ctx);
@@ -355,6 +364,154 @@ public final class TranslatePromqlToEsqlPlan extends AnalyzerRules.Parameterized
             : createInnermostAggregatePlan(ctx, childResult.plan(), exportAggregateLabels, aggExpression);
 
         return new TranslationResult(resultPlan, getValueOutput(resultPlan), childResult.pendingFilter(), exportAggregateLabels);
+    }
+
+    private TranslationResult translateHistogramQuantile(
+        HistogramQuantile histogramQuantile,
+        LogicalPlan currentPlan,
+        TranslationContext ctx
+    ) {
+        TranslationContext childCtx = new TranslationContext(
+            ctx.promqlCommand,
+            ctx.analyzerContext,
+            ctx.stepBucketAlias,
+            histogramQuantileChildLabels(histogramQuantile, currentPlan)
+        );
+        TranslationResult childResult = translateNode(histogramQuantile.child(), currentPlan, childCtx);
+
+        LogicalPlan childPlan = childResult.plan();
+        boolean childAlreadyAggregated = findAggregate(childResult.plan(), Aggregate.class) != null;
+        Attribute upperBound = findClassicHistogramUpperBound(childResult.plan());
+        LabelSetSpec exportLabels;
+        if (upperBound == null) {
+            // Mirrors Prometheus, which warns and drops series whose `le` bucket label is missing.
+            // translateClassicHistogramUpperBound returns a null literal for a null bound, so the
+            // aggregator wiring below is identical to the le-present path.
+            HeaderWarning.addWarning("histogram_quantile: input vector has no le label; no buckets to evaluate");
+            exportLabels = preserveTimeseries(childResult.labelSetSpec(), histogramQuantile.child().output());
+        } else {
+            exportLabels = LabelSetSpec.without(childResult.labelSetSpec(), List.of(upperBound));
+        }
+
+        Alias upperBoundAlias = new Alias(
+            histogramQuantile.source(),
+            TemporaryNameGenerator.locallyUniqueTemporaryName(HistogramQuantile.LE_LABEL),
+            translateClassicHistogramUpperBound(histogramQuantile.source(), upperBound)
+        );
+        childPlan = new Eval(histogramQuantile.source(), childPlan, List.of(upperBoundAlias));
+
+        // The aggregator consumes bucket counts as doubles; counter buckets are frequently integer/long typed, so cast explicitly.
+        Expression count = new ToDouble(histogramQuantile.source(), childResult.expression());
+        Expression aggregateExpression = new PrometheusHistogramQuantile(
+            histogramQuantile.source(),
+            count,
+            upperBoundAlias.toAttribute(),
+            histogramQuantile.quantile()
+        );
+
+        LogicalPlan resultPlan = childAlreadyAggregated
+            ? createOuterAggregatePlan(ctx, childPlan, exportLabels, aggregateExpression)
+            : createInnermostAggregatePlan(ctx, childPlan, exportLabels, aggregateExpression);
+
+        return new TranslationResult(resultPlan, getValueOutput(resultPlan), childResult.pendingFilter(), exportLabels);
+    }
+
+    /**
+     * Ensure {@code _timeseries} survives in the exported labels.
+     * Without `le`, no {@link TimeSeriesWithout} is inserted and concrete-dimension grouping drops
+     * {@code _timeseries} from the output, yet the command wrapper still projects it. Re-add it here
+     * (when the child exposes it) like the le-present path does via excluded dimensions.
+     */
+    private static LabelSetSpec preserveTimeseries(LabelSetSpec labels, List<Attribute> childOutput) {
+        Attribute ts = LabelSetSpec.findAttributeByFieldName(childOutput, MetadataAttribute.TIMESERIES);
+        if (ts != null && LabelSetSpec.findAttributeByFieldName(labels.declared(), MetadataAttribute.TIMESERIES) == null) {
+            return LabelSetSpec.of(LabelSetSpec.unionByFieldName(labels.declared(), List.of(ts)));
+        }
+        return labels;
+    }
+
+    private static LabelSetSpec histogramQuantileChildLabels(HistogramQuantile histogramQuantile, LogicalPlan currentPlan) {
+        List<Attribute> childLabels = new ArrayList<>();
+        for (Attribute attribute : histogramQuantile.child().output()) {
+            if (MetadataAttribute.isTimeSeriesAttributeName(attribute.name()) == false) {
+                childLabels.add(attribute);
+            }
+        }
+        if (childLabels.isEmpty() == false) {
+            return LabelSetSpec.of(childLabels);
+        }
+        // Range/rate children expose only _timeseries; use index dimensions so le and other labels still group.
+        List<Attribute> dimensionLabels = new ArrayList<>();
+        currentPlan.forEachDown(
+            EsRelation.class,
+            relation -> { dimensionLabels.addAll(LabelSetSpec.dimensionAttributes(relation.output())); }
+        );
+        if (dimensionLabels.isEmpty()) {
+            return LabelSetSpec.of(histogramQuantile.child().output());
+        }
+        return LabelSetSpec.of(dimensionLabels);
+    }
+
+    private static Attribute findClassicHistogramUpperBound(LogicalPlan plan) {
+        Attribute upperBound = findAttributeByPromqlLabelName(plan.output(), HistogramQuantile.LE_LABEL);
+        if (upperBound != null) {
+            return upperBound;
+        }
+        // An already-aggregated child that no longer exposes `le` must not re-derive it from the relation,
+        // otherwise we'd resurrect a bucket label the aggregation already folded away.
+        if (findAggregate(plan, Aggregate.class) != null) {
+            return null;
+        }
+        for (EsRelation relation : plan.collect(EsRelation.class)) {
+            upperBound = findAttributeByPromqlLabelName(relation.output(), HistogramQuantile.LE_LABEL);
+            if (upperBound != null) {
+                return upperBound;
+            }
+        }
+        return null;
+    }
+
+    private static Attribute findAttributeByPromqlLabelName(List<Attribute> attributes, String labelName) {
+        for (Attribute attribute : attributes) {
+            if (promqlLabelKey(attribute).equals(labelName)) {
+                return attribute;
+            }
+        }
+        return null;
+    }
+
+    private static String promqlLabelKey(Attribute attr) {
+        String name = LabelSetSpec.fieldName(attr);
+        if (name.startsWith(PROMETHEUS_LABELS_PREFIX)) {
+            return name.substring(PROMETHEUS_LABELS_PREFIX.length());
+        }
+        return name;
+    }
+
+    private static Expression translateClassicHistogramUpperBound(Source source, Attribute upperBound) {
+        if (upperBound == null) {
+            return Literal.fromDouble(source, null);
+        }
+        Expression positiveInfinity = matchesAnyUpperBoundLiteral(source, upperBound, "+Inf", "Inf", "Infinity", "+Infinity");
+        Expression negativeInfinity = matchesAnyUpperBoundLiteral(source, upperBound, "-Inf", "-Infinity");
+        return new Case(
+            source,
+            positiveInfinity,
+            List.of(
+                Literal.fromDouble(source, Double.POSITIVE_INFINITY),
+                negativeInfinity,
+                Literal.fromDouble(source, Double.NEGATIVE_INFINITY),
+                new ToDouble(source, upperBound)
+            )
+        );
+    }
+
+    private static Expression matchesAnyUpperBoundLiteral(Source source, Attribute upperBound, String first, String... rest) {
+        Expression condition = new InsensitiveEquals(source, upperBound, Literal.keyword(source, first));
+        for (String candidate : rest) {
+            condition = new Or(source, condition, new InsensitiveEquals(source, upperBound, Literal.keyword(source, candidate)));
+        }
+        return condition;
     }
 
     /** scalar() collapse to one value per step. */
