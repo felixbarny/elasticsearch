@@ -75,7 +75,7 @@ Configure the data source through the Grafana UI or through [provisioning](https
 3. Click **Save & test**.
 
 Grafana confirms the connection, and autocompletion starts working in the query editor.
-The data source has more options than the ones above; for the authoritative steps and the full option reference, see the [Grafana Prometheus data source documentation](https://grafana.com/docs/grafana/latest/datasources/prometheus/configure/).
+The data source has more options than the ones above, including TLS and custom certificate configuration; for the authoritative steps and the full option reference, see the [Grafana Prometheus data source documentation](https://grafana.com/docs/grafana/latest/datasources/prometheus/configure/).
 
 ::::{note}
 Grafana sends Prometheus queries with `POST` by default, which {{es}} accepts on authenticated HTTPS endpoints such as {{es-serverless}}.
@@ -172,7 +172,13 @@ For metric discovery, autocompletion, or template-variable problems, check the r
     - The request might include a [query parameter {{es}} does not support yet](promql-limitations.md#promql-limitations-unsupported-query-params), which also fails with `4xx`.
     - [Instant queries](promql-limitations.md#promql-limitations-instant-query) and [staleness handling](promql-limitations.md#promql-limitations-staleness) differ from upstream Prometheus.
 
-    If the query is valid and the behavior is not explained by a documented limitation, [open an {{es}} issue](https://github.com/elastic/elasticsearch/issues) with the request and the full response body.
+    If the query is valid and the behavior is not explained by a documented limitation, [open an {{es}} issue](https://github.com/elastic/elasticsearch/issues) with the request and the full response body. Users with an Elastic subscription can alternatively [open a support case](https://support.elastic.co/).
+
+### Step 4: Troubleshoot slow or expensive queries [promql-grafana-troubleshooting-slow]
+
+PromQL queries in {{es}} are executed by the [ES|QL](../esql.md) engine.
+This means the ES|QL troubleshooting tools — including query logging — apply directly to PromQL.
+If a panel is slow or you want to trace what {{es}} executes, see [Troubleshooting ES|QL](../esql/esql-troubleshooting.md).
 
 ### Common symptoms [promql-grafana-troubleshooting-symptoms]
 

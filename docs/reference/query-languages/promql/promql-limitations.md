@@ -54,3 +54,10 @@ In this preview the `help` field is always an empty string. Help text from metri
 ## Exemplar queries (HTTP API) [promql-limitations-exemplars]
 
 `/api/v1/query_exemplars` is not implemented yet, so exemplar queries are not supported.
+
+## Frozen-tier indices [promql-limitations-frozen-tier]
+
+PromQL queries target all TSDS indices that match the configured [index scope](promql-http-api.md#promql-http-api-index-scope).
+If any of those indices are on the [frozen tier](docs-content://manage-data/lifecycle/data-tiers.md), queries become significantly slower because frozen shards are fetched from object storage on demand.
+
+There is currently no mechanism in the PromQL API or the Grafana Prometheus data source to exclude frozen-tier indices from query execution. Follow [#151770](https://github.com/elastic/elasticsearch/issues/151770) for updates.
